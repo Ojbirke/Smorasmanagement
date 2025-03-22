@@ -19,6 +19,7 @@ urlpatterns = [
     # Players
     path('players/', views.PlayerListView.as_view(), name='player-list'),
     path('players/add/', views.PlayerCreateView.as_view(), name='player-add'),
+    path('players/import-excel/', views.ImportPlayersFromExcelView.as_view(), name='import-players-excel'),
     path('players/<int:pk>/', views.PlayerDetailView.as_view(), name='player-detail'),
     path('players/<int:pk>/edit/', views.PlayerUpdateView.as_view(), name='player-edit'),
     path('players/<int:pk>/delete/', views.PlayerDeleteView.as_view(), name='player-delete'),
