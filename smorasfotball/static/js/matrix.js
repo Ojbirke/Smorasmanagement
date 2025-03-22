@@ -81,72 +81,50 @@ function renderPlayerMatrix(data, tableElementId) {
 
 /**
  * Initializes the player matrix functionality
- * @param {string} selectElementId - The ID of the team select element
  * @param {string} containerElementId - The ID of the matrix container element
  * @param {string} loadingElementId - The ID of the loading indicator element
  * @param {string} contentElementId - The ID of the content container element
  * @param {string} tableElementId - The ID of the table element
  * @param {string} noDataElementId - The ID of the no data message element
- * @param {string} titleElementId - The ID of the matrix title element
  */
 function initPlayerMatrix(
-    selectElementId, 
     containerElementId, 
     loadingElementId, 
     contentElementId, 
     tableElementId, 
-    noDataElementId,
-    titleElementId
+    noDataElementId
 ) {
-    const teamSelect = document.getElementById(selectElementId);
     const matrixContainer = document.getElementById(containerElementId);
     const matrixLoading = document.getElementById(loadingElementId);
     const matrixContent = document.getElementById(contentElementId);
     const noDataMessage = document.getElementById(noDataElementId);
-    const matrixTitle = document.getElementById(titleElementId);
     
-    if (!teamSelect) return;
+    // Show matrix container and loading
+    matrixContainer.classList.remove('d-none');
+    matrixLoading.classList.remove('d-none');
+    matrixContent.classList.add('d-none');
+    noDataMessage.classList.add('d-none');
     
-    teamSelect.addEventListener('change', function() {
-        const teamId = this.value;
-        
-        if (teamId === '') {
-            matrixContainer.classList.add('d-none');
-            noDataMessage.classList.add('d-none');
-            return;
-        }
-        
-        // Show matrix container and loading
-        matrixContainer.classList.remove('d-none');
-        matrixLoading.classList.remove('d-none');
-        matrixContent.classList.add('d-none');
-        noDataMessage.classList.add('d-none');
-        
-        // Get team name
-        const teamName = teamSelect.options[teamSelect.selectedIndex].text;
-        matrixTitle.textContent = `Player Matrix - ${teamName}`;
-        
-        // Fetch data and render matrix
-        fetchPlayerMatrixData(teamId)
-            .then(data => {
-                if (!data.players || data.players.length === 0) {
-                    matrixContainer.classList.add('d-none');
-                    noDataMessage.classList.remove('d-none');
-                    return;
-                }
-                
-                renderPlayerMatrix(data, tableElementId);
-                
-                // Show matrix content
-                matrixLoading.classList.add('d-none');
-                matrixContent.classList.remove('d-none');
-            })
-            .catch(error => {
-                console.error('Error fetching matrix data:', error);
+    // Fetch data and render matrix
+    fetchPlayerMatrixData()
+        .then(data => {
+            if (!data.players || data.players.length === 0) {
                 matrixContainer.classList.add('d-none');
                 noDataMessage.classList.remove('d-none');
-            });
-    });
+                return;
+            }
+            
+            renderPlayerMatrix(data, tableElementId);
+            
+            // Show matrix content
+            matrixLoading.classList.add('d-none');
+            matrixContent.classList.remove('d-none');
+        })
+        .catch(error => {
+            console.error('Error fetching matrix data:', error);
+            matrixContainer.classList.add('d-none');
+            noDataMessage.classList.remove('d-none');
+        });
 }
 
 // Export functions for use in other modules
