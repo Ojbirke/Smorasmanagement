@@ -9,25 +9,15 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <p class="card-text">
-                This matrix shows which players have played together in matches. 
-                Select a team to view the matrix for players in that team.
+                This matrix shows which players have played together in matches across all teams.
+                The darker green cells indicate players who have played together more frequently.
             </p>
-            
-            <div class="mb-3">
-                <label for="teamSelect" class="form-label">Select Team:</label>
-                <select id="teamSelect" class="form-select">
-                    <option value="">-- Select a team --</option>
-                    {% for team in teams %}
-                    <option value="{{ team.id }}">{{ team.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
         </div>
     </div>
     
-    <div id="matrixContainer" class="card shadow-sm d-none">
+    <div id="matrixContainer" class="card shadow-sm">
         <div class="card-header bg-light">
-            <h5 id="matrixTitle" class="mb-0">Player Matrix</h5>
+            <h5 id="matrixTitle" class="mb-0">Player Collaboration Matrix</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -56,96 +46,89 @@
 <script src="/static/js/matrix.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const teamSelect = document.getElementById('teamSelect');
         const matrixContainer = document.getElementById('matrixContainer');
-        const matrixTitle = document.getElementById('matrixTitle');
         const matrixLoading = document.getElementById('matrixLoading');
         const matrixContent = document.getElementById('matrixContent');
         const playerMatrix = document.getElementById('playerMatrix');
         const noDataMessage = document.getElementById('noDataMessage');
         
-        // Function to create a color gradient based on value
+        // Function to create a green color gradient based on value
         function getColorShade(value, max) {
-            if (value === 0) return '#f8f9fa';
-            const intensity = Math.min(Math.max(value / max, 0.1), 1);
-            return `rgba(0, 123, 255, ${intensity})`;
+            if (value === 0) return '#f8f9fa'; // Light gray for zero
+            
+            // Calculate a scale from 0-10 based on the value relative to max
+            const scale = Math.min(Math.floor((value / max) * 10) + 1, 10);
+            return `green-scale-${scale}`;
         }
         
-        teamSelect.addEventListener('change', function() {
-            const teamId = this.value;
-            
-            if (teamId === '') {
-                matrixContainer.classList.add('d-none');
-                noDataMessage.classList.add('d-none');
-                return;
-            }
-            
-            // Show matrix container and loading
-            matrixContainer.classList.remove('d-none');
-            matrixLoading.classList.remove('d-none');
-            matrixContent.classList.add('d-none');
-            noDataMessage.classList.add('d-none');
-            
-            // Get team name
-            const teamName = teamSelect.options[teamSelect.selectedIndex].text;
-            matrixTitle.textContent = `Player Matrix - ${teamName}`;
-            
-            // Fetch player data for the team
-            fetch(`/team/api/player-stats/?team_id=${teamId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Process data and create matrix
-                    if (!data.players || data.players.length === 0) {
-                        matrixContainer.classList.add('d-none');
-                        noDataMessage.classList.remove('d-none');
-                        return;
-                    }
-                    
-                    const players = data.players;
-                    const matrix = data.matrix;
-                    const maxValue = data.max_value || 1;
-                    
-                    // Generate table HTML
-                    let tableHTML = '<thead><tr><th></th>';
-                    
-                    // Add header row with player names
-                    players.forEach(player => {
-                        tableHTML += `<th>${player.first_name}</th>`;
-                    });
-                    tableHTML += '</tr></thead><tbody>';
-                    
-                    // Add rows for each player
-                    players.forEach((player, rowIndex) => {
-                        tableHTML += `<tr><th>${player.first_name}</th>`;
-                        
-                        // Add cells for each player
-                        players.forEach((_, colIndex) => {
-                            const value = matrix[rowIndex][colIndex];
-                            const bgColor = getColorShade(value, maxValue);
-                            tableHTML += `<td style="background-color: ${bgColor};" title="${value} matches together">${value}</td>`;
-                        });
-                        
-                        tableHTML += '</tr>';
-                    });
-                    
-                    tableHTML += '</tbody>';
-                    playerMatrix.innerHTML = tableHTML;
-                    
-                    // Show matrix content
-                    matrixLoading.classList.add('d-none');
-                    matrixContent.classList.remove('d-none');
-                })
-                .catch(error => {
-                    console.error('Error fetching matrix data:', error);
+        // Show loading
+        matrixLoading.classList.remove('d-none');
+        matrixContent.classList.add('d-none');
+        noDataMessage.classList.add('d-none');
+        
+        // Fetch player data for all players
+        fetch(`/team/api/player-matrix/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Process data and create matrix
+                if (!data.players || data.players.length === 0) {
                     matrixContainer.classList.add('d-none');
                     noDataMessage.classList.remove('d-none');
+                    return;
+                }
+                
+                const players = data.players;
+                const matrix = data.matrix;
+                const maxValue = data.max_value || 1;
+                
+                // Generate table HTML
+                let tableHTML = '<thead><tr><th></th>';
+                
+                // Add header row with player names (first name + first letter of last name)
+                players.forEach(player => {
+                    const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+                    tableHTML += `<th>${displayName}</th>`;
                 });
-        });
+                tableHTML += '</tr></thead><tbody>';
+                
+                // Add rows for each player
+                players.forEach((player, rowIndex) => {
+                    const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+                    tableHTML += `<tr><th>${displayName}</th>`;
+                    
+                    // Add cells for each player
+                    players.forEach((otherPlayer, colIndex) => {
+                        const value = matrix[rowIndex][colIndex];
+                        const bgColor = getColorShade(value, maxValue);
+                        const fullName1 = `${player.first_name} ${player.last_name || ''}`.trim();
+                        const fullName2 = `${otherPlayer.first_name} ${otherPlayer.last_name || ''}`.trim();
+                        const title = value === 1 ? 
+                            `${fullName1} played with ${fullName2} in ${value} match` : 
+                            `${fullName1} played with ${fullName2} in ${value} matches`;
+                        
+                        tableHTML += `<td class="${bgColor}" title="${title}">${value}</td>`;
+                    });
+                    
+                    tableHTML += '</tr>';
+                });
+                
+                tableHTML += '</tbody>';
+                playerMatrix.innerHTML = tableHTML;
+                
+                // Show matrix content
+                matrixLoading.classList.add('d-none');
+                matrixContent.classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error fetching matrix data:', error);
+                matrixContainer.classList.add('d-none');
+                noDataMessage.classList.remove('d-none');
+            });
     });
 </script>
 {% endblock %}
@@ -154,8 +137,8 @@
 <style>
     .matrix-table th, .matrix-table td {
         text-align: center;
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
         font-size: 14px;
     }
     
@@ -164,6 +147,7 @@
         position: sticky;
         top: 0;
         z-index: 1;
+        font-weight: 600;
     }
     
     .matrix-table th:first-child {
@@ -175,5 +159,23 @@
     .matrix-table thead tr th:first-child {
         z-index: 3;
     }
+    
+    .matrix-table td:hover {
+        outline: 2px solid #198754;
+        outline-offset: -2px;
+    }
+
+    /* Custom green color scale for the matrix cells */
+    .green-scale-0 { background-color: #f8f9fa; }
+    .green-scale-1 { background-color: rgba(40, 167, 69, 0.1); }
+    .green-scale-2 { background-color: rgba(40, 167, 69, 0.2); }
+    .green-scale-3 { background-color: rgba(40, 167, 69, 0.3); }
+    .green-scale-4 { background-color: rgba(40, 167, 69, 0.4); }
+    .green-scale-5 { background-color: rgba(40, 167, 69, 0.5); }
+    .green-scale-6 { background-color: rgba(40, 167, 69, 0.6); }
+    .green-scale-7 { background-color: rgba(40, 167, 69, 0.7); }
+    .green-scale-8 { background-color: rgba(40, 167, 69, 0.8); }
+    .green-scale-9 { background-color: rgba(40, 167, 69, 0.9); }
+    .green-scale-10 { background-color: rgba(40, 167, 69, 1.0); }
 </style>
 {% endblock %}

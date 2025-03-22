@@ -35,4 +35,5 @@ urlpatterns = [
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),
     path('api/match-stats/', views.match_stats, name='match-stats'),
+    path('api/player-matrix/', views.player_matrix, name='player-matrix'),
 ]

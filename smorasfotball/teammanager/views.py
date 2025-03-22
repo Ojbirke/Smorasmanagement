@@ -229,3 +229,61 @@ def match_stats(request):
         })
     
     return JsonResponse(stats, safe=False)
+
+
+@login_required
+def player_matrix(request):
+    """
+    API endpoint that returns player matrix data for all players
+    showing how often players have played together in matches.
+    """
+    # Get all active players
+    players = Player.objects.filter(active=True)
+    players_data = list(players.values('id', 'first_name', 'last_name'))
+    
+    # Initialize matrix with zeros
+    player_count = len(players)
+    matrix = [[0 for _ in range(player_count)] for _ in range(player_count)]
+    
+    # Map player IDs to matrix indices
+    player_indices = {player['id']: idx for idx, player in enumerate(players_data)}
+    
+    # Populate matrix: For each match, find all pairs of players who played together
+    matches = Match.objects.all()
+    max_value = 0
+    
+    for match in matches:
+        # Get players who played in this match
+        match_player_ids = list(match.players.values_list('id', flat=True))
+        
+        # For each pair of players in this match, increment their count
+        for i, player_id1 in enumerate(match_player_ids):
+            if player_id1 in player_indices:
+                idx1 = player_indices[player_id1]
+                
+                # Diagonal counts (player with themselves) - total matches for this player
+                matrix[idx1][idx1] += 1
+                if matrix[idx1][idx1] > max_value:
+                    max_value = matrix[idx1][idx1]
+                
+                # Count pairs of players who played together
+                for player_id2 in match_player_ids[i+1:]:
+                    if player_id2 in player_indices:
+                        idx2 = player_indices[player_id2]
+                        
+                        # Increment both positions (the matrix is symmetric)
+                        matrix[idx1][idx2] += 1
+                        matrix[idx2][idx1] += 1
+                        
+                        # Update max value for color scaling
+                        if matrix[idx1][idx2] > max_value:
+                            max_value = matrix[idx1][idx2]
+    
+    # Prepare response
+    response_data = {
+        'players': players_data,
+        'matrix': matrix,
+        'max_value': max_value
+    }
+    
+    return JsonResponse(response_data)
