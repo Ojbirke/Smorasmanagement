@@ -14,9 +14,10 @@
     /* Matrix styles */
     .matrix-table th, .matrix-table td {
         text-align: center;
-        width: 40px;
-        height: 40px;
-        font-size: 14px;
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+        padding: 2px;
     }
     
     .matrix-table th {
@@ -50,51 +51,53 @@
         border-radius: 0.25rem;
     }
     
-    /* Custom green color scale for the matrix cells */
+    /* Custom green color scale for the matrix cells, with stronger contrasts */
     .green-scale-0 { 
         background-color: #f8f9fa; 
         color: #adb5bd;
     }
     .green-scale-1 { 
-        background-color: #e6f3ea; 
+        background-color: #eaf5ed; 
         color: #495057;
     }
     .green-scale-2 { 
-        background-color: #d1e7d8; 
+        background-color: #d5ead9; 
         color: #495057;
     }
     .green-scale-3 { 
-        background-color: #badcc7; 
+        background-color: #b6ddc1; 
         color: #495057;
     }
     .green-scale-4 { 
-        background-color: #a3d0b5; 
+        background-color: #8ecfa0; 
         color: #212529;
     }
     .green-scale-5 { 
-        background-color: #8bc5a3; 
+        background-color: #75c289; 
         color: #212529;
     }
     .green-scale-6 { 
-        background-color: #73b992; 
-        color: #212529;
+        background-color: #5cb674; 
+        color: #fff;
     }
     .green-scale-7 { 
-        background-color: #5cae80; 
+        background-color: #42a95f; 
         color: #fff;
     }
     .green-scale-8 { 
-        background-color: #44a26e; 
+        background-color: #309c4c; 
         color: #fff;
     }
     .green-scale-9 { 
-        background-color: #2d975c; 
-        color: #fff;
-    }
-    .green-scale-10 { 
-        background-color: #168b4a; 
+        background-color: #1c8f38; 
         color: #fff;
         font-weight: bold;
+    }
+    .green-scale-10 { 
+        background-color: #0a8127; 
+        color: #fff;
+        font-weight: bold;
+        text-shadow: 0px 0px 1px rgba(0,0,0,0.3);
     }
 </style>
 {% endblock %}
@@ -391,8 +394,10 @@
         function getColorShade(value, max) {
             if (value === 0) return 'green-scale-0'; // Light gray for zero
             
-            // Calculate intensity on a scale of 0-10
-            const intensity = Math.min(Math.ceil((value / max) * 10), 10);
+            // Use a stronger, more exponential curve for color intensity 
+            // to better highlight differences at the higher end
+            const factor = Math.pow(value / max, 0.7); // Using exponent < 1 gives more weight to higher values
+            const intensity = Math.min(Math.ceil(factor * 10), 10);
             
             // Use predefined CSS classes for better coloring
             return `green-scale-${intensity}`;
@@ -436,16 +441,16 @@
                     // Generate table HTML
                     let tableHTML = '<thead><tr><th></th>';
                     
-                    // Add header row with player names (first name + first letter of last name)
+                    // Add header row with only first names for cleaner display
                     players.forEach(player => {
-                        const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+                        const displayName = player.first_name;
                         tableHTML += `<th>${displayName}</th>`;
                     });
                     tableHTML += '</tr></thead><tbody>';
                     
                     // Add rows for each player
                     players.forEach((player, rowIndex) => {
-                        const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+                        const displayName = player.first_name;
                         tableHTML += `<tr><th>${displayName}</th>`;
                         
                         // Add cells for each player
