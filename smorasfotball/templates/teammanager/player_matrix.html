@@ -56,9 +56,9 @@
         function getColorShade(value, max) {
             if (value === 0) return '#f8f9fa'; // Light gray for zero
             
-            // Calculate a scale from 0-10 based on the value relative to max
-            const scale = Math.min(Math.floor((value / max) * 10) + 1, 10);
-            return `green-scale-${scale}`;
+            // Calculate a color from light green to dark green based on value
+            const intensity = Math.min(Math.floor((value / max) * 100), 100);
+            return `rgba(40, 167, 69, ${intensity/100})`;
         }
         
         // Show loading
@@ -111,7 +111,7 @@
                             `${fullName1} played with ${fullName2} in ${value} match` : 
                             `${fullName1} played with ${fullName2} in ${value} matches`;
                         
-                        tableHTML += `<td class="${bgColor}" title="${title}">${value}</td>`;
+                        tableHTML += `<td style="background-color: ${bgColor}" title="${title}">${value}</td>`;
                     });
                     
                     tableHTML += '</tr>';
