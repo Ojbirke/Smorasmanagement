@@ -7,7 +7,7 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'match-list' %}">Matches</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'match-detail' match.id %}">{{ match.home_team }} vs {{ match.away_team }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'match-detail' match.id %}">{{ match.smoras_team.name }} vs {{ match.opponent_name }}</a></li>
             <li class="breadcrumb-item active">Add Players</li>
         </ol>
     </nav>
@@ -26,12 +26,12 @@
                             <span>{{ match.date|date:"F d, Y H:i" }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong>Home Team:</strong>
-                            <span>{{ match.home_team.name }}</span>
+                            <strong>Smørås Team:</strong>
+                            <span>{{ match.smoras_team.name }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong>Away Team:</strong>
-                            <span>{{ match.away_team.name }}</span>
+                            <strong>Opponent:</strong>
+                            <span>{{ match.opponent_name }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong>Selected Team:</strong>

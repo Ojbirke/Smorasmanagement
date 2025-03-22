@@ -11,7 +11,7 @@
                     <h3 class="mb-0">Update Match Score</h3>
                 </div>
                 <div class="card-body">
-                    <h5 class="text-center mb-4">{{ match.home_team.name }} vs {{ match.away_team.name }}</h5>
+                    <h5 class="text-center mb-4">{{ match.smoras_team.name }} vs {{ match.opponent_name }}</h5>
                     
                     <form method="post">
                         {% csrf_token %}
@@ -19,15 +19,15 @@
                         <div class="row mb-4">
                             <div class="col-5">
                                 <div class="text-center mb-2">
-                                    <strong>{{ match.home_team.name }}</strong>
+                                    <strong>{{ match.smoras_team.name }}</strong>
                                 </div>
-                                <input type="number" name="{{ form.home_score.html_name }}" 
-                                       class="form-control form-control-lg text-center {% if form.home_score.errors %}is-invalid{% endif %}" 
-                                       id="{{ form.home_score.id_for_label }}" 
-                                       value="{{ form.home_score.value|default:0 }}" min="0">
-                                {% if form.home_score.errors %}
+                                <input type="number" name="{{ form.smoras_score.html_name }}" 
+                                       class="form-control form-control-lg text-center {% if form.smoras_score.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.smoras_score.id_for_label }}" 
+                                       value="{{ form.smoras_score.value|default:0 }}" min="0">
+                                {% if form.smoras_score.errors %}
                                 <div class="invalid-feedback">
-                                    {{ form.home_score.errors.0 }}
+                                    {{ form.smoras_score.errors.0 }}
                                 </div>
                                 {% endif %}
                             </div>
@@ -38,15 +38,15 @@
                             
                             <div class="col-5">
                                 <div class="text-center mb-2">
-                                    <strong>{{ match.away_team.name }}</strong>
+                                    <strong>{{ match.opponent_name }}</strong>
                                 </div>
-                                <input type="number" name="{{ form.away_score.html_name }}" 
-                                       class="form-control form-control-lg text-center {% if form.away_score.errors %}is-invalid{% endif %}" 
-                                       id="{{ form.away_score.id_for_label }}" 
-                                       value="{{ form.away_score.value|default:0 }}" min="0">
-                                {% if form.away_score.errors %}
+                                <input type="number" name="{{ form.opponent_score.html_name }}" 
+                                       class="form-control form-control-lg text-center {% if form.opponent_score.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.opponent_score.id_for_label }}" 
+                                       value="{{ form.opponent_score.value|default:0 }}" min="0">
+                                {% if form.opponent_score.errors %}
                                 <div class="invalid-feedback">
-                                    {{ form.away_score.errors.0 }}
+                                    {{ form.opponent_score.errors.0 }}
                                 </div>
                                 {% endif %}
                             </div>
