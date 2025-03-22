@@ -2,9 +2,7 @@ from django.contrib import admin
 from .models import Team, Player, Match, MatchAppearance
 
 
-class PlayerInline(admin.TabularInline):
-    model = Player
-    extra = 1
+# We don't need PlayerInline anymore since Player doesn't have a ForeignKey to Team
 
 
 class MatchAppearanceInline(admin.TabularInline):
@@ -16,17 +14,17 @@ class MatchAppearanceInline(admin.TabularInline):
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'player_count', 'created_at')
     search_fields = ('name',)
-    inlines = [PlayerInline]
     
     def player_count(self, obj):
-        return obj.players.count()
+        # Count players who have appeared for this team in any match
+        return Player.objects.filter(match_appearances__team=obj).distinct().count()
     player_count.short_description = 'Number of Players'
 
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'team', 'position', 'active', 'total_matches')
-    list_filter = ('team', 'active', 'position')
+    list_display = ('first_name', 'last_name', 'position', 'active', 'total_matches')
+    list_filter = ('active', 'position')
     search_fields = ('first_name', 'last_name')
     
     def total_matches(self, obj):

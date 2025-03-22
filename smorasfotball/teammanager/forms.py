@@ -21,7 +21,7 @@ class TeamForm(forms.ModelForm):
 class PlayerForm(forms.ModelForm):
     class Meta:
         model = Player
-        fields = ['first_name', 'last_name', 'team', 'position', 'date_of_birth', 'email', 'phone', 'active']
+        fields = ['first_name', 'last_name', 'position', 'date_of_birth', 'email', 'phone', 'active']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
@@ -61,9 +61,17 @@ class MatchAppearanceFormSet(forms.BaseModelFormSet):
 class PlayerSelectionForm(forms.Form):
     def __init__(self, match, team, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        team_players = Player.objects.filter(team=team, active=True)
+        # Get all active players since they aren't assigned to teams anymore
+        all_active_players = Player.objects.filter(active=True)
+        
+        # Get players already assigned to any team in this match
+        existing_player_ids = MatchAppearance.objects.filter(match=match).values_list('player_id', flat=True)
+        
+        # Filter out players already assigned to any team in this match
+        available_players = all_active_players.exclude(id__in=existing_player_ids)
+        
         self.fields['players'] = forms.ModelMultipleChoiceField(
-            queryset=team_players,
+            queryset=available_players,
             widget=forms.CheckboxSelectMultiple,
             required=False
         )

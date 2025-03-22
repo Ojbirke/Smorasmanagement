@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, F
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
@@ -53,7 +53,8 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['players'] = self.object.players.all()
+        # Get players who have played for this team in any match
+        context['players'] = Player.objects.filter(match_appearances__team=self.object).distinct()
         context['home_matches'] = self.object.home_matches.order_by('-date')
         context['away_matches'] = self.object.away_matches.order_by('-date')
         return context
@@ -211,14 +212,14 @@ def match_stats(request):
         home_matches = team.home_matches.filter(home_score__isnull=False)
         away_matches = team.away_matches.filter(away_score__isnull=False)
         
-        wins = home_matches.filter(home_score__gt=models.F('away_score')).count() + \
-               away_matches.filter(away_score__gt=models.F('home_score')).count()
+        wins = home_matches.filter(home_score__gt=F('away_score')).count() + \
+               away_matches.filter(away_score__gt=F('home_score')).count()
         
-        draws = home_matches.filter(home_score=models.F('away_score')).count() + \
-                away_matches.filter(away_score=models.F('home_score')).count()
+        draws = home_matches.filter(home_score=F('away_score')).count() + \
+                away_matches.filter(away_score=F('home_score')).count()
         
-        losses = home_matches.filter(home_score__lt=models.F('away_score')).count() + \
-                 away_matches.filter(away_score__lt=models.F('home_score')).count()
+        losses = home_matches.filter(home_score__lt=F('away_score')).count() + \
+                 away_matches.filter(away_score__lt=F('home_score')).count()
         
         stats.append({
             'team': team.name,
