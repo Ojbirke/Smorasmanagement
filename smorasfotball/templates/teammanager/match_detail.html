@@ -7,7 +7,7 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'match-list' %}">Matches</a></li>
-            <li class="breadcrumb-item active">{{ match.home_team }} vs {{ match.away_team }}</li>
+            <li class="breadcrumb-item active">{{ match.smoras_team.name }} vs {{ match.opponent_name }}</li>
         </ol>
     </nav>
     
@@ -31,14 +31,14 @@
                 <div class="col-md-8">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div class="text-center">
-                            <h5><a href="{% url 'team-detail' match.home_team.id %}">{{ match.home_team.name }}</a></h5>
-                            <span class="badge bg-primary">Home</span>
+                            <h5><a href="{% url 'team-detail' match.smoras_team.id %}">{{ match.smoras_team.name }}</a></h5>
+                            <span class="badge bg-primary">Smørås</span>
                         </div>
                         
                         <div class="text-center">
                             <h2 class="mb-0">
-                                {% if match.home_score is not None and match.away_score is not None %}
-                                    {{ match.home_score }} - {{ match.away_score }}
+                                {% if match.smoras_score is not None and match.opponent_score is not None %}
+                                    {{ match.smoras_score }} - {{ match.opponent_score }}
                                 {% else %}
                                     vs
                                 {% endif %}
@@ -47,8 +47,8 @@
                         </div>
                         
                         <div class="text-center">
-                            <h5><a href="{% url 'team-detail' match.away_team.id %}">{{ match.away_team.name }}</a></h5>
-                            <span class="badge bg-secondary">Away</span>
+                            <h5>{{ match.opponent_name }}</h5>
+                            <span class="badge bg-secondary">Opponent</span>
                         </div>
                     </div>
                     
@@ -56,8 +56,8 @@
                         <div class="col-md-6 mb-3">
                             <div class="card h-100">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0">{{ match.home_team.name }} Players</h6>
-                                    <a href="{% url 'add-players-to-match' match.id match.home_team.id %}" class="btn btn-sm btn-outline-primary">
+                                    <h6 class="mb-0">{{ match.smoras_team.name }} Players</h6>
+                                    <a href="{% url 'add-players-to-match' match.id match.smoras_team.id %}" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-user-plus"></i>
                                     </a>
                                 </div>
@@ -90,7 +90,7 @@
                                     {% else %}
                                     <div class="text-center py-3">
                                         <p class="text-muted mb-0">No players added</p>
-                                        <a href="{% url 'add-players-to-match' match.id match.home_team.id %}" class="btn btn-sm btn-outline-primary mt-2">
+                                        <a href="{% url 'add-players-to-match' match.id match.smoras_team.id %}" class="btn btn-sm btn-outline-primary mt-2">
                                             Add Players
                                         </a>
                                     </div>
@@ -101,11 +101,8 @@
                         
                         <div class="col-md-6 mb-3">
                             <div class="card h-100">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0">{{ match.away_team.name }} Players</h6>
-                                    <a href="{% url 'add-players-to-match' match.id match.away_team.id %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-user-plus"></i>
-                                    </a>
+                                <div class="card-header">
+                                    <h6 class="mb-0">{{ match.opponent_name }} (Opponent)</h6>
                                 </div>
                                 <div class="card-body">
                                     {% if away_appearances %}
@@ -135,10 +132,7 @@
                                     </ul>
                                     {% else %}
                                     <div class="text-center py-3">
-                                        <p class="text-muted mb-0">No players added</p>
-                                        <a href="{% url 'add-players-to-match' match.id match.away_team.id %}" class="btn btn-sm btn-outline-primary mt-2">
-                                            Add Players
-                                        </a>
+                                        <p class="text-muted mb-0">No external players added</p>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -168,7 +162,7 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong>Status:</strong>
                             <span>
-                                {% if match.home_score is not None and match.away_score is not None %}
+                                {% if match.smoras_score is not None and match.opponent_score is not None %}
                                     <span class="badge bg-success">Played</span>
                                 {% else %}
                                     <span class="badge bg-warning text-dark">Pending</span>

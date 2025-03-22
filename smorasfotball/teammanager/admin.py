@@ -35,8 +35,8 @@ class PlayerAdmin(admin.ModelAdmin):
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'date', 'match_type', 'get_result')
-    list_filter = ('match_type', 'date', 'home_team', 'away_team')
-    search_fields = ('home_team__name', 'away_team__name', 'location')
+    list_filter = ('match_type', 'date', 'smoras_team', 'location_type')
+    search_fields = ('smoras_team__name', 'opponent_name', 'location')
     inlines = [MatchAppearanceInline]
 
 
@@ -44,4 +44,4 @@ class MatchAdmin(admin.ModelAdmin):
 class MatchAppearanceAdmin(admin.ModelAdmin):
     list_display = ('player', 'match', 'team', 'minutes_played', 'goals', 'assists')
     list_filter = ('team', 'goals', 'assists', 'yellow_cards', 'red_card')
-    search_fields = ('player__first_name', 'player__last_name', 'match__home_team__name', 'match__away_team__name')
+    search_fields = ('player__first_name', 'player__last_name', 'match__smoras_team__name', 'match__opponent_name')

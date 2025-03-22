@@ -30,16 +30,29 @@ class PlayerForm(forms.ModelForm):
 class MatchForm(forms.ModelForm):
     class Meta:
         model = Match
-        fields = ['home_team', 'away_team', 'date', 'location', 'match_type', 'notes']
+        fields = ['smoras_team', 'opponent_name', 'location_type', 'date', 'location', 'match_type', 'notes']
         widgets = {
             'date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+        labels = {
+            'smoras_team': 'Smørås Team',
+            'opponent_name': 'Opponent Name',
+            'location_type': 'Match Location',
+        }
+        help_texts = {
+            'location_type': 'Select whether the match is at home, away, or a neutral venue',
+            'opponent_name': 'Name of the opponent team (no need to create them as a team)',
         }
 
 
 class MatchScoreForm(forms.ModelForm):
     class Meta:
         model = Match
-        fields = ['home_score', 'away_score']
+        fields = ['smoras_score', 'opponent_score']
+        labels = {
+            'smoras_score': 'Smørås Score',
+            'opponent_score': 'Opponent Score',
+        }
 
 
 class MatchAppearanceForm(forms.ModelForm):
@@ -61,19 +74,25 @@ class MatchAppearanceFormSet(forms.BaseModelFormSet):
 class PlayerSelectionForm(forms.Form):
     def __init__(self, match, team, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Get all active players since they aren't assigned to teams anymore
+        # Get all active players
         all_active_players = Player.objects.filter(active=True)
         
-        # Get players already assigned to any team in this match
+        # Get players already assigned to this match
         existing_player_ids = MatchAppearance.objects.filter(match=match).values_list('player_id', flat=True)
         
-        # Filter out players already assigned to any team in this match
-        available_players = all_active_players.exclude(id__in=existing_player_ids)
+        # Either show all players not yet in this match, or pre-selected if viewing existing players
+        if kwargs.get('initial') and kwargs['initial'].get('players'):
+            # Form is being used to edit existing selections
+            available_players = all_active_players
+        else:
+            # Form is being used to add new players
+            available_players = all_active_players.exclude(id__in=existing_player_ids)
         
         self.fields['players'] = forms.ModelMultipleChoiceField(
             queryset=available_players,
             widget=forms.CheckboxSelectMultiple,
-            required=False
+            required=False,
+            label=f"Select players for this match"
         )
         self.match = match
         self.team = team

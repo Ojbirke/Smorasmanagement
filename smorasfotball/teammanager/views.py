@@ -237,8 +237,11 @@ class MatchDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['home_appearances'] = self.object.appearances.filter(team=self.object.home_team)
-        context['away_appearances'] = self.object.appearances.filter(team=self.object.away_team)
+        # Get appearances for the Smørås team
+        context['home_appearances'] = self.object.appearances.filter(team=self.object.smoras_team)
+        # Get appearances for any other teams (external players)
+        context['away_appearances'] = self.object.appearances.exclude(team=self.object.smoras_team)
+        context['is_home_match'] = self.object.location_type == 'Home'
         return context
 
 
@@ -273,8 +276,8 @@ def add_players_to_match(request, match_id, team_id):
     match = get_object_or_404(Match, pk=match_id)
     team = get_object_or_404(Team, pk=team_id)
     
-    # Verify that the team is either the home or away team
-    if match.home_team.id != team.id and match.away_team.id != team.id:
+    # Verify that the team is the Smørås team
+    if match.smoras_team.id != team.id:
         return redirect('match-detail', pk=match_id)
     
     if request.method == 'POST':
@@ -300,11 +303,14 @@ def add_players_to_match(request, match_id, team_id):
         )
         form = PlayerSelectionForm(match, team, initial={'players': initial_players})
     
-    return render(request, 'teammanager/add_players_to_match.html', {
+    context = {
         'form': form,
         'match': match,
-        'team': team
-    })
+        'team': team,
+        'opponent_name': match.opponent_name
+    }
+    
+    return render(request, 'teammanager/add_players_to_match.html', context)
 
 
 # API Views for Chart Data
@@ -325,17 +331,13 @@ def match_stats(request):
     stats = []
     
     for team in teams:
-        home_matches = team.home_matches.filter(home_score__isnull=False)
-        away_matches = team.away_matches.filter(away_score__isnull=False)
+        # Get all matches where this team is the Smørås team
+        team_matches = team.matches.filter(smoras_score__isnull=False, opponent_score__isnull=False)
         
-        wins = home_matches.filter(home_score__gt=F('away_score')).count() + \
-               away_matches.filter(away_score__gt=F('home_score')).count()
-        
-        draws = home_matches.filter(home_score=F('away_score')).count() + \
-                away_matches.filter(away_score=F('home_score')).count()
-        
-        losses = home_matches.filter(home_score__lt=F('away_score')).count() + \
-                 away_matches.filter(away_score__lt=F('home_score')).count()
+        # Calculate wins, draws, and losses based on scores
+        wins = team_matches.filter(smoras_score__gt=F('opponent_score')).count()
+        draws = team_matches.filter(smoras_score=F('opponent_score')).count()
+        losses = team_matches.filter(smoras_score__lt=F('opponent_score')).count()
         
         stats.append({
             'team': team.name,

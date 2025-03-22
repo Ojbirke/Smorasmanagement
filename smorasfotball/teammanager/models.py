@@ -42,10 +42,25 @@ class Match(models.Model):
         ('Tournament', 'Tournament'),
     ]
     
-    home_team = models.ForeignKey(Team, related_name='home_matches', on_delete=models.CASCADE)
-    away_team = models.ForeignKey(Team, related_name='away_matches', on_delete=models.CASCADE)
-    home_score = models.PositiveIntegerField(blank=True, null=True)
-    away_score = models.PositiveIntegerField(blank=True, null=True)
+    LOCATION_CHOICES = [
+        ('Home', 'Home'),
+        ('Away', 'Away'),
+        ('Neutral', 'Neutral'),
+    ]
+    
+    # Smørås team (our team)
+    smoras_team = models.ForeignKey(Team, related_name='matches', on_delete=models.CASCADE)
+    
+    # Opponent team name (text field)
+    opponent_name = models.CharField(max_length=100)
+    
+    # Match location type (home/away/neutral)
+    location_type = models.CharField(max_length=10, choices=LOCATION_CHOICES, default='Home')
+    
+    # Scores
+    smoras_score = models.PositiveIntegerField(blank=True, null=True)
+    opponent_score = models.PositiveIntegerField(blank=True, null=True)
+    
     date = models.DateTimeField()
     location = models.CharField(max_length=100, blank=True, null=True)
     match_type = models.CharField(max_length=20, choices=MATCH_TYPE_CHOICES, default='Friendly')
@@ -54,25 +69,60 @@ class Match(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.home_team} vs {self.away_team} ({self.date.strftime('%Y-%m-%d')})"
+        if self.location_type == 'Home':
+            return f"{self.smoras_team} vs {self.opponent_name} ({self.date.strftime('%Y-%m-%d')})"
+        elif self.location_type == 'Away':
+            return f"{self.opponent_name} vs {self.smoras_team} ({self.date.strftime('%Y-%m-%d')})"
+        else:
+            return f"{self.smoras_team} vs {self.opponent_name} ({self.date.strftime('%Y-%m-%d')}) at {self.location}"
 
     def get_absolute_url(self):
         return reverse('match-detail', args=[str(self.id)])
 
     def get_result(self):
-        if self.home_score is None or self.away_score is None:
+        if self.smoras_score is None or self.opponent_score is None:
             return "Match not played yet"
-        if self.home_score > self.away_score:
-            return f"{self.home_team} won"
-        elif self.home_score < self.away_score:
-            return f"{self.away_team} won"
+        
+        if self.smoras_score > self.opponent_score:
+            return f"{self.smoras_team} won"
+        elif self.smoras_score < self.opponent_score:
+            return f"{self.opponent_name} won"
         else:
             return "Draw"
+            
+    @property
+    def home_team(self):
+        """Backward compatibility for templates"""
+        if self.location_type == 'Away':
+            return self.opponent_name
+        return self.smoras_team
+            
+    @property
+    def away_team(self):
+        """Backward compatibility for templates"""
+        if self.location_type == 'Away':
+            return self.smoras_team
+        return self.opponent_name
+        
+    @property
+    def home_score(self):
+        """Backward compatibility for templates"""
+        if self.location_type == 'Away':
+            return self.opponent_score
+        return self.smoras_score
+        
+    @property
+    def away_score(self):
+        """Backward compatibility for templates"""
+        if self.location_type == 'Away':
+            return self.smoras_score
+        return self.opponent_score
 
 
 class MatchAppearance(models.Model):
     player = models.ForeignKey(Player, related_name='match_appearances', on_delete=models.CASCADE)
     match = models.ForeignKey(Match, related_name='appearances', on_delete=models.CASCADE)
+    # Now only Smørås players can be in match appearances
     team = models.ForeignKey(Team, related_name='match_appearances', on_delete=models.CASCADE)
     minutes_played = models.PositiveIntegerField(blank=True, null=True)
     goals = models.PositiveIntegerField(default=0)
