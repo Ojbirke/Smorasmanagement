@@ -61,10 +61,10 @@
         <div class="col-md-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="mb-0">Top Players</h5>
+                    <h5 class="mb-0">Player Match Count by Team</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="topPlayersChart"></canvas>
+                    <canvas id="playerMatchesChart"></canvas>
                 </div>
             </div>
         </div>
@@ -166,43 +166,103 @@
                 });
             });
             
-        // Fetch player stats
+        // Fetch player stats for match count by team
         fetch('{% url "player-stats" %}')
             .then(response => response.json())
             .then(data => {
-                // Sort players by total goals
-                data.sort((a, b) => (b.total_goals || 0) - (a.total_goals || 0));
-                const topPlayers = data.slice(0, 5);
+                // Sort players by total matches played
+                data.sort((a, b) => (b.matches_played || 0) - (a.matches_played || 0));
+                // Get top 10 players by match count
+                const topPlayers = data.slice(0, 10);
                 
-                const playerNames = topPlayers.map(player => 
-                    player.first_name + (player.last_name ? ' ' + player.last_name : '')
+                // Create player labels
+                const playerLabels = topPlayers.map(player => 
+                    player.first_name + (player.last_name ? ' ' + player.last_name.charAt(0) + '.' : '')
                 );
-                const goals = topPlayers.map(player => player.total_goals || 0);
-                const assists = topPlayers.map(player => player.total_assists || 0);
                 
-                const ctx = document.getElementById('topPlayersChart').getContext('2d');
+                // Create datasets for each team
+                // First, collect all team names
+                const allTeams = new Set();
+                topPlayers.forEach(player => {
+                    if (player.teams) {
+                        player.teams.forEach(team => {
+                            allTeams.add(team.team__name);
+                        });
+                    }
+                });
+                
+                // Convert to array and create color mapping
+                const teamNames = Array.from(allTeams);
+                const colorPalette = [
+                    'rgba(40, 167, 69, 0.7)',    // green
+                    'rgba(0, 123, 255, 0.7)',    // blue
+                    'rgba(220, 53, 69, 0.7)',    // red
+                    'rgba(255, 193, 7, 0.7)',    // yellow
+                    'rgba(111, 66, 193, 0.7)',   // purple
+                    'rgba(23, 162, 184, 0.7)',   // cyan
+                    'rgba(108, 117, 125, 0.7)',  // gray
+                    'rgba(253, 126, 20, 0.7)',   // orange
+                    'rgba(32, 201, 151, 0.7)',   // teal
+                    'rgba(102, 16, 242, 0.7)'    // indigo
+                ];
+                
+                // Create a dataset for each team
+                const datasets = teamNames.map((teamName, index) => {
+                    // Generate data array for this team
+                    const teamData = topPlayers.map(player => {
+                        // Find matches for this player and team
+                        const teamInfo = player.teams ? 
+                            player.teams.find(t => t.team__name === teamName) : null;
+                        return teamInfo ? teamInfo.team_matches : 0;
+                    });
+                    
+                    return {
+                        label: teamName,
+                        data: teamData,
+                        backgroundColor: colorPalette[index % colorPalette.length]
+                    };
+                });
+                
+                // Create the chart
+                const ctx = document.getElementById('playerMatchesChart').getContext('2d');
                 new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: playerNames,
-                        datasets: [
-                            {
-                                label: 'Goals',
-                                data: goals,
-                                backgroundColor: 'rgba(0, 123, 255, 0.7)'
-                            },
-                            {
-                                label: 'Assists',
-                                data: assists,
-                                backgroundColor: 'rgba(23, 162, 184, 0.7)'
-                            }
-                        ]
+                        labels: playerLabels,
+                        datasets: datasets
                     },
                     options: {
                         responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Number of Matches by Player and Team'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label; // Player name
+                                    },
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.raw} matches`;
+                                    }
+                                }
+                            }
+                        },
                         scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Players'
+                                }
+                            },
                             y: {
-                                beginAtZero: true
+                                stacked: true,
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Matches'
+                                }
                             }
                         }
                     }

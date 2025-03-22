@@ -316,13 +316,29 @@ def add_players_to_match(request, match_id, team_id):
 # API Views for Chart Data
 @login_required
 def player_stats(request):
+    # Get all players with their match counts
     players = Player.objects.annotate(
         matches_played=Count('match_appearances'),
         total_goals=Sum('match_appearances__goals'),
         total_assists=Sum('match_appearances__assists')
     ).values('id', 'first_name', 'last_name', 'matches_played', 'total_goals', 'total_assists')
     
-    return JsonResponse(list(players), safe=False)
+    # Create a list to store the enriched player data with team information
+    enriched_players = []
+    
+    for player in players:
+        # For each player, get the teams they've played for and the number of matches with each team
+        player_teams = MatchAppearance.objects.filter(player_id=player['id']) \
+            .values('team__name') \
+            .annotate(team_matches=Count('match')) \
+            .order_by('-team_matches')
+        
+        # Add team data to the player record
+        player_with_teams = player.copy()
+        player_with_teams['teams'] = list(player_teams)
+        enriched_players.append(player_with_teams)
+    
+    return JsonResponse(enriched_players, safe=False)
 
 
 @login_required
