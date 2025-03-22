@@ -77,3 +77,10 @@ class PlayerSelectionForm(forms.Form):
         )
         self.match = match
         self.team = team
+
+
+class ExcelUploadForm(forms.Form):
+    excel_file = forms.FileField(
+        label='Select Excel File',
+        help_text='Upload an Excel file (.xlsx) containing player data.'
+    )

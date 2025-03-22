@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Players from Excel - Smørås Fotball{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Import Players from Excel</h1>
+            <p class="text-muted">Upload an Excel file (.xlsx) containing player data.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            {{ form.excel_file.label_tag }}
+                            {{ form.excel_file }}
+                            <div class="form-text">{{ form.excel_file.help_text }}</div>
+                            {% if form.excel_file.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.excel_file.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Upload and Import</button>
+                        <a href="{% url 'player-list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Required Column:</h6>
+                    <ul>
+                        <li><strong>first_name</strong> - Player's first name</li>
+                    </ul>
+                    
+                    <h6>Optional Columns:</h6>
+                    <ul>
+                        <li><strong>last_name</strong> - Player's last name</li>
+                        <li><strong>position</strong> - Player's position (e.g., Goalkeeper, Defender, etc.)</li>
+                        <li><strong>date_of_birth</strong> - Player's date of birth (in YYYY-MM-DD format)</li>
+                        <li><strong>email</strong> - Player's email address</li>
+                        <li><strong>phone</strong> - Player's phone number</li>
+                        <li><strong>active</strong> - Whether the player is active (Yes/No, True/False, 1/0)</li>
+                    </ul>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        Players with the same first and last name will be updated, otherwise new players will be created.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Sample Excel Format</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>first_name</th>
+                                    <th>last_name</th>
+                                    <th>position</th>
+                                    <th>active</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John</td>
+                                    <td>Doe</td>
+                                    <td>Midfielder</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Jane</td>
+                                    <td>Smith</td>
+                                    <td>Forward</td>
+                                    <td>Yes</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

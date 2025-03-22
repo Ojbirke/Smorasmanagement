@@ -5,12 +5,15 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, FormView
 from django.forms import modelformset_factory
+from django.contrib import messages
+import pandas as pd
+import datetime
 
 from .forms import (
     SignUpForm, TeamForm, PlayerForm, MatchForm, MatchScoreForm,
-    MatchAppearanceForm, PlayerSelectionForm
+    MatchAppearanceForm, PlayerSelectionForm, ExcelUploadForm
 )
 from .models import Team, Player, Match, MatchAppearance
 
@@ -81,6 +84,119 @@ class TeamDeleteView(LoginRequiredMixin, DeleteView):
 class PlayerListView(LoginRequiredMixin, ListView):
     model = Player
     context_object_name = 'players'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['excel_form'] = ExcelUploadForm()
+        return context
+
+
+class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
+    template_name = 'teammanager/import_players_excel.html'
+    form_class = ExcelUploadForm
+    success_url = reverse_lazy('player-list')
+    
+    def form_valid(self, form):
+        excel_file = self.request.FILES['excel_file']
+        
+        # Check if file is an Excel file
+        if not excel_file.name.endswith('.xlsx'):
+            messages.error(self.request, 'Please upload a valid Excel file (.xlsx)')
+            return super().form_invalid(form)
+        
+        try:
+            # Read Excel file
+            df = pd.read_excel(excel_file)
+            
+            # Expected columns
+            required_columns = ['first_name']
+            optional_columns = ['last_name', 'position', 'date_of_birth', 'email', 'phone', 'active']
+            
+            # Validate required columns
+            for col in required_columns:
+                if col not in df.columns:
+                    messages.error(self.request, f"Required column '{col}' not found in the Excel file.")
+                    return super().form_invalid(form)
+            
+            # Process data and create players
+            players_created = 0
+            players_updated = 0
+            errors = 0
+            
+            for _, row in df.iterrows():
+                if pd.isna(row['first_name']):
+                    continue  # Skip rows without a first name
+                
+                player_data = {
+                    'first_name': row['first_name']
+                }
+                
+                # Add optional fields if they exist in the file
+                for field in optional_columns:
+                    if field in df.columns and not pd.isna(row[field]):
+                        # Special handling for dates
+                        if field == 'date_of_birth' and not pd.isna(row[field]):
+                            if isinstance(row[field], datetime.datetime) or isinstance(row[field], datetime.date):
+                                player_data[field] = row[field]
+                            else:
+                                try:
+                                    # Try to parse as a date
+                                    player_data[field] = pd.to_datetime(row[field]).date()
+                                except:
+                                    # If parsing fails, skip this field
+                                    continue
+                        # Special handling for boolean values
+                        elif field == 'active':
+                            if isinstance(row[field], bool):
+                                player_data[field] = row[field]
+                            elif isinstance(row[field], str):
+                                player_data[field] = row[field].lower() in ['yes', 'true', 'y', '1']
+                            elif isinstance(row[field], (int, float)):
+                                player_data[field] = bool(row[field])
+                        else:
+                            player_data[field] = row[field]
+                
+                try:
+                    # Check if player already exists (by first and last name)
+                    if 'last_name' in player_data:
+                        existing_player = Player.objects.filter(
+                            first_name__iexact=player_data['first_name'],
+                            last_name__iexact=player_data['last_name']
+                        ).first()
+                    else:
+                        existing_player = None
+                    
+                    if existing_player:
+                        # Update existing player
+                        for key, value in player_data.items():
+                            setattr(existing_player, key, value)
+                        existing_player.save()
+                        players_updated += 1
+                    else:
+                        # Create new player
+                        Player.objects.create(**player_data)
+                        players_created += 1
+                except Exception as e:
+                    errors += 1
+                    continue
+            
+            # Display results
+            if players_created > 0:
+                messages.success(self.request, f"Successfully created {players_created} new players.")
+            if players_updated > 0:
+                messages.success(self.request, f"Successfully updated {players_updated} existing players.")
+            if errors > 0:
+                messages.warning(self.request, f"Encountered {errors} errors while processing the data.")
+            
+            if players_created == 0 and players_updated == 0:
+                messages.warning(self.request, "No players were imported. Please check your Excel file format.")
+                return super().form_invalid(form)
+                
+        except Exception as e:
+            messages.error(self.request, f"Error processing Excel file: {str(e)}")
+            return super().form_invalid(form)
+        
+        return super().form_valid(form)
 
 
 class PlayerDetailView(LoginRequiredMixin, DetailView):
