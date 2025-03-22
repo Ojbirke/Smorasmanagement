@@ -58,8 +58,8 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         # Get players who have played for this team in any match
         context['players'] = Player.objects.filter(match_appearances__team=self.object).distinct()
-        context['home_matches'] = self.object.home_matches.order_by('-date')
-        context['away_matches'] = self.object.away_matches.order_by('-date')
+        # Get matches where this team is the Smørås team
+        context['matches'] = self.object.matches.order_by('-date')
         return context
 
 
