@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Match Score - Smørås Fotball{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">Update Match Score</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-center mb-4">{{ match.home_team.name }} vs {{ match.away_team.name }}</h5>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-5">
+                                <div class="text-center mb-2">
+                                    <strong>{{ match.home_team.name }}</strong>
+                                </div>
+                                <input type="number" name="{{ form.home_score.html_name }}" 
+                                       class="form-control form-control-lg text-center {% if form.home_score.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.home_score.id_for_label }}" 
+                                       value="{{ form.home_score.value|default:0 }}" min="0">
+                                {% if form.home_score.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.home_score.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-2 d-flex align-items-center justify-content-center">
+                                <span class="h3 mb-0">-</span>
+                            </div>
+                            
+                            <div class="col-5">
+                                <div class="text-center mb-2">
+                                    <strong>{{ match.away_team.name }}</strong>
+                                </div>
+                                <input type="number" name="{{ form.away_score.html_name }}" 
+                                       class="form-control form-control-lg text-center {% if form.away_score.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.away_score.id_for_label }}" 
+                                       value="{{ form.away_score.value|default:0 }}" min="0">
+                                {% if form.away_score.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.away_score.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'match-detail' match.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Update Score
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

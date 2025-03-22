@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Smørås Fotball - Home{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-3 mb-4">Welcome to Smørås Fotball</h1>
+            <p class="lead mb-4">Track teams, players, and matches with our comprehensive football management system.</p>
+            
+            {% if user.is_authenticated %}
+            <div class="mt-5">
+                <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg me-3">Go to Dashboard</a>
+                <a href="{% url 'team-list' %}" class="btn btn-outline-primary btn-lg">View Teams</a>
+            </div>
+            {% else %}
+            <div class="mt-5">
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-3">Login</a>
+                <a href="{% url 'signup' %}" class="btn btn-outline-primary btn-lg">Sign Up</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mt-5 pt-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h3 class="card-title">Team Management</h3>
+                    <p class="card-text">Create and manage football teams with detailed information.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-friends fa-3x text-primary mb-3"></i>
+                    <h3 class="card-title">Player Tracking</h3>
+                    <p class="card-text">Register players, assign them to teams, and track their performance.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-trophy fa-3x text-primary mb-3"></i>
+                    <h3 class="card-title">Match Statistics</h3>
+                    <p class="card-text">Record matches and analyze player and team performance with detailed statistics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

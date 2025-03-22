@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Player - Smørås Fotball{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">Delete Player</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-4">
+                        Are you sure you want to delete the player "{{ object.first_name }} {% if object.last_name %}{{ object.last_name }}{% endif %}"?
+                    </h5>
+                    
+                    <div class="alert alert-warning mb-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                        <ul class="mb-0 mt-2">
+                            <li>All match appearances for this player will be deleted.</li>
+                            <li>Any statistics (goals, assists, etc.) will be lost.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p><strong>Player details:</strong></p>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong>Team:</strong>
+                                <span>{{ object.team.name|default:"No team" }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong>Position:</strong>
+                                <span>{{ object.position|default:"Not specified" }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong>Matches played:</strong>
+                                <span>{{ object.total_matches }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'player-detail' object.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-1"></i> Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

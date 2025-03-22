@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Players to Match - Smørås Fotball{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'match-list' %}">Matches</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'match-detail' match.id %}">{{ match.home_team }} vs {{ match.away_team }}</a></li>
+            <li class="breadcrumb-item active">Add Players</li>
+        </ol>
+    </nav>
+    
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <h3 class="mb-0">Add Players to Match</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Match Details</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Date:</strong>
+                            <span>{{ match.date|date:"F d, Y H:i" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Home Team:</strong>
+                            <span>{{ match.home_team.name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Away Team:</strong>
+                            <span>{{ match.away_team.name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>Selected Team:</strong>
+                            <span class="badge bg-primary">{{ team.name }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Select Players for {{ team.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if form.players.field.queryset %}
+                            <p class="mb-3">Select the players who participated in this match:</p>
+                            
+                            {% if form.players.errors %}
+                            <div class="alert alert-danger">
+                                {{ form.players.errors }}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                {% for player in form.players.field.queryset %}
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="{{ form.players.html_name }}" 
+                                               value="{{ player.id }}" id="player_{{ player.id }}"
+                                               {% if player.id in form.players.value %}checked{% endif %}>
+                                        <label class="form-check-label" for="player_{{ player.id }}">
+                                            {{ player.first_name }} {% if player.last_name %}{{ player.last_name }}{% endif %}
+                                            {% if player.position %}
+                                                <small class="text-muted">({{ player.position }})</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> 
+                                No active players found for {{ team.name }}. 
+                                <a href="{% url 'player-add' %}" class="alert-link">Add players</a> to the team first.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i> 
+                    Once you've added players to the match, you can add detailed statistics like goals, assists, and cards from the match detail page.
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'match-detail' match.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Match
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Players
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
