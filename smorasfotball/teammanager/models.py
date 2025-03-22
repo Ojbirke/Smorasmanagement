@@ -52,7 +52,7 @@ class Match(models.Model):
     smoras_team = models.ForeignKey(Team, related_name='matches', on_delete=models.CASCADE)
     
     # Opponent team name (text field)
-    opponent_name = models.CharField(max_length=100)
+    opponent_name = models.CharField(max_length=100, default='Unknown Opponent')
     
     # Match location type (home/away/neutral)
     location_type = models.CharField(max_length=10, choices=LOCATION_CHOICES, default='Home')

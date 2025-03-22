@@ -18,43 +18,55 @@
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="{{ form.home_team.id_for_label }}" class="form-label">Home Team</label>
-                                <select name="{{ form.home_team.html_name }}" 
-                                       class="form-select {% if form.home_team.errors %}is-invalid{% endif %}" 
-                                       id="{{ form.home_team.id_for_label }}" required>
-                                    <option value="">-- Select home team --</option>
-                                    {% for team_choice in form.home_team.field.queryset %}
+                                <label for="{{ form.smoras_team.id_for_label }}" class="form-label">Smørås Team</label>
+                                <select name="{{ form.smoras_team.html_name }}" 
+                                       class="form-select {% if form.smoras_team.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.smoras_team.id_for_label }}" required>
+                                    <option value="">-- Select Smørås team --</option>
+                                    {% for team_choice in form.smoras_team.field.queryset %}
                                     <option value="{{ team_choice.id }}" 
-                                            {% if form.home_team.value|stringformat:"i" == team_choice.id|stringformat:"i" %}selected{% endif %}>
+                                            {% if form.smoras_team.value|stringformat:"i" == team_choice.id|stringformat:"i" %}selected{% endif %}>
                                         {{ team_choice.name }}
                                     </option>
                                     {% endfor %}
                                 </select>
-                                {% if form.home_team.errors %}
+                                {% if form.smoras_team.errors %}
                                 <div class="invalid-feedback">
-                                    {{ form.home_team.errors.0 }}
+                                    {{ form.smoras_team.errors.0 }}
                                 </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.away_team.id_for_label }}" class="form-label">Away Team</label>
-                                <select name="{{ form.away_team.html_name }}" 
-                                       class="form-select {% if form.away_team.errors %}is-invalid{% endif %}" 
-                                       id="{{ form.away_team.id_for_label }}" required>
-                                    <option value="">-- Select away team --</option>
-                                    {% for team_choice in form.away_team.field.queryset %}
-                                    <option value="{{ team_choice.id }}" 
-                                            {% if form.away_team.value|stringformat:"i" == team_choice.id|stringformat:"i" %}selected{% endif %}>
-                                        {{ team_choice.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                {% if form.away_team.errors %}
+                                <label for="{{ form.opponent_name.id_for_label }}" class="form-label">Opponent Name</label>
+                                <input type="text" name="{{ form.opponent_name.html_name }}" 
+                                       class="form-control {% if form.opponent_name.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.opponent_name.id_for_label }}" 
+                                       value="{{ form.opponent_name.value|default:'' }}" required>
+                                {% if form.opponent_name.errors %}
                                 <div class="invalid-feedback">
-                                    {{ form.away_team.errors.0 }}
+                                    {{ form.opponent_name.errors.0 }}
                                 </div>
                                 {% endif %}
                             </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.location_type.id_for_label }}" class="form-label">Match Location</label>
+                            <select name="{{ form.location_type.html_name }}" 
+                                   class="form-select {% if form.location_type.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.location_type.id_for_label }}">
+                                {% for type_value, type_text in form.location_type.field.choices %}
+                                <option value="{{ type_value }}" 
+                                        {% if form.location_type.value == type_value %}selected{% endif %}>
+                                    {{ type_text }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.location_type.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.location_type.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                         
                         <div class="row mb-3">
