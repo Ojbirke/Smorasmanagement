@@ -4,12 +4,11 @@
  */
 
 /**
- * Fetches player matrix data for a specific team
- * @param {number} teamId - The ID of the team
+ * Fetches player matrix data for all players
  * @returns {Promise} - A promise with the matrix data
  */
-function fetchPlayerMatrixData(teamId) {
-    return fetch(`/team/api/player-stats/?team_id=${teamId}`)
+function fetchPlayerMatrixData() {
+    return fetch(`/team/api/player-matrix/`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -22,12 +21,16 @@ function fetchPlayerMatrixData(teamId) {
  * Calculates the color shade based on the value and maximum value
  * @param {number} value - The current value
  * @param {number} max - The maximum value
- * @returns {string} - A CSS color string
+ * @returns {string} - A CSS class name for the color
  */
 function getColorShade(value, max) {
-    if (value === 0) return '#f8f9fa';
-    const intensity = Math.min(Math.max(value / max, 0.1), 1);
-    return `rgba(13, 110, 253, ${intensity})`;
+    if (value === 0) return 'green-scale-0'; // Light gray for zero
+    
+    // Calculate intensity on a scale of 0-10
+    const intensity = Math.min(Math.ceil((value / max) * 10), 10);
+    
+    // Use predefined CSS classes for better coloring
+    return `green-scale-${intensity}`;
 }
 
 /**
@@ -44,21 +47,29 @@ function renderPlayerMatrix(data, tableElementId) {
     // Generate table HTML
     let tableHTML = '<thead><tr><th></th>';
     
-    // Add header row with player names
+    // Add header row with player names (first name + first letter of last name)
     players.forEach(player => {
-        tableHTML += `<th>${player.first_name}</th>`;
+        const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+        tableHTML += `<th>${displayName}</th>`;
     });
     tableHTML += '</tr></thead><tbody>';
     
     // Add rows for each player
     players.forEach((player, rowIndex) => {
-        tableHTML += `<tr><th>${player.first_name}</th>`;
+        const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+        tableHTML += `<tr><th>${displayName}</th>`;
         
         // Add cells for each player
-        players.forEach((_, colIndex) => {
+        players.forEach((otherPlayer, colIndex) => {
             const value = matrix[rowIndex][colIndex];
-            const bgColor = getColorShade(value, maxValue);
-            tableHTML += `<td style="background-color: ${bgColor};" title="${value} matches together">${value}</td>`;
+            const colorClass = getColorShade(value, maxValue);
+            const fullName1 = `${player.first_name} ${player.last_name || ''}`.trim();
+            const fullName2 = `${otherPlayer.first_name} ${otherPlayer.last_name || ''}`.trim();
+            const title = value === 1 ? 
+                `${fullName1} played with ${fullName2} in ${value} match` : 
+                `${fullName1} played with ${fullName2} in ${value} matches`;
+            
+            tableHTML += `<td class="${colorClass}" title="${title}">${value}</td>`;
         });
         
         tableHTML += '</tr>';
