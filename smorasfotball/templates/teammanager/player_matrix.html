@@ -58,17 +58,116 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="/static/js/matrix.js"></script>
 <script>
+    console.log('Player Matrix page - Direct script');
+    
+    // Helper function to get color shade based on value
+    function getColorShade(value, max) {
+        if (value === 0) return 'green-scale-0'; // Light gray for zero
+        
+        // Calculate intensity on a scale of 0-10
+        const intensity = Math.min(Math.ceil((value / max) * 10), 10);
+        
+        // Use predefined CSS classes for better coloring
+        return `green-scale-${intensity}`;
+    }
+    
+    // Directly fetch and render the matrix
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize the player matrix using the function from matrix.js
-        initPlayerMatrix(
-            'matrixContainer',
-            'matrixLoading',
-            'matrixContent',
-            'playerMatrix',
-            'noDataMessage'
-        );
+        console.log('Player Matrix page DOM loaded');
+        
+        // Get DOM elements
+        const matrixContainer = document.getElementById('matrixContainer');
+        const matrixLoading = document.getElementById('matrixLoading');
+        const matrixContent = document.getElementById('matrixContent');
+        const playerMatrix = document.getElementById('playerMatrix');
+        const noDataMessage = document.getElementById('noDataMessage');
+        
+        if (!matrixContainer || !matrixLoading || !matrixContent || !playerMatrix || !noDataMessage) {
+            console.error('One or more matrix elements not found');
+            return;
+        }
+        
+        // Show loading indicator
+        matrixContainer.classList.remove('d-none');
+        matrixLoading.classList.remove('d-none');
+        matrixContent.classList.add('d-none');
+        noDataMessage.classList.add('d-none');
+        
+        console.log('Fetching matrix data...');
+        
+        // Fetch matrix data
+        fetch('/team/api/player-matrix/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Network error: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Matrix data received:', data);
+                
+                if (!data.players || data.players.length === 0) {
+                    console.log('No player data found');
+                    matrixContainer.classList.add('d-none');
+                    noDataMessage.classList.remove('d-none');
+                    return;
+                }
+                
+                const players = data.players;
+                const matrix = data.matrix;
+                const maxValue = data.max_value || 1;
+                
+                console.log(`Rendering matrix with ${players.length} players`);
+                
+                // Generate table HTML
+                let tableHTML = '<thead><tr><th></th>';
+                
+                // Add header row with player names (first name + first letter of last name)
+                players.forEach(player => {
+                    const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+                    tableHTML += `<th>${displayName}</th>`;
+                });
+                tableHTML += '</tr></thead><tbody>';
+                
+                // Add rows for each player
+                players.forEach((player, rowIndex) => {
+                    const displayName = player.first_name + (player.last_name ? ` ${player.last_name.charAt(0)}.` : '');
+                    tableHTML += `<tr><th>${displayName}</th>`;
+                    
+                    // Add cells for each player
+                    players.forEach((otherPlayer, colIndex) => {
+                        const value = matrix[rowIndex][colIndex];
+                        const colorClass = getColorShade(value, maxValue);
+                        const fullName1 = `${player.first_name} ${player.last_name || ''}`.trim();
+                        const fullName2 = `${otherPlayer.first_name} ${otherPlayer.last_name || ''}`.trim();
+                        const title = value === 1 ? 
+                            `${fullName1} played with ${fullName2} in ${value} match` : 
+                            `${fullName1} played with ${fullName2} in ${value} matches`;
+                        
+                        tableHTML += `<td class="${colorClass}" title="${title}">${value}</td>`;
+                    });
+                    
+                    tableHTML += '</tr>';
+                });
+                
+                tableHTML += '</tbody>';
+                
+                // Update the table
+                console.log('Setting table HTML...');
+                playerMatrix.innerHTML = tableHTML;
+                
+                // Show content
+                matrixLoading.classList.add('d-none');
+                matrixContent.classList.remove('d-none');
+                console.log('Matrix rendered successfully');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                matrixContainer.classList.add('d-none');
+                noDataMessage.classList.remove('d-none');
+                noDataMessage.textContent = `Error loading matrix data: ${error.message}`;
+            });
     });
 </script>
 {% endblock %}

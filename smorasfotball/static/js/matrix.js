@@ -3,17 +3,33 @@
  * Smørås Fotball Team Management System
  */
 
+// Debug flag to log detailed information
+const DEBUG = true;
+
 /**
  * Fetches player matrix data for all players
  * @returns {Promise} - A promise with the matrix data
  */
 function fetchPlayerMatrixData() {
-    return fetch(`/team/api/player-matrix/`)
+    if (DEBUG) console.log('Fetching matrix data from API...');
+    
+    return fetch('/team/api/player-matrix/')
         .then(response => {
             if (!response.ok) {
+                if (DEBUG) console.error('Network response error:', response.status, response.statusText);
                 throw new Error('Network response was not ok');
             }
+            if (DEBUG) console.log('Got response, parsing JSON...');
             return response.json();
+        })
+        .then(data => {
+            if (DEBUG) {
+                console.log('Received matrix data:', data);
+                console.log('Players:', data.players ? data.players.length : 0);
+                console.log('Matrix size:', data.matrix ? data.matrix.length : 0);
+                console.log('Max value:', data.max_value);
+            }
+            return data;
         });
 }
 
@@ -39,10 +55,19 @@ function getColorShade(value, max) {
  * @param {string} tableElementId - The ID of the table element
  */
 function renderPlayerMatrix(data, tableElementId) {
+    if (DEBUG) console.log('Rendering matrix in element:', tableElementId);
+    
     const playerMatrix = document.getElementById(tableElementId);
+    if (!playerMatrix) {
+        console.error('Table element not found:', tableElementId);
+        return;
+    }
+    
     const players = data.players;
     const matrix = data.matrix;
     const maxValue = data.max_value || 1;
+    
+    if (DEBUG) console.log(`Rendering matrix with ${players.length} players`);
     
     // Generate table HTML
     let tableHTML = '<thead><tr><th></th>';
@@ -76,7 +101,10 @@ function renderPlayerMatrix(data, tableElementId) {
     });
     
     tableHTML += '</tbody>';
+    
+    if (DEBUG) console.log('Setting table HTML...');
     playerMatrix.innerHTML = tableHTML;
+    if (DEBUG) console.log('Table HTML set successfully');
 }
 
 /**
@@ -94,10 +122,25 @@ function initPlayerMatrix(
     tableElementId, 
     noDataElementId
 ) {
+    if (DEBUG) {
+        console.log('Initializing player matrix with elements:');
+        console.log('Container:', containerElementId);
+        console.log('Loading:', loadingElementId);
+        console.log('Content:', contentElementId);
+        console.log('Table:', tableElementId);
+        console.log('No data message:', noDataElementId);
+    }
+    
+    // Get DOM elements
     const matrixContainer = document.getElementById(containerElementId);
     const matrixLoading = document.getElementById(loadingElementId);
     const matrixContent = document.getElementById(contentElementId);
     const noDataMessage = document.getElementById(noDataElementId);
+    
+    if (!matrixContainer || !matrixLoading || !matrixContent || !noDataMessage) {
+        console.error('One or more required elements not found');
+        return;
+    }
     
     // Show matrix container and loading
     matrixContainer.classList.remove('d-none');
@@ -105,10 +148,13 @@ function initPlayerMatrix(
     matrixContent.classList.add('d-none');
     noDataMessage.classList.add('d-none');
     
+    if (DEBUG) console.log('Matrix container shown, loading indicator visible');
+    
     // Fetch data and render matrix
     fetchPlayerMatrixData()
         .then(data => {
             if (!data.players || data.players.length === 0) {
+                if (DEBUG) console.log('No player data received, showing no data message');
                 matrixContainer.classList.add('d-none');
                 noDataMessage.classList.remove('d-none');
                 return;
@@ -119,6 +165,7 @@ function initPlayerMatrix(
             // Show matrix content
             matrixLoading.classList.add('d-none');
             matrixContent.classList.remove('d-none');
+            if (DEBUG) console.log('Matrix rendered and shown');
         })
         .catch(error => {
             console.error('Error fetching matrix data:', error);
@@ -126,6 +173,24 @@ function initPlayerMatrix(
             noDataMessage.classList.remove('d-none');
         });
 }
+
+// Automatically initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (DEBUG) console.log('DOM loaded, checking if we should initialize matrix');
+    
+    // Check if we're on the player matrix page by looking for the matrix elements
+    const matrixTable = document.getElementById('playerMatrix');
+    if (matrixTable) {
+        if (DEBUG) console.log('Matrix table found, initializing matrix');
+        initPlayerMatrix(
+            'matrixContainer',
+            'matrixLoading',
+            'matrixContent',
+            'playerMatrix',
+            'noDataMessage'
+        );
+    }
+});
 
 // Export functions for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
