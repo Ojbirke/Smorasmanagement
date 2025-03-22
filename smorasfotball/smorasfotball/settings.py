@@ -97,3 +97,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Login and logout URLs
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://smorasg2015.replit.app',
+    'https://*.replit.app',
+    'https://*.replit.dev',
+    'https://*.repl.co'
+]
