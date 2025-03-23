@@ -143,11 +143,11 @@
             </div>
         </div>
         <div class="col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+            <div class="card shadow-sm">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">Player Match Count by Team</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="height: 500px; overflow-x: auto; overflow-y: hidden;">
                     <canvas id="playerMatchesChart"></canvas>
                 </div>
             </div>
@@ -292,8 +292,8 @@
             .then(data => {
                 // Sort players by total matches played
                 data.sort((a, b) => (b.matches_played || 0) - (a.matches_played || 0));
-                // Get top 10 players by match count
-                const topPlayers = data.slice(0, 10);
+                // Include all players instead of just top 10
+                const topPlayers = data;
                 
                 // Create player labels
                 const playerLabels = topPlayers.map(player => 
@@ -346,6 +346,7 @@
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             title: {
                                 display: true,
@@ -372,6 +373,15 @@
                                 title: {
                                     display: true,
                                     text: 'Players'
+                                },
+                                ticks: {
+                                    // Display the player names vertically for better readability
+                                    maxRotation: 90,
+                                    minRotation: 90,
+                                    font: {
+                                        size: 10 // Smaller font size for player names
+                                    },
+                                    autoSkip: false // Ensure all player names are displayed
                                 }
                             },
                             y: {
