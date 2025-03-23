@@ -53,36 +53,46 @@
     
     /* Custom color scale for the matrix cells - 5 bands for percentiles */
     /* 0-20% (white) */
-    .percentile-1 { 
-        background-color: #ffffff; 
-        color: #495057;
+    .percentile-1, td.percentile-1 { 
+        background-color: #ffffff !important; 
+        color: #495057 !important;
     }
     /* 20-40% (light blue) */
-    .percentile-2 { 
-        background-color: #d9edf7; 
-        color: #31708f;
+    .percentile-2, td.percentile-2 { 
+        background-color: #d9edf7 !important; 
+        color: #31708f !important;
     }
     /* 40-60% (light green) */
-    .percentile-3 { 
-        background-color: #d6ead8; 
-        color: #3c763d;
+    .percentile-3, td.percentile-3 { 
+        background-color: #d6ead8 !important; 
+        color: #3c763d !important;
     }
     /* 60-80% (medium green) */
-    .percentile-4 { 
-        background-color: #5cb85c; 
-        color: #fff;
+    .percentile-4, td.percentile-4 { 
+        background-color: #5cb85c !important; 
+        color: #fff !important;
     }
     /* 80-100% (dark green) */
-    .percentile-5 { 
-        background-color: #0a8127; 
-        color: #fff;
-        font-weight: bold;
+    .percentile-5, td.percentile-5 { 
+        background-color: #0a8127 !important; 
+        color: #fff !important;
+        font-weight: bold !important;
     }
     
     /* Special class for zero value */
-    .zero-value {
-        background-color: #f8f9fa;
-        color: #adb5bd;
+    .zero-value, td.zero-value {
+        background-color: #f8f9fa !important;
+        color: #adb5bd !important;
+    }
+    
+    /* Fix for badges in the explanation */
+    .badge.percentile-1, .badge.percentile-2, .badge.percentile-3,
+    .badge.percentile-4, .badge.percentile-5 {
+        display: inline-block;
+        padding: 0.25em 0.5em;
+        border-radius: 0.25rem;
+        font-weight: 700;
+        margin-right: 4px;
     }
 </style>
 {% endblock %}
@@ -384,27 +394,26 @@
         function getPercentileClass(value, allValues) {
             if (value === 0) return 'zero-value';
             
-            // Remove zeros and sort values for percentile calculation - lowest to highest
-            const nonZeroValues = allValues.filter(v => v > 0).sort((a, b) => a - b);
+            // Remove zeros and sort values for percentile calculation - highest to lowest
+            // This way the higher values get the darker colors
+            const nonZeroValues = allValues.filter(v => v > 0).sort((a, b) => b - a);
             if (nonZeroValues.length === 0) return 'percentile-1';
             
             // Calculate percentile thresholds for 20%, 40%, 60%, and 80%
             const quintileSize = nonZeroValues.length / 5;
             const thresholds = [
-                nonZeroValues[Math.floor(quintileSize)],              // 20% threshold
-                nonZeroValues[Math.floor(quintileSize * 2)],          // 40% threshold
-                nonZeroValues[Math.floor(quintileSize * 3)],          // 60% threshold
-                nonZeroValues[Math.floor(quintileSize * 4)]           // 80% threshold
+                nonZeroValues[Math.floor(quintileSize) - 1] || 1,     // 20% threshold
+                nonZeroValues[Math.floor(quintileSize * 2) - 1] || 1, // 40% threshold
+                nonZeroValues[Math.floor(quintileSize * 3) - 1] || 1, // 60% threshold
+                nonZeroValues[Math.floor(quintileSize * 4) - 1] || 1  // 80% threshold
             ];
             
-            // Assign color class based on where value falls relative to thresholds
-            // IMPORTANT: The percentile class numbers are reversed here
-            // because we want higher values (more matches) to get darker green
-            if (value < thresholds[0]) return 'percentile-1';         // Bottom 20% (white)
-            if (value < thresholds[1]) return 'percentile-2';         // 20-40% (light blue)
-            if (value < thresholds[2]) return 'percentile-3';         // 40-60% (light green)
-            if (value < thresholds[3]) return 'percentile-4';         // 60-80% (medium green)
-            return 'percentile-5';                                   // Top 20% (dark green)
+            // Assign color classes based on value compared to thresholds
+            if (value >= thresholds[0]) return 'percentile-5';         // Top 20% (dark green)
+            if (value >= thresholds[1]) return 'percentile-4';         // Next 20% (medium green)
+            if (value >= thresholds[2]) return 'percentile-3';         // Next 20% (light green)
+            if (value >= thresholds[3]) return 'percentile-2';         // Next 20% (light blue)
+            return 'percentile-1';                                    // Bottom 20% (white)
         }
         
         // Get DOM elements for the matrix
