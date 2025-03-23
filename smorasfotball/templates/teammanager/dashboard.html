@@ -360,6 +360,11 @@
                                         return `${context.dataset.label}: ${context.raw} matches`;
                                     }
                                 }
+                            },
+                            // Ensure proper legend display
+                            legend: {
+                                display: true,
+                                position: 'top'
                             }
                         },
                         scales: {
@@ -370,14 +375,23 @@
                                 }
                             },
                             y: {
-                                stacked: true,
+                                // Remove stacked property to show bars side by side
+                                stacked: false,
                                 beginAtZero: true,
                                 title: {
                                     display: true,
                                     text: 'Number of Matches'
+                                },
+                                min: 0,  // Explicitly set minimum to 0
+                                ticks: {
+                                    precision: 0,  // Only show whole numbers
+                                    stepSize: 1    // Use step size of 1 for clearer scaling
                                 }
                             }
-                        }
+                        },
+                        // Add spacing between bars in the same category
+                        barPercentage: 0.8,
+                        categoryPercentage: 0.9
                     }
                 });
             });
