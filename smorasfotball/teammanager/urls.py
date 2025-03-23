@@ -7,7 +7,6 @@ urlpatterns = [
     
     # Dashboard
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
-    path('player-matrix/', views.PlayerMatrixView.as_view(), name='player-matrix'),
     
     # Teams
     path('teams/', views.TeamListView.as_view(), name='team-list'),
