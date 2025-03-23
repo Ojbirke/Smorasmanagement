@@ -314,6 +314,30 @@ def add_players_to_match(request, match_id, team_id):
     return render(request, 'teammanager/add_players_to_match.html', context)
 
 
+@login_required
+def edit_appearance_stats(request, appearance_id):
+    appearance = get_object_or_404(MatchAppearance, pk=appearance_id)
+    match = appearance.match
+    
+    if request.method == 'POST':
+        form = MatchAppearanceForm(request.POST, instance=appearance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Statistics updated for {appearance.player.first_name}")
+            return redirect('match-detail', pk=match.id)
+    else:
+        form = MatchAppearanceForm(instance=appearance)
+    
+    context = {
+        'form': form,
+        'appearance': appearance,
+        'match': match,
+        'player': appearance.player
+    }
+    
+    return render(request, 'teammanager/edit_appearance_stats.html', context)
+
+
 # API Views for Chart Data
 @login_required
 def player_stats(request):

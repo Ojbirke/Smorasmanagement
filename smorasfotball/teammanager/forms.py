@@ -59,6 +59,13 @@ class MatchAppearanceForm(forms.ModelForm):
     class Meta:
         model = MatchAppearance
         fields = ['player', 'team', 'minutes_played', 'goals', 'assists', 'yellow_cards', 'red_card']
+        widgets = {
+            'minutes_played': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '120'}),
+            'goals': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'assists': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'yellow_cards': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '2'}),
+            'red_card': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 
 class MatchAppearanceFormSet(forms.BaseModelFormSet):

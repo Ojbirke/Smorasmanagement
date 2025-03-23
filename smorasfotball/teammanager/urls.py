@@ -31,6 +31,7 @@ urlpatterns = [
     path('matches/<int:pk>/delete/', views.MatchDeleteView.as_view(), name='match-delete'),
     path('matches/<int:pk>/score/', views.MatchScoreUpdateView.as_view(), name='match-score'),
     path('matches/<int:match_id>/add-players/<int:team_id>/', views.add_players_to_match, name='add-players-to-match'),
+    path('appearance/<int:appearance_id>/edit/', views.edit_appearance_stats, name='edit-appearance-stats'),
     
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),
