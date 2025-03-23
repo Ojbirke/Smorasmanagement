@@ -11,13 +11,13 @@
         transform: translateY(-5px);
     }
     
-    /* Matrix styles */
+    /* Matrix styles - more compact design */
     .matrix-table th, .matrix-table td {
         text-align: center;
-        width: 32px;
-        height: 32px;
-        font-size: 12px;
-        padding: 2px;
+        width: 25px;
+        height: 25px;
+        font-size: 11px;
+        padding: 1px;
     }
     
     .matrix-table th {
@@ -43,10 +43,10 @@
         outline-offset: -2px;
     }
 
-    /* Matrix container */
+    /* Matrix container - reduced max-height and fit to content */
     .matrix-container {
         overflow: auto;
-        max-height: 600px;
+        max-height: 500px;
         border: 1px solid #dee2e6;
         border-radius: 0.25rem;
     }
@@ -300,35 +300,28 @@
                     player.first_name + (player.last_name ? ' ' + player.last_name.charAt(0) + '.' : '')
                 );
                 
-                // Create datasets for each team
-                // First, collect all team names
-                const allTeams = new Set();
-                topPlayers.forEach(player => {
-                    if (player.teams) {
-                        player.teams.forEach(team => {
-                            allTeams.add(team.team__name);
-                        });
-                    }
-                });
-                
-                // Convert to array and create color mapping
-                const teamNames = Array.from(allTeams);
+                // Define specific teams we want to display
+                // We'll show total matches, Smørås Ferrari, and Smørås Maserati
+                const specificTeams = ['Total', 'Smørås Ferrari', 'Smørås Maserati'];
                 const colorPalette = [
-                    'rgba(40, 167, 69, 0.7)',    // green
-                    'rgba(0, 123, 255, 0.7)',    // blue
-                    'rgba(220, 53, 69, 0.7)',    // red
-                    'rgba(255, 193, 7, 0.7)',    // yellow
-                    'rgba(111, 66, 193, 0.7)',   // purple
-                    'rgba(23, 162, 184, 0.7)',   // cyan
-                    'rgba(108, 117, 125, 0.7)',  // gray
-                    'rgba(253, 126, 20, 0.7)',   // orange
-                    'rgba(32, 201, 151, 0.7)',   // teal
-                    'rgba(102, 16, 242, 0.7)'    // indigo
+                    'rgba(108, 117, 125, 0.7)',  // gray for total
+                    'rgba(220, 53, 69, 0.7)',    // red for Ferrari
+                    'rgba(0, 123, 255, 0.7)',    // blue for Maserati
                 ];
                 
-                // Create a dataset for each team
-                const datasets = teamNames.map((teamName, index) => {
-                    // Generate data array for this team
+                // Create datasets for the specific teams
+                const datasets = [
+                    // Total matches dataset
+                    {
+                        label: 'Total Matches',
+                        data: topPlayers.map(player => player.matches_played || 0),
+                        backgroundColor: colorPalette[0]
+                    }
+                ];
+                
+                // Add team-specific datasets
+                specificTeams.slice(1).forEach((teamName, index) => {
+                    // Generate data array for this specific team
                     const teamData = topPlayers.map(player => {
                         // Find matches for this player and team
                         const teamInfo = player.teams ? 
@@ -336,11 +329,11 @@
                         return teamInfo ? teamInfo.team_matches : 0;
                     });
                     
-                    return {
+                    datasets.push({
                         label: teamName,
                         data: teamData,
-                        backgroundColor: colorPalette[index % colorPalette.length]
-                    };
+                        backgroundColor: colorPalette[index + 1]
+                    });
                 });
                 
                 // Create the chart
