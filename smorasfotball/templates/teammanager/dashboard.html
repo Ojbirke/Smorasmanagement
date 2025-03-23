@@ -51,53 +51,38 @@
         border-radius: 0.25rem;
     }
     
-    /* Custom green color scale for the matrix cells, with stronger contrasts */
-    .green-scale-0 { 
-        background-color: #f8f9fa; 
-        color: #adb5bd;
-    }
-    .green-scale-1 { 
-        background-color: #eaf5ed; 
+    /* Custom color scale for the matrix cells - 5 bands for percentiles */
+    /* 0-20% (white) */
+    .percentile-1 { 
+        background-color: #ffffff; 
         color: #495057;
     }
-    .green-scale-2 { 
-        background-color: #d5ead9; 
-        color: #495057;
+    /* 20-40% (light blue) */
+    .percentile-2 { 
+        background-color: #d9edf7; 
+        color: #31708f;
     }
-    .green-scale-3 { 
-        background-color: #b6ddc1; 
-        color: #495057;
+    /* 40-60% (light green) */
+    .percentile-3 { 
+        background-color: #d6ead8; 
+        color: #3c763d;
     }
-    .green-scale-4 { 
-        background-color: #8ecfa0; 
-        color: #212529;
-    }
-    .green-scale-5 { 
-        background-color: #75c289; 
-        color: #212529;
-    }
-    .green-scale-6 { 
-        background-color: #5cb674; 
+    /* 60-80% (medium green) */
+    .percentile-4 { 
+        background-color: #5cb85c; 
         color: #fff;
     }
-    .green-scale-7 { 
-        background-color: #42a95f; 
-        color: #fff;
-    }
-    .green-scale-8 { 
-        background-color: #309c4c; 
-        color: #fff;
-    }
-    .green-scale-9 { 
-        background-color: #1c8f38; 
-        color: #fff;
-        font-weight: bold;
-    }
-    .green-scale-10 { 
+    /* 80-100% (dark green) */
+    .percentile-5 { 
         background-color: #0a8127; 
         color: #fff;
         font-weight: bold;
-        text-shadow: 0px 0px 1px rgba(0,0,0,0.3);
+    }
+    
+    /* Special class for zero value */
+    .zero-value {
+        background-color: #f8f9fa;
+        color: #adb5bd;
     }
 </style>
 {% endblock %}
@@ -168,7 +153,12 @@
         <div class="card-body">
             <p class="card-text mb-3">
                 This matrix shows which players have played together in matches across all teams.
-                The darker green cells indicate players who have played together more frequently.
+                Colors indicate collaboration frequency in percentiles:
+                <span class="badge percentile-5">Dark green</span> (top 20%),
+                <span class="badge percentile-4">Green</span> (60-80%),
+                <span class="badge percentile-3">Light green</span> (40-60%),
+                <span class="badge percentile-2">Light blue</span> (20-40%),
+                <span class="badge percentile-1">White</span> (bottom 20%).
                 Hover over cells to see exact match counts.
             </p>
             <div class="matrix-container">
@@ -390,17 +380,31 @@
             });
         
         // Player Matrix Visualization
-        // Helper function to get color shade based on value
-        function getColorShade(value, max) {
-            if (value === 0) return 'green-scale-0'; // Light gray for zero
+        // Helper function to assign percentile-based color class
+        function getPercentileClass(value, allValues) {
+            if (value === 0) return 'zero-value';
             
-            // Use a stronger, more exponential curve for color intensity 
-            // to better highlight differences at the higher end
-            const factor = Math.pow(value / max, 0.7); // Using exponent < 1 gives more weight to higher values
-            const intensity = Math.min(Math.ceil(factor * 10), 10);
+            // Remove zeros and sort values for percentile calculation - lowest to highest
+            const nonZeroValues = allValues.filter(v => v > 0).sort((a, b) => a - b);
+            if (nonZeroValues.length === 0) return 'percentile-1';
             
-            // Use predefined CSS classes for better coloring
-            return `green-scale-${intensity}`;
+            // Calculate percentile thresholds for 20%, 40%, 60%, and 80%
+            const quintileSize = nonZeroValues.length / 5;
+            const thresholds = [
+                nonZeroValues[Math.floor(quintileSize)],              // 20% threshold
+                nonZeroValues[Math.floor(quintileSize * 2)],          // 40% threshold
+                nonZeroValues[Math.floor(quintileSize * 3)],          // 60% threshold
+                nonZeroValues[Math.floor(quintileSize * 4)]           // 80% threshold
+            ];
+            
+            // Assign color class based on where value falls relative to thresholds
+            // IMPORTANT: The percentile class numbers are reversed here
+            // because we want higher values (more matches) to get darker green
+            if (value < thresholds[0]) return 'percentile-1';         // Bottom 20% (white)
+            if (value < thresholds[1]) return 'percentile-2';         // 20-40% (light blue)
+            if (value < thresholds[2]) return 'percentile-3';         // 40-60% (light green)
+            if (value < thresholds[3]) return 'percentile-4';         // 60-80% (medium green)
+            return 'percentile-5';                                   // Top 20% (dark green)
         }
         
         // Get DOM elements for the matrix
@@ -438,6 +442,17 @@
                     const matrix = data.matrix;
                     const maxValue = data.max_value || 1;
                     
+                    // Calculate all non-diagonal values for percentile calculation once
+                    // We need this to properly calculate the color classes based on percentiles
+                    const allCellValues = [];
+                    for (let i = 0; i < players.length; i++) {
+                        for (let j = 0; j < players.length; j++) {
+                            if (i !== j) { // Exclude diagonal (player matching with themselves)
+                                allCellValues.push(matrix[i][j]);
+                            }
+                        }
+                    }
+                    
                     // Generate table HTML
                     let tableHTML = '<thead><tr><th></th>';
                     
@@ -456,7 +471,11 @@
                         // Add cells for each player
                         players.forEach((otherPlayer, colIndex) => {
                             const value = matrix[rowIndex][colIndex];
-                            const colorClass = getColorShade(value, maxValue);
+                            
+                            // Skip diagonal (same player) or get color class
+                            const colorClass = (rowIndex === colIndex) ? 
+                                'zero-value' : getPercentileClass(value, allCellValues);
+                                
                             const fullName1 = `${player.first_name} ${player.last_name || ''}`.trim();
                             const fullName2 = `${otherPlayer.first_name} ${otherPlayer.last_name || ''}`.trim();
                             const title = value === 1 ? 
