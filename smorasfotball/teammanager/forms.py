@@ -28,6 +28,19 @@ class PlayerForm(forms.ModelForm):
 
 
 class MatchForm(forms.ModelForm):
+    use_template = forms.BooleanField(
+        required=False, 
+        label='Use Previous Match as Template',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'use-template'})
+    )
+    
+    template_match = forms.ModelChoiceField(
+        queryset=Match.objects.all().order_by('-date'),
+        required=False,
+        label='Select Template Match',
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'template-match'})
+    )
+    
     class Meta:
         model = Match
         fields = ['smoras_team', 'opponent_name', 'location_type', 'date', 'location', 'match_type', 'notes']
