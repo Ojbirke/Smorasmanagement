@@ -6,10 +6,38 @@ from .models import Team, Player, Match, MatchAppearance
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(max_length=254, help_text='Required. Enter a valid email address.')
+    first_name = forms.CharField(max_length=30, required=True, help_text='Required.')
+    last_name = forms.CharField(max_length=30, required=False, help_text='Optional.')
+    
+    ROLE_CHOICES = [
+        ('player', 'Player'),
+        ('coach', 'Coach'),
+        ('admin', 'Admin'),
+    ]
+    
+    role = forms.ChoiceField(
+        choices=ROLE_CHOICES,
+        required=True,
+        help_text='Select your role in the team.',
+        widget=forms.RadioSelect
+    )
+    
+    player = forms.ModelChoiceField(
+        queryset=Player.objects.filter(active=True).order_by('first_name'),
+        required=False,
+        help_text='If you are a player, select your player profile.',
+        empty_label='-- Select your player profile --'
+    )
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password1', 'password2')
+        fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'role', 'player')
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['player'].queryset = Player.objects.filter(active=True).order_by('first_name')
+        
+        # Make player field visible only for player role (via JavaScript)
 
 
 class TeamForm(forms.ModelForm):

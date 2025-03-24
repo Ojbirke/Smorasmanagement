@@ -15,24 +15,72 @@ from .forms import (
     SignUpForm, TeamForm, PlayerForm, MatchForm, MatchScoreForm,
     MatchAppearanceForm, PlayerSelectionForm, ExcelUploadForm
 )
-from .models import Team, Player, Match, MatchAppearance
+from .models import Team, Player, Match, MatchAppearance, UserProfile
 
 
 class SignUpView(CreateView):
     form_class = SignUpForm
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
+    
+    def form_valid(self, form):
+        # Save the user first
+        response = super().form_valid(form)
+        
+        # Get the role and player from the form
+        role = form.cleaned_data.get('role')
+        player = form.cleaned_data.get('player')
+        
+        # Update the user's profile
+        profile = self.object.profile
+        profile.role = role
+        profile.player = player
+        profile.save()
+        
+        # Add a success message
+        messages.success(
+            self.request, 
+            'Your account has been created and is pending approval. You will be notified when your account is approved.'
+        )
+        
+        return response
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'teammanager/dashboard.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved
+        if not request.user.profile.is_approved():
+            messages.warning(
+                request, 
+                "Your account is pending approval. Some features may be unavailable until your account is approved."
+            )
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Basic data for all roles
         context['total_teams'] = Team.objects.count()
         context['total_players'] = Player.objects.count()
         context['total_matches'] = Match.objects.count()
         context['recent_matches'] = Match.objects.order_by('-date')[:5]
+        
+        # User role specific data
+        context['user_role'] = self.request.user.profile.role
+        context['is_pending'] = self.request.user.profile.is_pending()
+        
+        # For admin users, add pending approval counts
+        if self.request.user.profile.is_admin():
+            context['pending_approvals'] = UserProfile.objects.filter(status='pending').count()
+        
+        # For player users, add their own match history
+        if self.request.user.profile.is_player() and self.request.user.profile.player:
+            context['player_matches'] = MatchAppearance.objects.filter(
+                player=self.request.user.profile.player
+            ).select_related('match', 'team').order_by('-match__date')[:5]
+        
         return context
 
 
@@ -68,6 +116,19 @@ class TeamCreateView(LoginRequiredMixin, CreateView):
     model = Team
     form_class = TeamForm
     success_url = reverse_lazy('team-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can create teams.")
+            return redirect('team-list')
+        
+        # Only admin and coach can create teams
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to create teams.")
+            return redirect('team-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 class TeamUpdateView(LoginRequiredMixin, UpdateView):
