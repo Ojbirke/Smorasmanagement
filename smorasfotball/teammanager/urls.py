@@ -38,6 +38,7 @@ urlpatterns = [
     path('users/', views.UserListView.as_view(), name='user-list'),
     path('users/<int:pk>/approve/', views.approve_user, name='approve-user'),
     path('users/<int:pk>/reject/', views.reject_user, name='reject-user'),
+    path('users/<int:pk>/delete/', views.delete_user, name='delete-user'),
     
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),

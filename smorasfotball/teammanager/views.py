@@ -848,3 +848,29 @@ def reject_user(request, pk):
         messages.error(request, "User not found.")
     
     return redirect('user-list')
+
+
+@login_required
+def delete_user(request, pk):
+    # Only admin users can delete other users
+    if not request.user.profile.is_admin():
+        messages.error(request, "You don't have permission to delete users.")
+        return redirect('dashboard')
+    
+    # Prevent self-deletion
+    if request.user.pk == pk:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect('user-list')
+    
+    try:
+        user_to_delete = User.objects.get(pk=pk)
+        username = user_to_delete.username
+        
+        # Delete user profile and user
+        user_to_delete.delete()
+        
+        messages.success(request, f"User '{username}' has been permanently deleted.")
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+    
+    return redirect('user-list')
