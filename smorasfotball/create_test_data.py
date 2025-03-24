@@ -9,7 +9,7 @@ from teammanager.models import Team, Player
 
 def create_test_data():
     """
-    Creates test data for the Smørås Fotball application.
+    Creates test data for the Smørås G2015 Fotball application.
     Includes teams and players with proper exception handling for duplicates.
     """
     # Define teams
