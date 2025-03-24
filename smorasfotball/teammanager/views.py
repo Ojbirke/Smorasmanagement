@@ -23,27 +23,48 @@ class SignUpView(CreateView):
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
     
+    def form_invalid(self, form):
+        """If the form is invalid, render the invalid form with detailed error messages."""
+        for field in form.errors:
+            for error in form.errors[field]:
+                messages.error(self.request, f"Error in field '{field}': {error}")
+        
+        return super().form_invalid(form)
+    
     def form_valid(self, form):
-        # Save the user first
-        response = super().form_valid(form)
-        
-        # Get the role and player from the form
-        role = form.cleaned_data.get('role')
-        player = form.cleaned_data.get('player')
-        
-        # Update the user's profile
-        profile = self.object.profile
-        profile.role = role
-        profile.player = player
-        profile.save()
-        
-        # Add a success message
-        messages.success(
-            self.request, 
-            'Your account has been created and is pending approval. You will be notified when your account is approved.'
-        )
-        
-        return response
+        try:
+            # Save the user first - we need to explicitly handle the first_name requirement
+            user = form.save(commit=False)
+            # Make sure first_name is not empty (now required by Django)
+            if not user.first_name:
+                user.first_name = user.username
+            user.save()
+            
+            # Get the role and player from the form
+            role = form.cleaned_data.get('role')
+            player = form.cleaned_data.get('player')
+            
+            # Update the user's profile
+            profile = user.profile
+            profile.role = role
+            profile.player = player
+            profile.save()
+            
+            # Add a success message
+            messages.success(
+                self.request, 
+                'Your account has been created and is pending approval. You will be notified when your account is approved.'
+            )
+            
+            # Complete the form actions
+            form.save_m2m()  # Save many-to-many relationships
+            self.object = user  # Set the object attribute for CreateView
+            
+            return redirect(self.get_success_url())
+        except Exception as e:
+            # Log any error that occurs
+            messages.error(self.request, f"An error occurred: {str(e)}")
+            return self.form_invalid(form)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

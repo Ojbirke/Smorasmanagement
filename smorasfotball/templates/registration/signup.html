@@ -3,8 +3,8 @@
 {% block title %}Sign Up - Smørås Fotball{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6 col-lg-4">
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-6">
         <div class="card shadow">
             <div class="card-header bg-primary text-white text-center">
                 <h2 class="mb-0">Sign Up</h2>
@@ -15,52 +15,144 @@
                     
                     {% if form.errors %}
                     <div class="alert alert-danger">
-                        Please correct the errors below.
+                        <p>Please correct the errors below:</p>
+                        <ul>
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li><strong>{{ field.label }}</strong>: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
                     </div>
                     {% endif %}
                     
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                                <input type="text" name="{{ form.username.html_name }}" class="form-control {% if form.username.errors %}is-invalid{% endif %}" id="{{ form.username.id_for_label }}" required>
+                                {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.username.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                <input type="email" name="{{ form.email.html_name }}" class="form-control {% if form.email.errors %}is-invalid{% endif %}" id="{{ form.email.id_for_label }}" required>
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.email.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                <input type="text" name="{{ form.first_name.html_name }}" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}" id="{{ form.first_name.id_for_label }}" required>
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.first_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                <input type="text" name="{{ form.last_name.html_name }}" class="form-control {% if form.last_name.errors %}is-invalid{% endif %}" id="{{ form.last_name.id_for_label }}">
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.last_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+                                <input type="password" name="{{ form.password1.html_name }}" class="form-control {% if form.password1.errors %}is-invalid{% endif %}" id="{{ form.password1.id_for_label }}" required>
+                                {% if form.password1.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.password1.errors.0 }}
+                                </div>
+                                {% else %}
+                                <div class="form-text small">
+                                    {{ form.password1.help_text }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
+                                <input type="password" name="{{ form.password2.html_name }}" class="form-control {% if form.password2.errors %}is-invalid{% endif %}" id="{{ form.password2.id_for_label }}" required>
+                                {% if form.password2.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.password2.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
-                        <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
-                        <input type="text" name="{{ form.username.html_name }}" class="form-control {% if form.username.errors %}is-invalid{% endif %}" id="{{ form.username.id_for_label }}" required>
-                        {% if form.username.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.username.errors.0 }}
+                        <label class="form-label">Role in Team</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            {% for choice in form.role %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.role.errors %}
+                        <div class="text-danger mt-1">
+                            {{ form.role.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-                        <input type="email" name="{{ form.email.html_name }}" class="form-control {% if form.email.errors %}is-invalid{% endif %}" id="{{ form.email.id_for_label }}" required>
-                        {% if form.email.errors %}
+                    <div class="mb-3" id="player-field-container">
+                        <label for="{{ form.player.id_for_label }}" class="form-label">Player Profile</label>
+                        <select name="{{ form.player.html_name }}" class="form-select {% if form.player.errors %}is-invalid{% endif %}" id="{{ form.player.id_for_label }}">
+                            <option value="" selected>-- Select your player profile --</option>
+                            {% for player in form.player.field.queryset %}
+                            <option value="{{ player.id }}">{{ player }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.player.errors %}
                         <div class="invalid-feedback">
-                            {{ form.email.errors.0 }}
+                            {{ form.player.errors.0 }}
                         </div>
                         {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
-                        <input type="password" name="{{ form.password1.html_name }}" class="form-control {% if form.password1.errors %}is-invalid{% endif %}" id="{{ form.password1.id_for_label }}" required>
-                        {% if form.password1.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.password1.errors.0 }}
-                        </div>
-                        {% else %}
                         <div class="form-text">
-                            {{ form.password1.help_text }}
+                            {{ form.player.help_text }}
                         </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
-                        <input type="password" name="{{ form.password2.html_name }}" class="form-control {% if form.password2.errors %}is-invalid{% endif %}" id="{{ form.password2.id_for_label }}" required>
-                        {% if form.password2.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.password2.errors.0 }}
-                        </div>
-                        {% endif %}
                     </div>
                     
                     <button type="submit" class="btn btn-primary w-100 mb-3">Sign Up</button>
@@ -73,4 +165,31 @@
         </div>
     </div>
 </div>
+
+<script>
+// Show/hide player field based on role selection
+document.addEventListener('DOMContentLoaded', function() {
+    const playerFieldContainer = document.getElementById('player-field-container');
+    const roleRadios = document.querySelectorAll('input[name="role"]');
+    
+    // Initial check
+    updatePlayerFieldVisibility();
+    
+    // Add change event listeners
+    roleRadios.forEach(radio => {
+        radio.addEventListener('change', updatePlayerFieldVisibility);
+    });
+    
+    function updatePlayerFieldVisibility() {
+        const selectedRole = document.querySelector('input[name="role"]:checked')?.value;
+        if (selectedRole === 'player') {
+            playerFieldContainer.style.display = 'block';
+        } else {
+            playerFieldContainer.style.display = 'none';
+            // Clear the selection if not a player
+            document.getElementById('{{ form.player.id_for_label }}').value = '';
+        }
+    }
+});
+</script>
 {% endblock %}
