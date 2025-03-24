@@ -772,6 +772,7 @@ def player_matrix(request):
 from django.contrib.auth import logout as auth_logout
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.contrib.auth.models import User
 
 @login_required
 def custom_logout(request):
@@ -782,3 +783,68 @@ def custom_logout(request):
     auth_logout(request)
     messages.success(request, "You have been successfully logged out.")
     return HttpResponseRedirect(reverse('home'))
+
+
+# User Management Views
+class UserListView(LoginRequiredMixin, ListView):
+    template_name = 'teammanager/user_list.html'
+    context_object_name = 'users'
+    
+    def get_queryset(self):
+        # Only show users if the current user is an admin
+        if self.request.user.profile.is_admin():
+            return User.objects.all().select_related('profile').order_by('-profile__created_at')
+        return User.objects.none()
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has admin role
+        if not request.user.profile.is_admin():
+            messages.warning(request, "You don't have permission to manage users.")
+            return redirect('dashboard')
+            
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['pending_users'] = User.objects.filter(profile__status='pending').select_related('profile')
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        return context
+
+
+@login_required
+def approve_user(request, pk):
+    # Only admin users can approve other users
+    if not request.user.profile.is_admin():
+        messages.error(request, "You don't have permission to approve users.")
+        return redirect('dashboard')
+    
+    try:
+        user_to_approve = User.objects.get(pk=pk)
+        user_to_approve.profile.status = 'approved'
+        user_to_approve.profile.save()
+        messages.success(request, f"User '{user_to_approve.username}' has been approved.")
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+    
+    return redirect('user-list')
+
+
+@login_required
+def reject_user(request, pk):
+    # Only admin users can reject other users
+    if not request.user.profile.is_admin():
+        messages.error(request, "You don't have permission to reject users.")
+        return redirect('dashboard')
+    
+    try:
+        user_to_reject = User.objects.get(pk=pk)
+        user_to_reject.profile.status = 'rejected'
+        user_to_reject.profile.save()
+        messages.success(request, f"User '{user_to_reject.username}' has been rejected.")
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+    
+    return redirect('user-list')

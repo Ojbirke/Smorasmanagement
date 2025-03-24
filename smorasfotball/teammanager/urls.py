@@ -34,6 +34,11 @@ urlpatterns = [
     path('matches/<int:match_id>/add-players/<int:team_id>/', views.add_players_to_match, name='add-players-to-match'),
     path('appearance/<int:appearance_id>/edit/', views.edit_appearance_stats, name='edit-appearance-stats'),
     
+    # User Management
+    path('users/', views.UserListView.as_view(), name='user-list'),
+    path('users/<int:pk>/approve/', views.approve_user, name='approve-user'),
+    path('users/<int:pk>/reject/', views.reject_user, name='reject-user'),
+    
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),
     path('api/match-stats/', views.match_stats, name='match-stats'),
