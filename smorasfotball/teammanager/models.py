@@ -1,5 +1,63 @@
 from django.db import models
 from django.urls import reverse
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+class UserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('player', 'Player'),
+        ('coach', 'Coach'),
+        ('admin', 'Admin'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='player')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    player = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True, related_name='user_profile')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.user.username} ({self.get_role_display()})"
+    
+    def is_approved(self):
+        return self.status == 'approved'
+    
+    def is_pending(self):
+        return self.status == 'pending'
+    
+    def is_admin(self):
+        return self.role == 'admin' and self.is_approved()
+    
+    def is_coach(self):
+        return self.role == 'coach' and self.is_approved()
+    
+    def is_player(self):
+        return self.role == 'player' and self.is_approved()
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Create a UserProfile whenever a new User is created"""
+    if created:
+        UserProfile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Save the UserProfile whenever the User is saved"""
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
+    else:
+        # If somehow a profile wasn't created, create one now
+        UserProfile.objects.create(user=instance)
 
 
 class Team(models.Model):
