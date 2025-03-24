@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-d843jd9fy7-0e323h7hf7fdjy32cndv-dhryu783'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', '.replit.dev', '.repl.co', 'smorasg2015.replit.app', '.replit.app']
+ALLOWED_HOSTS = ['*']  # Allow all hosts in development
 
 # Application definition
 INSTALLED_APPS = [
@@ -106,11 +106,17 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.repl.co',
     'http://0.0.0.0:5000',
     'http://localhost:5000',
-    'http://127.0.0.1:5000'
+    'http://127.0.0.1:5000',
+    'https://*.replit.dev:*',
+    'http://*.replit.dev:*'
 ]
 
 # Session and cookie settings
 SESSION_COOKIE_SECURE = False  # Set to True in production
 CSRF_COOKIE_SECURE = False  # Set to True in production
-SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Lax' for development
-CSRF_COOKIE_SAMESITE = 'Lax'  # Use 'Lax' for development
+SESSION_COOKIE_SAMESITE = None  # Temporarily set to None to fix CSRF issues
+CSRF_COOKIE_SAMESITE = None  # Temporarily set to None to fix CSRF issues
+
+# For development only (disable in production)
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
