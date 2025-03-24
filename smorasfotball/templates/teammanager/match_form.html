@@ -189,9 +189,9 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Template selection functionality
-        const useTemplateCheckbox = document.getElementById('use-template');
+        const useTemplateCheckbox = document.getElementById('{{ form.use_template.id_for_label }}');
         const templateSection = document.querySelector('.template-section');
-        const templateSelect = document.getElementById('template-match');
+        const templateSelect = document.getElementById('{{ form.template_match.id_for_label }}');
         
         // Team and opponent fields
         const teamSelect = document.getElementById('{{ form.smoras_team.id_for_label }}');

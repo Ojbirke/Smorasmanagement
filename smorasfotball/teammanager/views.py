@@ -250,6 +250,17 @@ class MatchCreateView(LoginRequiredMixin, CreateView):
     model = Match
     form_class = MatchForm
     success_url = reverse_lazy('match-list')
+    
+    def form_valid(self, form):
+        """Process the form data when valid."""
+        # No need to process template data here since the JavaScript 
+        # in the template handles it on the client side
+        if form.cleaned_data.get('use_template') and form.cleaned_data.get('template_match'):
+            # Log that a template was used
+            template_match = form.cleaned_data['template_match']
+            messages.info(self.request, 
+                f"Created new match using template: {template_match.smoras_team.name} vs {template_match.opponent_name}")
+        return super().form_valid(form)
 
 
 class MatchUpdateView(LoginRequiredMixin, UpdateView):
