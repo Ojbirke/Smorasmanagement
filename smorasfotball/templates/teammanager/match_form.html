@@ -16,6 +16,37 @@
                     <form method="post">
                         {% csrf_token %}
                         
+                        {% if not form.instance.id %}
+                        <!-- Template selection section (only for new matches) -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="{{ form.use_template.html_name }}" id="{{ form.use_template.id_for_label }}">
+                                    <label class="form-check-label" for="{{ form.use_template.id_for_label }}">
+                                        <strong>Use a previous match as template</strong>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="card-body template-section" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="{{ form.template_match.id_for_label }}" class="form-label">Select a previous match</label>
+                                    <select name="{{ form.template_match.html_name }}" class="form-select" id="{{ form.template_match.id_for_label }}">
+                                        <option value="">-- Select a previous match --</option>
+                                        {% for match in form.template_match.field.queryset %}
+                                        <option value="{{ match.id }}" data-team="{{ match.smoras_team.id }}" 
+                                                data-opponent="{{ match.opponent_name }}"
+                                                data-location-type="{{ match.location_type }}"
+                                                data-location="{{ match.location }}"
+                                                data-match-type="{{ match.match_type }}">
+                                            {{ match.date|date:"d M Y" }} - {{ match.smoras_team.name }} vs {{ match.opponent_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="{{ form.smoras_team.id_for_label }}" class="form-label">Smørås Team</label>
@@ -152,4 +183,50 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Template selection functionality
+        const useTemplateCheckbox = document.getElementById('use-template');
+        const templateSection = document.querySelector('.template-section');
+        const templateSelect = document.getElementById('template-match');
+        
+        // Team and opponent fields
+        const teamSelect = document.getElementById('{{ form.smoras_team.id_for_label }}');
+        const opponentInput = document.getElementById('{{ form.opponent_name.id_for_label }}');
+        const locationTypeSelect = document.getElementById('{{ form.location_type.id_for_label }}');
+        const locationInput = document.getElementById('{{ form.location.id_for_label }}');
+        const matchTypeSelect = document.getElementById('{{ form.match_type.id_for_label }}');
+        
+        // Show/hide template section
+        if (useTemplateCheckbox) {
+            useTemplateCheckbox.addEventListener('change', function() {
+                templateSection.style.display = this.checked ? 'block' : 'none';
+                
+                // Clear template selection if unchecked
+                if (!this.checked) {
+                    templateSelect.value = '';
+                }
+            });
+            
+            // Apply template data when template is selected
+            if (templateSelect) {
+                templateSelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    
+                    if (selectedOption.value) {
+                        // Fill fields with template data
+                        teamSelect.value = selectedOption.dataset.team;
+                        opponentInput.value = selectedOption.dataset.opponent;
+                        locationTypeSelect.value = selectedOption.dataset.locationType;
+                        locationInput.value = selectedOption.dataset.location;
+                        matchTypeSelect.value = selectedOption.dataset.matchType;
+                    }
+                });
+            }
+        }
+    });
+</script>
+{% endblock extra_js %}
