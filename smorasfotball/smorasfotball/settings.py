@@ -103,5 +103,14 @@ CSRF_TRUSTED_ORIGINS = [
     'https://smorasg2015.replit.app',
     'https://*.replit.app',
     'https://*.replit.dev',
-    'https://*.repl.co'
+    'https://*.repl.co',
+    'http://0.0.0.0:5000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000'
 ]
+
+# Session and cookie settings
+SESSION_COOKIE_SECURE = False  # Set to True in production
+CSRF_COOKIE_SECURE = False  # Set to True in production
+SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Lax' for development
+CSRF_COOKIE_SAMESITE = 'Lax'  # Use 'Lax' for development
