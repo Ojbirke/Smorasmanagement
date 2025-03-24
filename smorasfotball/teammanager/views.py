@@ -135,11 +135,37 @@ class TeamUpdateView(LoginRequiredMixin, UpdateView):
     model = Team
     form_class = TeamForm
     success_url = reverse_lazy('team-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can update teams.")
+            return redirect('team-list')
+        
+        # Only admin and coach can update teams
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to update teams.")
+            return redirect('team-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 class TeamDeleteView(LoginRequiredMixin, DeleteView):
     model = Team
     success_url = reverse_lazy('team-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has admin role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can delete teams.")
+            return redirect('team-list')
+        
+        # Only admin can delete teams (more restrictive than create/update)
+        if not request.user.profile.is_admin():
+            messages.warning(request, "You don't have permission to delete teams.")
+            return redirect('team-list')
+            
+        return super().dispatch(request, *args, **kwargs)
     
 
 # Player Views
@@ -157,6 +183,19 @@ class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
     template_name = 'teammanager/import_players_excel.html'
     form_class = ExcelUploadForm
     success_url = reverse_lazy('player-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has admin role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can import players.")
+            return redirect('player-list')
+        
+        # Only admin can import players from Excel
+        if not request.user.profile.is_admin():
+            messages.warning(request, "You don't have permission to import players from Excel.")
+            return redirect('player-list')
+            
+        return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         excel_file = self.request.FILES['excel_file']
@@ -274,17 +313,56 @@ class PlayerCreateView(LoginRequiredMixin, CreateView):
     model = Player
     form_class = PlayerForm
     success_url = reverse_lazy('player-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can create players.")
+            return redirect('player-list')
+        
+        # Only admin and coach can create players
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to create players.")
+            return redirect('player-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 class PlayerUpdateView(LoginRequiredMixin, UpdateView):
     model = Player
     form_class = PlayerForm
     success_url = reverse_lazy('player-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can update players.")
+            return redirect('player-list')
+        
+        # Only admin and coach can update players
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to update players.")
+            return redirect('player-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 class PlayerDeleteView(LoginRequiredMixin, DeleteView):
     model = Player
     success_url = reverse_lazy('player-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has admin role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can delete players.")
+            return redirect('player-list')
+        
+        # Only admin can delete players
+        if not request.user.profile.is_admin():
+            messages.warning(request, "You don't have permission to delete players.")
+            return redirect('player-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 # Match Views
@@ -312,6 +390,19 @@ class MatchCreateView(LoginRequiredMixin, CreateView):
     form_class = MatchForm
     success_url = reverse_lazy('match-list')
     
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can create matches.")
+            return redirect('match-list')
+        
+        # Only admin and coach can create matches
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to create matches.")
+            return redirect('match-list')
+            
+        return super().dispatch(request, *args, **kwargs)
+    
     def form_valid(self, form):
         """Process the form data when valid."""
         # No need to process template data here since the JavaScript 
@@ -328,11 +419,37 @@ class MatchUpdateView(LoginRequiredMixin, UpdateView):
     model = Match
     form_class = MatchForm
     success_url = reverse_lazy('match-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can update matches.")
+            return redirect('match-list')
+        
+        # Only admin and coach can update matches
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to update matches.")
+            return redirect('match-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 class MatchDeleteView(LoginRequiredMixin, DeleteView):
     model = Match
     success_url = reverse_lazy('match-list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has admin role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can delete matches.")
+            return redirect('match-list')
+        
+        # Only admin can delete matches
+        if not request.user.profile.is_admin():
+            messages.warning(request, "You don't have permission to delete matches.")
+            return redirect('match-list')
+            
+        return super().dispatch(request, *args, **kwargs)
 
 
 class MatchScoreUpdateView(LoginRequiredMixin, UpdateView):
@@ -340,12 +457,35 @@ class MatchScoreUpdateView(LoginRequiredMixin, UpdateView):
     form_class = MatchScoreForm
     template_name = 'teammanager/match_score_form.html'
     
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user's profile is approved and has correct role
+        if not request.user.profile.is_approved():
+            messages.warning(request, "Your account needs to be approved before you can update match scores.")
+            return redirect('match-list')
+        
+        # Both coach and admin can update match scores
+        if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+            messages.warning(request, "You don't have permission to update match scores.")
+            return redirect('match-list')
+            
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_success_url(self):
         return reverse_lazy('match-detail', kwargs={'pk': self.object.pk})
 
 
 @login_required
 def add_players_to_match(request, match_id, team_id):
+    # Check if user's profile is approved and has correct role
+    if not request.user.profile.is_approved():
+        messages.warning(request, "Your account needs to be approved before you can add players to matches.")
+        return redirect('match-list')
+    
+    # Only admin and coach can add players to matches
+    if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+        messages.warning(request, "You don't have permission to add players to matches.")
+        return redirect('match-list')
+    
     match = get_object_or_404(Match, pk=match_id)
     team = get_object_or_404(Team, pk=team_id)
     
@@ -388,6 +528,16 @@ def add_players_to_match(request, match_id, team_id):
 
 @login_required
 def edit_appearance_stats(request, appearance_id):
+    # Check if user's profile is approved and has correct role
+    if not request.user.profile.is_approved():
+        messages.warning(request, "Your account needs to be approved before you can update player statistics.")
+        return redirect('match-list')
+    
+    # Only admin and coach can edit player statistics
+    if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
+        messages.warning(request, "You don't have permission to update player statistics.")
+        return redirect('match-list')
+        
     appearance = get_object_or_404(MatchAppearance, pk=appearance_id)
     match = appearance.match
     
