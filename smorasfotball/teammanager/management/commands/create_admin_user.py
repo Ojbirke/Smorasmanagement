@@ -24,12 +24,12 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'User "{username}" already exists.'))
             return
 
-        # Create the user - ensure last_name is never None
+        # Create the user - ensure first_name and last_name are never None
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password,
-            first_name=first_name,
+            first_name=first_name or "Admin",  # Default to "Admin" if not provided
             last_name=last_name or ""  # Use empty string if last_name is None
         )
 
