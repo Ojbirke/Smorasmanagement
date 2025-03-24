@@ -102,7 +102,7 @@
     <h1 class="mb-4">Dashboard</h1>
     
     <div class="row mb-4">
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="card stat-card h-100 border-primary shadow-sm">
                 <div class="card-body text-center">
                     <h3 class="display-4 text-primary">{{ total_teams }}</h3>
@@ -111,7 +111,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="card stat-card h-100 border-success shadow-sm">
                 <div class="card-body text-center">
                     <h3 class="display-4 text-success">{{ total_players }}</h3>
@@ -120,7 +120,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="card stat-card h-100 border-info shadow-sm">
                 <div class="card-body text-center">
                     <h3 class="display-4 text-info">{{ total_matches }}</h3>
@@ -129,6 +129,24 @@
                 </div>
             </div>
         </div>
+        {% if is_admin %}
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card h-100 border-danger shadow-sm">
+                <div class="card-body text-center">
+                    <h3 class="display-4 text-danger">
+                        {% if pending_approvals %}
+                        {{ pending_approvals }}
+                        <span class="badge bg-danger" style="font-size: 1rem; vertical-align: middle;">Pending</span>
+                        {% else %}
+                        <i class="bi bi-people"></i>
+                        {% endif %}
+                    </h3>
+                    <h5 class="card-title">User Management</h5>
+                    <a href="{% url 'user-list' %}" class="btn btn-sm btn-outline-danger mt-2">Manage Users</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     <div class="row mb-4">
