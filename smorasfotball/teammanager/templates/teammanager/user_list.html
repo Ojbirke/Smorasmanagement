@@ -54,6 +54,9 @@
                                     <a href="{% url 'reject-user' user.id %}" class="btn btn-sm btn-danger">
                                         <i class="bi bi-x-circle"></i> Reject
                                     </a>
+                                    <a href="{% url 'delete-user' user.id %}" class="btn btn-sm btn-dark" onclick="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.');">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -129,6 +132,12 @@
                                     {% elif user.profile.status == 'approved' %}
                                     <a href="{% url 'reject-user' user.id %}" class="btn btn-sm btn-danger">
                                         <i class="bi bi-x-circle"></i> Reject
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if request.user.id != user.id %}
+                                    <a href="{% url 'delete-user' user.id %}" class="btn btn-sm btn-dark" onclick="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.');">
+                                        <i class="bi bi-trash"></i> Delete
                                     </a>
                                     {% endif %}
                                 </div>
