@@ -746,3 +746,18 @@ def player_matrix(request):
             'matrix': [],
             'max_value': 0
         })
+
+
+from django.contrib.auth import logout as auth_logout
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+@login_required
+def custom_logout(request):
+    """
+    Custom logout view to properly handle logout process
+    and redirect to home page.
+    """
+    auth_logout(request)
+    messages.success(request, "You have been successfully logged out.")
+    return HttpResponseRedirect(reverse('home'))
