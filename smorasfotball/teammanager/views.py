@@ -63,6 +63,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         # Basic data for all roles
         context['total_teams'] = Team.objects.count()
+        
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
         context['total_players'] = Player.objects.count()
         context['total_matches'] = Match.objects.count()
         context['recent_matches'] = Match.objects.order_by('-date')[:5]
@@ -84,8 +90,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-# Removed LoginRequiredMixin for testing
-class PlayerMatrixView(TemplateView):
+class PlayerMatrixView(LoginRequiredMixin, TemplateView):
     template_name = 'teammanager/player_matrix.html'
 
     def get_context_data(self, **kwargs):
@@ -98,6 +103,16 @@ class PlayerMatrixView(TemplateView):
 class TeamListView(LoginRequiredMixin, ListView):
     model = Team
     context_object_name = 'teams'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        context['can_create'] = context['is_approved'] and (context['is_admin'] or context['is_coach'])
+        return context
 
 
 class TeamDetailView(LoginRequiredMixin, DetailView):
@@ -109,6 +124,14 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
         context['players'] = Player.objects.filter(match_appearances__team=self.object).distinct()
         # Get matches where this team is the Smørås team
         context['matches'] = self.object.matches.order_by('-date')
+        
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        context['can_edit'] = context['is_approved'] and (context['is_admin'] or context['is_coach'])
+        context['can_delete'] = context['is_approved'] and context['is_admin']
         return context
 
 
@@ -175,7 +198,16 @@ class PlayerListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Add Excel form for admin users
         context['excel_form'] = ExcelUploadForm()
+        
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        context['can_create'] = context['is_approved'] and (context['is_admin'] or context['is_coach'])
+        context['can_import'] = context['is_approved'] and context['is_admin']
         return context
 
 
@@ -306,6 +338,14 @@ class PlayerDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['appearances'] = self.object.match_appearances.select_related('match').order_by('-match__date')
+        
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        context['can_edit'] = context['is_approved'] and (context['is_admin'] or context['is_coach'])
+        context['can_delete'] = context['is_approved'] and context['is_admin']
         return context
 
 
@@ -370,6 +410,16 @@ class MatchListView(LoginRequiredMixin, ListView):
     model = Match
     context_object_name = 'matches'
     ordering = ['-date']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        context['can_create'] = context['is_approved'] and (context['is_admin'] or context['is_coach'])
+        return context
 
 
 class MatchDetailView(LoginRequiredMixin, DetailView):
@@ -382,6 +432,13 @@ class MatchDetailView(LoginRequiredMixin, DetailView):
         # Get appearances for any other teams (external players)
         context['away_appearances'] = self.object.appearances.exclude(team=self.object.smoras_team)
         context['is_home_match'] = self.object.location_type == 'Home'
+        
+        # Add user role information for the template
+        context['is_admin'] = self.request.user.profile.is_admin()
+        context['is_coach'] = self.request.user.profile.is_coach()
+        context['is_player'] = self.request.user.profile.is_player()
+        context['is_approved'] = self.request.user.profile.is_approved()
+        context['can_edit'] = context['is_approved'] and (context['is_admin'] or context['is_coach'])
         return context
 
 
@@ -612,7 +669,7 @@ def match_stats(request):
     return JsonResponse(stats, safe=False)
 
 
-# Removed login_required for testing purposes
+@login_required
 def player_matrix(request):
     """
     API endpoint that returns player matrix data for all players
