@@ -74,12 +74,12 @@
         </div>
         
         <div class="col-md-7">
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Backup Files</h5>
+                    <h5 class="card-title mb-0">Regular Backup Files</h5>
                 </div>
                 <div class="card-body">
-                    {% if backup_exists and backups %}
+                    {% if backups %}
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -126,7 +126,57 @@
                     </div>
                     {% else %}
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No backup files found. Create a backup using the button on the left.
+                        <i class="fas fa-info-circle"></i> No regular backup files found. Create a backup using the button on the left.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-shield-alt"></i> Persistent Backup Files</h5>
+                </div>
+                <div class="card-body">
+                    {% if has_persistent_backups %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> These backups are stored in a persistent location and will remain available after redeployments.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Date</th>
+                                    <th>Command</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for backup in persistent_backups %}
+                                <tr>
+                                    <td>{{ backup.filename }}</td>
+                                    <td>{{ backup.type }}</td>
+                                    <td>{{ backup.size }}</td>
+                                    <td>{{ backup.date|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control form-control-sm" value="python manage.py restore_persistent_backup {{ backup.filename }}" readonly>
+                                            <div class="input-group-append">
+                                                <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-clipboard-text="python manage.py restore_persistent_backup {{ backup.filename }}" title="Copy to clipboard">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No persistent backup files found. Create a backup using the button on the left to generate both regular and persistent backups.
                     </div>
                     {% endif %}
                 </div>
@@ -175,6 +225,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
 <script>
     // Add Font Awesome icons dynamically if not available in the base template
     if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -183,5 +234,28 @@
         link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css';
         document.head.appendChild(link);
     }
+    
+    // Initialize clipboard.js for copy buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        var clipboard = new ClipboardJS('.copy-btn');
+        
+        clipboard.on('success', function(e) {
+            // Visual feedback on copy
+            var btn = e.trigger;
+            var originalTitle = btn.getAttribute('title');
+            btn.setAttribute('title', 'Copied!');
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-outline-secondary');
+            
+            // Reset after 2 seconds
+            setTimeout(function() {
+                btn.setAttribute('title', originalTitle);
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-secondary');
+            }, 2000);
+            
+            e.clearSelection();
+        });
+    });
 </script>
 {% endblock %}

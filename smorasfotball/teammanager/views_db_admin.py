@@ -46,11 +46,15 @@ def database_overview(request):
     
     has_data = any(count > 0 for count in stats.values())
     
-    # Get backup directory
+    # Get regular backup directory
     backup_dir = os.path.join(settings.BASE_DIR, 'backups')
     os.makedirs(backup_dir, exist_ok=True)
     
-    # Check for backup files
+    # Get persistent backup directory
+    persistent_backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
+    os.makedirs(persistent_backup_dir, exist_ok=True)
+    
+    # Check for regular backup files
     backups = []
     if os.path.exists(backup_dir):
         backup_exists = True
@@ -64,15 +68,37 @@ def database_overview(request):
                     'type': 'JSON Data' if filename.endswith('.json') else 'SQLite Database',
                     'size': _format_file_size(stat.st_size),
                     'date': datetime.fromtimestamp(stat.st_mtime),
+                    'persistent': False
                 })
     else:
         backup_exists = False
     
+    # Check for persistent backup files
+    persistent_backups = []
+    if os.path.exists(persistent_backup_dir):
+        persistent_backup_exists = True
+        
+        for filename in sorted(os.listdir(persistent_backup_dir), reverse=True):
+            if filename.endswith('.json') or filename.endswith('.sqlite3'):
+                file_path = os.path.join(persistent_backup_dir, filename)
+                stat = os.stat(file_path)
+                persistent_backups.append({
+                    'filename': filename,
+                    'type': 'JSON Data (Persistent)' if filename.endswith('.json') else 'SQLite Database (Persistent)',
+                    'size': _format_file_size(stat.st_size),
+                    'date': datetime.fromtimestamp(stat.st_mtime),
+                    'persistent': True
+                })
+    else:
+        persistent_backup_exists = False
+    
     context = {
         'stats': stats,
         'has_data': has_data,
-        'backup_exists': backup_exists,
+        'backup_exists': backup_exists or persistent_backup_exists,
         'backups': backups,
+        'persistent_backups': persistent_backups,
+        'has_persistent_backups': len(persistent_backups) > 0,
         'is_admin': True  # Pass this for the template
     }
     
