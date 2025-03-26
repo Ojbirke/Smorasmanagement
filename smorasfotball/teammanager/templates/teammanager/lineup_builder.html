@@ -237,9 +237,20 @@
             </div>
             
             <div class="mt-3 d-flex justify-content-between">
-                <button id="save-positions" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Save Positions
-                </button>
+                <div>
+                    <button id="save-positions" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Positions
+                    </button>
+                    
+                    <div class="btn-group ms-2">
+                        <button class="btn btn-outline-info {% if lineup.direction == 'LR' %}active{% endif %}" id="direction-lr">
+                            <i class="fas fa-arrow-right"></i> First Period (GK Left)
+                        </button>
+                        <button class="btn btn-outline-info {% if lineup.direction == 'RL' %}active{% endif %}" id="direction-rl">
+                            <i class="fas fa-arrow-left"></i> Second Period (GK Right)
+                        </button>
+                    </div>
+                </div>
                 
                 <div class="btn-group">
                     <div class="dropdown">
@@ -393,12 +404,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Buttons and controls
     const savePositionsButton = document.getElementById('save-positions');
     const clearPositionsButton = document.getElementById('clear-positions');
+    const directionLRButton = document.getElementById('direction-lr');
+    const directionRLButton = document.getElementById('direction-rl');
     const formationOptions = document.querySelectorAll('.formation-option');
     
     // Lineup data
     const lineupId = {{ lineup.id }};
     const lineupData = {
-        playerPositions: []
+        playerPositions: [],
+        direction: '{{ lineup.direction }}'
     };
     
     // Make all player items draggable
@@ -455,6 +469,74 @@ document.addEventListener('DOMContentLoaded', function() {
             applyFormation(formation);
         });
     });
+    
+    // Direction change buttons
+    directionLRButton.addEventListener('click', function() {
+        if (lineupData.direction !== 'LR') {
+            if (positionsChanged && !confirm('Changing direction will save your current positions. Continue?')) {
+                return;
+            }
+            changeDirection('LR');
+        }
+    });
+    
+    directionRLButton.addEventListener('click', function() {
+        if (lineupData.direction !== 'RL') {
+            if (positionsChanged && !confirm('Changing direction will save your current positions. Continue?')) {
+                return;
+            }
+            changeDirection('RL');
+        }
+    });
+    
+    // Function to change pitch direction and flip player coordinates if needed
+    function changeDirection(newDirection) {
+        // Update active button styling
+        if (newDirection === 'LR') {
+            directionLRButton.classList.add('active');
+            directionRLButton.classList.remove('active');
+        } else {
+            directionLRButton.classList.remove('active');
+            directionRLButton.classList.add('active');
+        }
+        
+        // If direction is changing, we need to adjust player positions
+        if (lineupData.direction !== newDirection) {
+            // First save current positions
+            saveLineupPositions();
+            
+            // Update direction in lineupData
+            lineupData.direction = newDirection;
+            
+            // Send AJAX request to update the lineup direction in the database
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch(`/teammanager/lineup/${lineupId}/save-positions/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    direction: newDirection,
+                    playerPositions: []  // Empty array because we're just updating the direction
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to reflect the new direction
+                    window.location.reload();
+                } else {
+                    alert('Error saving direction: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving direction. See console for details.');
+            });
+        }
+    }
     
     // Initialize draggable functionality for an element
     function initDraggable(element) {
