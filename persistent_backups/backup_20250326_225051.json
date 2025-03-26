@@ -603,6 +603,22 @@
   }
 },
 {
+  "model": "teammanager.match",
+  "pk": 22,
+  "fields": {
+    "smoras_team": 6,
+    "opponent_name": "Fana Ulsmåg 2",
+    "location_type": "Home",
+    "smoras_score": null,
+    "opponent_score": null,
+    "date": "2025-03-27T23:47:00Z",
+    "location": "Apeltun Skole",
+    "match_type": "Friendly",
+    "notes": "",
+    "created_at": "2025-03-26T22:47:19.758Z"
+  }
+},
+{
   "model": "teammanager.matchappearance",
   "pk": 261,
   "fields": {
@@ -1238,6 +1254,134 @@
     "jersey_number": 9,
     "is_starter": false,
     "notes": ""
+  }
+},
+{
+  "model": "teammanager.matchsession",
+  "pk": 1,
+  "fields": {
+    "match": 22,
+    "name": "Treningskamp Fana Uslmåg",
+    "created_by": 8,
+    "created_at": "2025-03-26T22:48:01.227Z",
+    "updated_at": "2025-03-26T22:49:10.509Z",
+    "periods": 2,
+    "period_length": 30,
+    "substitution_interval": 4,
+    "is_active": true,
+    "start_time": "2025-03-26T22:49:10.509Z"
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 1,
+  "fields": {
+    "match_session": 1,
+    "player_in": 50,
+    "player_out": 54,
+    "timestamp": "2025-03-26T22:49:35.915Z",
+    "minute": 0,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 1,
+  "fields": {
+    "match_session": 1,
+    "player": 47,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 2,
+  "fields": {
+    "match_session": 1,
+    "player": 50,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:35.914Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 3,
+  "fields": {
+    "match_session": 1,
+    "player": 54,
+    "minutes_played": 0,
+    "last_substitution_time": null,
+    "is_on_pitch": false
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 4,
+  "fields": {
+    "match_session": 1,
+    "player": 55,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 5,
+  "fields": {
+    "match_session": 1,
+    "player": 57,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 6,
+  "fields": {
+    "match_session": 1,
+    "player": 58,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 7,
+  "fields": {
+    "match_session": 1,
+    "player": 59,
+    "minutes_played": 0,
+    "last_substitution_time": null,
+    "is_on_pitch": false
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 8,
+  "fields": {
+    "match_session": 1,
+    "player": 62,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 9,
+  "fields": {
+    "match_session": 1,
+    "player": 63,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "is_on_pitch": true
   }
 }
 ]

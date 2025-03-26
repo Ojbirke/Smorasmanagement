@@ -756,6 +756,97 @@
             return cookieValue;
         }
         
+        // Auto-update playing times
+        {% if match_session.is_active %}
+        let updateTimerInterval;
+        
+        function startAutoRefresh() {
+            // First immediate update
+            updatePlayingTimes();
+            
+            // Then set interval for periodic updates (every 30 seconds)
+            updateTimerInterval = setInterval(updatePlayingTimes, 30000);
+        }
+        
+        function updatePlayingTimes() {
+            fetch(`/team/match-sessions/{{ match_session.id }}/update-times/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update match timer info
+                    const matchInfoEl = document.querySelector('.fw-bold');
+                    if (matchInfoEl) {
+                        matchInfoEl.textContent = `${data.match_info.minute_in_match}:00`;
+                    }
+                    
+                    // Update period info
+                    const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
+                    if (periodInfoEl) {
+                        periodInfoEl.innerHTML = `Period ${data.match_info.period}/{{ total_periods }}`;
+                    }
+                    
+                    // Update player times on cards and bubbles
+                    for (const playerId in data.playing_times) {
+                        const playerData = data.playing_times[playerId];
+                        
+                        // Update on pitch player bubbles
+                        const playerOnPitch = document.getElementById(`player-${playerId}`);
+                        if (playerOnPitch) {
+                            const minutesEl = playerOnPitch.querySelector('.player-minutes');
+                            if (minutesEl) {
+                                minutesEl.textContent = `${playerData.minutes}m`;
+                            }
+                            
+                            // Show/hide substitution recommendation
+                            const subRecommendEl = playerOnPitch.querySelector('.sub-recommend');
+                            if (playerData.minutes < 10) {
+                                if (!subRecommendEl) {
+                                    const newSubRecommend = document.createElement('span');
+                                    newSubRecommend.className = 'sub-recommend';
+                                    newSubRecommend.textContent = '!';
+                                    playerOnPitch.appendChild(newSubRecommend);
+                                }
+                            } else if (subRecommendEl) {
+                                subRecommendEl.remove();
+                            }
+                        }
+                        
+                        // Update player list times
+                        const playerItems = document.querySelectorAll('.list-group-item');
+                        playerItems.forEach(item => {
+                            const nameEl = item.querySelector('.fw-bold');
+                            if (nameEl && nameEl.textContent.trim() === playerData.name) {
+                                const minutesEl = item.querySelector('.text-muted');
+                                if (minutesEl) {
+                                    minutesEl.textContent = `${playerData.minutes} minutes played`;
+                                }
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating playing times:', error);
+            });
+        }
+        
+        // Start auto-refresh when page loads
+        startAutoRefresh();
+        
+        // Clean up when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (updateTimerInterval) {
+                clearInterval(updateTimerInterval);
+            }
+        });
+        {% endif %}
+        
         // Players dragging on pitch (simple implementation)
         const playersOnPitch = document.querySelectorAll('.player-on-pitch');
         const pitchContainer = document.querySelector('.pitch-container');

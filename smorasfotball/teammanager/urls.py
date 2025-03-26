@@ -95,4 +95,5 @@ urlpatterns = [
     path('match-sessions/<int:pk>/substitute/', views_match_management.substitution_create, name='substitution-create'),
     path('match-sessions/<int:pk>/pitch/', views_match_management.match_session_pitch_view, name='match-session-pitch'),
     path('match-sessions/<int:session_pk>/quick-sub/', views_match_management.ajax_quick_sub, name='match-session-quick-sub'),
+    path('match-sessions/<int:session_pk>/update-times/', views_match_management.update_playing_times, name='match-session-update-times'),
 ]
