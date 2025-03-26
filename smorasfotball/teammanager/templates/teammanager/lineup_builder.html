@@ -994,70 +994,135 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Add beforeunload event to save positions when leaving the page
+    // Function to auto-save the positions
+    function autoSavePositions() {
+        if (!positionsChanged) {
+            return; // No need to save if nothing changed
+        }
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+        const positions = [];
+        
+        // Process player positions
+        playersOnPitch.forEach(player => {
+            positionWithinPitch(player);
+            
+            const playerId = player.getAttribute('data-player-id');
+            const positionId = player.getAttribute('data-position-id') || null;
+            const x = parseFloat(player.getAttribute('data-x'));
+            const y = parseFloat(player.getAttribute('data-y'));
+            
+            const playerCircle = player.querySelector('.player-circle');
+            const isStarter = playerCircle.classList.contains('starter');
+            const jerseyNumber = player.querySelector('.player-jersey').textContent;
+            const notes = player.getAttribute('data-notes') || '';
+            
+            positions.push({
+                player_id: playerId,
+                position_id: positionId,
+                x: x,
+                y: y,
+                is_starter: isStarter,
+                jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                notes: notes
+            });
+        });
+        
+        console.log(`Auto-saving ${positions.length} player positions...`);
+        
+        // Use fetch for auto-save
+        fetch(`/lineups/${lineupId}/save-positions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                positions: positions
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Auto-save successful!');
+                positionsChanged = false; // Reset changed flag
+            } else {
+                console.error('Auto-save failed:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Auto-save error:', error);
+        });
+    }
+    
+    // Set up auto-save every 30 seconds if changes are made
+    const autoSaveInterval = setInterval(autoSavePositions, 30000);
+    
+    // Also save when links are clicked
+    document.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (positionsChanged) {
+                // Don't prevent navigation, but trigger save first
+                console.log('Link clicked, saving positions before navigation...');
+                autoSavePositions();
+            }
+        });
+    });
+    
+    // Add beforeunload event to warn before leaving the page with unsaved changes
     window.addEventListener('beforeunload', function(e) {
         // Only prompt and save if positions have been changed
         if (positionsChanged) {
-            // We need to use synchronous AJAX here since the page is about to unload
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
-            const positions = [];
-            
-            // Process player positions synchronously
-            playersOnPitch.forEach(player => {
-                positionWithinPitch(player);
-                
-                const playerId = player.getAttribute('data-player-id');
-                const positionId = player.getAttribute('data-position-id') || null;
-                const x = parseFloat(player.getAttribute('data-x'));
-                const y = parseFloat(player.getAttribute('data-y'));
-                
-                const playerCircle = player.querySelector('.player-circle');
-                const isStarter = playerCircle.classList.contains('starter');
-                const jerseyNumber = player.querySelector('.player-jersey').textContent;
-                const notes = player.getAttribute('data-notes') || '';
-                
-                positions.push({
-                    player_id: playerId,
-                    position_id: positionId,
-                    x: x,
-                    y: y,
-                    is_starter: isStarter,
-                    jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
-                    notes: notes
-                });
-            });
-            
-            console.log(`About to auto-save ${positions.length} player positions before page unload...`);
+            // Attempt to save one more time
+            console.log('Page unloading, attempting final save...');
             
             try {
                 // Use synchronous XMLHttpRequest (deprecated but necessary for beforeunload)
                 const xhr = new XMLHttpRequest();
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+                const positions = [];
+                
+                // Process player positions synchronously
+                playersOnPitch.forEach(player => {
+                    positionWithinPitch(player);
+                    
+                    const playerId = player.getAttribute('data-player-id');
+                    const positionId = player.getAttribute('data-position-id') || null;
+                    const x = parseFloat(player.getAttribute('data-x'));
+                    const y = parseFloat(player.getAttribute('data-y'));
+                    
+                    const playerCircle = player.querySelector('.player-circle');
+                    const isStarter = playerCircle.classList.contains('starter');
+                    const jerseyNumber = player.querySelector('.player-jersey').textContent;
+                    const notes = player.getAttribute('data-notes') || '';
+                    
+                    positions.push({
+                        player_id: playerId,
+                        position_id: positionId,
+                        x: x,
+                        y: y,
+                        is_starter: isStarter,
+                        jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                        notes: notes
+                    });
+                });
+                
                 xhr.open('POST', `/lineups/${lineupId}/save-positions/`, false); // false = synchronous
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.setRequestHeader('X-CSRFToken', csrfToken);
                 xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.send(JSON.stringify({ positions: positions }));
                 
-                const positionsJson = JSON.stringify({ positions: positions });
-                console.log('Auto-save payload:', positionsJson);
-                
-                xhr.send(positionsJson);
-                
-                // Log the result
-                console.log('Auto-save response status:', xhr.status);
-                console.log('Auto-save result:', xhr.responseText);
-                
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    console.log('Auto-save successful!');
-                } else {
-                    console.error('Auto-save failed with status:', xhr.status);
-                }
+                console.log('Final save status:', xhr.status);
             } catch (e) {
-                console.error('Auto-save error:', e);
+                console.error('Final save error:', e);
             }
             
             // Classic way to show a confirmation dialog when leaving
-            const confirmationMessage = 'You have unsaved changes. Your positions have been saved automatically, but do you want to leave now?';
+            const confirmationMessage = 'You have unsaved changes. We tried to save them automatically, but do you want to leave now?';
             (e || window.event).returnValue = confirmationMessage;
             return confirmationMessage;
         }

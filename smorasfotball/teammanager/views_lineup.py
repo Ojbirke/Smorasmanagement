@@ -456,7 +456,7 @@ def duplicate_lineup(request, pk):
 
 @login_required
 def export_lineup_pdf(request, pk):
-    """Export a lineup as PDF"""
+    """Export a lineup as PDF with enhanced layout and player positioning"""
     if not request.user.is_authenticated:
         return redirect('login')
     
@@ -476,134 +476,238 @@ def export_lineup_pdf(request, pk):
     p.setFont("Helvetica-Bold", 18)
     p.drawString(30, height - 30, f"Lineup: {lineup.name}")
     
-    # Draw sub-header
+    # Draw sub-header with more match details if available
     p.setFont("Helvetica", 12)
-    match_info = f"Match: {lineup.match}" if lineup.match else "Practice/Template Lineup"
-    p.drawString(30, height - 50, match_info)
-    p.drawString(30, height - 70, f"Team: {lineup.team.name}")
+    if lineup.match:
+        match_date = lineup.match.date.strftime("%Y-%m-%d %H:%M")
+        location = lineup.match.location or "Unknown location"
+        match_type = lineup.match.match_type
+        p.drawString(30, height - 50, f"Match: {lineup.team.name} vs {lineup.match.opponent_name}")
+        p.drawString(30, height - 70, f"Date: {match_date} | Location: {location} | Type: {match_type}")
+    else:
+        p.drawString(30, height - 50, "Practice/Template Lineup")
+        p.drawString(30, height - 70, f"Team: {lineup.team.name}")
     
-    # Draw the pitch
+    # Draw formation if specified
+    if lineup.formation:
+        p.drawString(30, height - 90, f"Formation: {lineup.formation.formation_structure}")
+    
+    # Draw the pitch with clear dimensions and coordinates
     pitch_width = width - 100
     pitch_height = height - 150
+    pitch_x = 50  # Left side of pitch
+    pitch_y = 50  # Bottom of pitch
+    
+    # Draw realistic grass pattern
     p.setStrokeColor(colors.darkgreen)
     p.setFillColor(colors.green)
-    p.rect(50, 50, pitch_width, pitch_height, fill=True)
+    p.rect(pitch_x, pitch_y, pitch_width, pitch_height, fill=True)
+    
+    # Add striped pattern for grass effect
+    p.setStrokeColor(colors.Color(0, 0.5, 0, 0.1))  # Very light green
+    stripe_width = 20
+    for i in range(0, int(pitch_height), stripe_width * 2):
+        p.rect(pitch_x, pitch_y + i, pitch_width, stripe_width, fill=True, stroke=False)
     
     # Draw pitch markings
     p.setStrokeColor(colors.white)
     p.setFillColor(colors.white)
     
+    # Pitch outline
+    p.rect(pitch_x, pitch_y, pitch_width, pitch_height, fill=0)
+    
     # Center line
-    p.line(50 + pitch_width/2, 50, 50 + pitch_width/2, 50 + pitch_height)
+    p.line(pitch_x + pitch_width/2, pitch_y, pitch_x + pitch_width/2, pitch_y + pitch_height)
     
     # Center circle
-    p.circle(50 + pitch_width/2, 50 + pitch_height/2, 50, stroke=1, fill=0)
+    p.circle(pitch_x + pitch_width/2, pitch_y + pitch_height/2, 50, stroke=1, fill=0)
+    p.circle(pitch_x + pitch_width/2, pitch_y + pitch_height/2, 5, fill=1)
     
     # Penalty spots
-    p.circle(50 + 60, 50 + pitch_height/2, 3, fill=1)
-    p.circle(50 + pitch_width - 60, 50 + pitch_height/2, 3, fill=1)
+    p.circle(pitch_x + 60, pitch_y + pitch_height/2, 3, fill=1)
+    p.circle(pitch_x + pitch_width - 60, pitch_y + pitch_height/2, 3, fill=1)
     
-    # Goal areas (6-yard boxes) - properly oriented
+    # Goal areas (6-yard boxes)
     goal_width = 40
     goal_height = 120
     # Left goal area
-    p.rect(50, 50 + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
+    p.rect(pitch_x, pitch_y + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
     # Right goal area
-    p.rect(50 + pitch_width - goal_width, 50 + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
+    p.rect(pitch_x + pitch_width - goal_width, pitch_y + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
     
     # Penalty areas (18-yard boxes)
     penalty_width = 80
     penalty_height = 220
     # Left penalty area
-    p.rect(50, 50 + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
+    p.rect(pitch_x, pitch_y + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
     # Right penalty area
-    p.rect(50 + pitch_width - penalty_width, 50 + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
+    p.rect(pitch_x + pitch_width - penalty_width, pitch_y + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
     
     # Draw goals
     p.setFillColor(colors.white)
     goal_post_width = 5
     goal_post_depth = 8
     # Left goal
-    p.rect(50 - goal_post_depth, 50 + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
+    p.rect(pitch_x - goal_post_depth, pitch_y + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
     # Right goal
-    p.rect(50 + pitch_width, 50 + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
+    p.rect(pitch_x + pitch_width, pitch_y + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
     
-    # Draw players
+    # Get player positions from database, including related data
     player_positions = lineup.player_positions.all().select_related('player', 'position')
     
     # Enhanced debug info to console
     position_count = player_positions.count()
     print(f"[PDF Export] Lineup {lineup.id} has {position_count} player positions")
     
-    # Detailed logging of positions
+    # Create a list to store player information for both display and debugging
+    players_info = []
     for pos in player_positions:
         print(f"[PDF Export] Position ID: {pos.id}, Player: {pos.player.first_name} {pos.player.last_name}, " 
               f"Coords: ({pos.x_coordinate}, {pos.y_coordinate}), "
               f"Position: {pos.position.short_name if pos.position else 'None'}")
-    
-    # If there are no saved positions but lineup has a formation, create default positions
-    if player_positions.count() == 0 and lineup.formation:
-        print(f"No player positions found, applying default formation: {lineup.formation.formation_structure}")
-        # In this case we'll display a placeholder setup based on the formation
-        formation_string = lineup.formation.formation_structure
-        layers = formation_string.split('-')
         
-        # Draw a template formation with placeholder positions
-        p.setFont("Helvetica-Bold", 14)
-        p.setFillColor(colors.black)
-        p.drawCentredString(50 + pitch_width/2, 50 + pitch_height/2, 
-                           f"Formation: {formation_string} (No players positioned yet)")
-        p.setFont("Helvetica", 10)
-        p.drawCentredString(50 + pitch_width/2, 50 + pitch_height/2 - 20, 
-                           "Open in the Lineup Builder to position players")
+        # Store player data in standardized format for easier rendering
+        players_info.append({
+            'id': pos.id,
+            'player_id': pos.player.id,
+            'name': pos.player.first_name,
+            'x': float(pos.x_coordinate),
+            'y': float(pos.y_coordinate),
+            'is_starter': pos.is_starter,
+            'jersey_number': pos.jersey_number,
+            'position': pos.position.short_name if pos.position else ''
+        })
+    
+    # Draw message if no players are positioned
+    if position_count == 0:
+        if lineup.formation:
+            print(f"No player positions found, showing formation template: {lineup.formation.formation_structure}")
+            # Draw a template formation with placeholder positions
+            p.setFont("Helvetica-Bold", 14)
+            p.setFillColor(colors.black)
+            p.drawCentredString(pitch_x + pitch_width/2, pitch_y + pitch_height/2, 
+                               f"Formation: {lineup.formation.formation_structure}")
+            p.setFont("Helvetica", 10)
+            p.drawCentredString(pitch_x + pitch_width/2, pitch_y + pitch_height/2 - 20, 
+                               "No players positioned yet")
+            p.drawCentredString(pitch_x + pitch_width/2, pitch_y + pitch_height/2 - 40, 
+                               "Open in the Lineup Builder to position players")
+        else:
+            p.setFont("Helvetica-Bold", 14)
+            p.setFillColor(colors.black)
+            p.drawCentredString(pitch_x + pitch_width/2, pitch_y + pitch_height/2, 
+                               "No formation or player positions defined")
+            p.setFont("Helvetica", 10)
+            p.drawCentredString(pitch_x + pitch_width/2, pitch_y + pitch_height/2 - 20, 
+                               "Open in the Lineup Builder to create a formation")
     
     # Draw each positioned player
-    for pos in player_positions:
-        # Make sure we have valid coordinates
-        if pos.x_coordinate is None or pos.y_coordinate is None:
-            print(f"Invalid coordinates for player position {pos.id}, player {pos.player.id}")
-            continue
-            
-        player_x = 50 + (pos.x_coordinate / 100) * pitch_width
-        player_y = 50 + (pos.y_coordinate / 100) * pitch_height
+    for player in players_info:
+        # Convert percentage coordinates to absolute PDF coordinates
+        player_x = pitch_x + (player['x'] / 100) * pitch_width
+        player_y = pitch_y + (player['y'] / 100) * pitch_height
         
-        # Draw player circle
-        p.setFillColor(colors.blue if pos.is_starter else colors.lightblue)
+        print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y})")
+        
+        # Draw shadow for 3D effect
+        p.setFillColor(colors.Color(0, 0, 0, 0.2))
+        p.circle(player_x + 2, player_y - 2, 16, fill=1)
+        
+        # Draw player circle with different colors for starters vs substitutes
+        if player['is_starter']:
+            p.setFillColor(colors.blue)
+        else:
+            p.setFillColor(colors.lightblue)
+            
         p.circle(player_x, player_y, 15, fill=1)
         
         # Draw jersey number if available
         p.setFillColor(colors.white)
         p.setFont("Helvetica-Bold", 10)
-        number = str(pos.jersey_number) if pos.jersey_number else ""
+        number = str(player['jersey_number']) if player['jersey_number'] else ""
         p.drawCentredString(player_x, player_y - 4, number)
         
-        # Draw player name
+        # Draw player name with white background for better readability
+        name_width = p.stringWidth(player['name'], "Helvetica", 8) + 4
+        p.setFillColor(colors.white)
+        p.rect(player_x - name_width/2, player_y - 30, name_width, 12, fill=1, stroke=0)
+        
         p.setFillColor(colors.black)
         p.setFont("Helvetica", 8)
-        p.drawCentredString(player_x, player_y - 25, str(pos.player.first_name))
+        p.drawCentredString(player_x, player_y - 25, player['name'])
         
         # Draw position if available
-        if pos.position:
+        if player['position']:
+            p.setFillColor(colors.white)
+            position_width = p.stringWidth(player['position'], "Helvetica-Oblique", 6) + 4
+            p.rect(player_x - position_width/2, player_y - 40, position_width, 10, fill=1, stroke=0)
+            
+            p.setFillColor(colors.darkblue)
             p.setFont("Helvetica-Oblique", 6)
-            p.drawCentredString(player_x, player_y - 35, pos.position.short_name)
+            p.drawCentredString(player_x, player_y - 35, player['position'])
+    
+    # Add player list with roles on the side
+    # Only show if there are players
+    right_col_x = pitch_x + pitch_width + 20
+    if players_info:
+        # List starters
+        starters = [p for p in players_info if p['is_starter']]
+        substitutes = [p for p in players_info if not p['is_starter']]
+        
+        top_y = pitch_y + pitch_height
+        current_y = top_y
+        
+        if starters:
+            p.setFont("Helvetica-Bold", 12)
+            p.setFillColor(colors.black)
+            p.drawString(right_col_x, current_y, "Starting XI")
+            current_y -= 20
+            
+            p.setFont("Helvetica", 9)
+            for player in starters:
+                jersey = f"#{player['jersey_number']}" if player['jersey_number'] else ""
+                pos = f" ({player['position']})" if player['position'] else ""
+                p.drawString(right_col_x, current_y, f"{jersey} {player['name']}{pos}")
+                current_y -= 15
+        
+        # Add spacing
+        current_y -= 10
+        
+        if substitutes:
+            p.setFont("Helvetica-Bold", 12)
+            p.setFillColor(colors.black)
+            p.drawString(right_col_x, current_y, "Substitutes")
+            current_y -= 20
+            
+            p.setFont("Helvetica", 9)
+            for player in substitutes:
+                jersey = f"#{player['jersey_number']}" if player['jersey_number'] else ""
+                pos = f" ({player['position']})" if player['position'] else ""
+                p.drawString(right_col_x, current_y, f"{jersey} {player['name']}{pos}")
+                current_y -= 15
     
     # Add a legend
     p.setFont("Helvetica-Bold", 10)
     p.setFillColor(colors.black)
-    p.drawString(50, 30, "Starting XI")
+    p.drawString(pitch_x, 30, "Starting XI")
     p.setFillColor(colors.blue)
-    p.circle(80, 30, 5, fill=1)
+    p.circle(pitch_x + 60, 30, 5, fill=1)
     
     p.setFillColor(colors.black)
-    p.drawString(100, 30, "Substitutes")
+    p.drawString(pitch_x + 80, 30, "Substitutes")
     p.setFillColor(colors.lightblue)
-    p.circle(150, 30, 5, fill=1)
+    p.circle(pitch_x + 150, 30, 5, fill=1)
     
-    # Add footer with date
+    # Add footer with date and notes
     p.setFont("Helvetica", 8)
     p.setFillColor(colors.black)
-    p.drawString(50, 10, f"Generated on {timezone.now().strftime('%Y-%m-%d %H:%M')}")
+    p.drawString(pitch_x, 10, f"Generated on {timezone.now().strftime('%Y-%m-%d %H:%M')}")
     p.drawRightString(width - 50, 10, f"Smørås Fotball - G2015")
+    
+    if lineup.notes:
+        p.setFont("Helvetica-Italic", 9)
+        notes = lineup.notes[:100] + ('...' if len(lineup.notes) > 100 else '')
+        p.drawString(pitch_x + 250, 10, f"Notes: {notes}")
     
     # Close the PDF object cleanly
     p.showPage()
