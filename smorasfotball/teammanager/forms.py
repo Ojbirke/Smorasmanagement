@@ -1,7 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Team, Player, Match, MatchAppearance
+from .models import (
+    Team, Player, Match, MatchAppearance,
+    FormationTemplate, LineupPosition, Lineup, LineupPlayerPosition
+)
 
 
 class SignUpForm(UserCreationForm):
@@ -151,3 +154,82 @@ class ExcelUploadForm(forms.Form):
         label='Select Excel File',
         help_text='Upload an Excel file (.xlsx) containing player data.'
     )
+
+
+class FormationTemplateForm(forms.ModelForm):
+    class Meta:
+        model = FormationTemplate
+        fields = ['name', 'description', 'formation_structure']
+        help_texts = {
+            'formation_structure': 'Enter in the format "4-4-2", "4-3-3", etc.'
+        }
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+class LineupPositionForm(forms.ModelForm):
+    class Meta:
+        model = LineupPosition
+        fields = ['name', 'short_name', 'position_type']
+
+
+class LineupForm(forms.ModelForm):
+    class Meta:
+        model = Lineup
+        fields = ['name', 'match', 'team', 'formation', 'is_template', 'notes']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 3}),
+            'is_template': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        help_texts = {
+            'is_template': 'Check if you want to save this as a reusable template.'
+        }
+        
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Only show upcoming or recent matches
+        if 'match' in self.fields:
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            # Get matches within 2 weeks before or 1 month after today
+            two_weeks_ago = timezone.now() - timedelta(days=14)
+            one_month_ahead = timezone.now() + timedelta(days=30)
+            
+            self.fields['match'].queryset = Match.objects.filter(
+                date__gte=two_weeks_ago,
+                date__lte=one_month_ahead
+            ).order_by('date')
+            
+            self.fields['match'].required = False
+
+
+class LineupPlayerPositionForm(forms.ModelForm):
+    class Meta:
+        model = LineupPlayerPosition
+        fields = ['player', 'position', 'x_coordinate', 'y_coordinate', 'jersey_number', 'is_starter', 'notes']
+        widgets = {
+            'x_coordinate': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '100'}),
+            'y_coordinate': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '100'}),
+            'is_starter': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        lineup = kwargs.pop('lineup', None)
+        super().__init__(*args, **kwargs)
+        
+        # Only show active players
+        if 'player' in self.fields:
+            self.fields['player'].queryset = Player.objects.filter(active=True).order_by('first_name', 'last_name')
+            
+        # If we already have a lineup, only show players on the team
+        if lineup and 'player' in self.fields:
+            # Get all players that have already been added to this lineup
+            existing_players = LineupPlayerPosition.objects.filter(lineup=lineup).values_list('player_id', flat=True)
+            
+            # Exclude them from the available options if this is a new position
+            if not self.instance.pk:
+                self.fields['player'].queryset = self.fields['player'].queryset.exclude(id__in=existing_players)

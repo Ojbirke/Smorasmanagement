@@ -193,3 +193,104 @@ class MatchAppearance(models.Model):
 
     def __str__(self):
         return f"{self.player} in {self.match}"
+
+
+class FormationTemplate(models.Model):
+    """
+    Pre-defined formation templates (e.g., 4-4-2, 4-3-3, etc.)
+    """
+    name = models.CharField(max_length=50)
+    description = models.TextField(blank=True, null=True)
+    formation_structure = models.CharField(max_length=20, help_text="Format: e.g. '4-4-2', '4-3-3', etc.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
+
+
+class LineupPosition(models.Model):
+    """
+    Defines positions on a football pitch
+    """
+    POSITION_TYPES = [
+        ('GK', 'Goalkeeper'),
+        ('DEF', 'Defender'),
+        ('MID', 'Midfielder'),
+        ('FWD', 'Forward'),
+    ]
+    
+    name = models.CharField(max_length=50)
+    short_name = models.CharField(max_length=10)
+    position_type = models.CharField(max_length=3, choices=POSITION_TYPES)
+    
+    def __str__(self):
+        return self.name
+
+
+class Lineup(models.Model):
+    """
+    Stores lineups for matches
+    """
+    name = models.CharField(max_length=100)
+    match = models.ForeignKey(Match, related_name='lineups', on_delete=models.CASCADE, null=True, blank=True)
+    team = models.ForeignKey(Team, related_name='lineups', on_delete=models.CASCADE)
+    formation = models.ForeignKey(FormationTemplate, on_delete=models.SET_NULL, null=True, blank=True)
+    is_template = models.BooleanField(default=False, help_text="Is this a reusable template lineup?")
+    notes = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, related_name='created_lineups', on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        match_str = f" - {self.match}" if self.match else ""
+        return f"{self.name}{match_str}"
+    
+    def get_absolute_url(self):
+        return reverse('lineup-detail', kwargs={'pk': self.pk})
+    
+    def duplicate(self):
+        """Create a copy of this lineup"""
+        new_lineup = Lineup.objects.create(
+            name=f"Copy of {self.name}",
+            team=self.team,
+            formation=self.formation,
+            is_template=False,
+            notes=self.notes,
+            created_by=self.created_by
+        )
+        
+        # Copy player positions
+        for position in self.player_positions.all():
+            LineupPlayerPosition.objects.create(
+                lineup=new_lineup,
+                player=position.player,
+                position=position.position,
+                x_coordinate=position.x_coordinate,
+                y_coordinate=position.y_coordinate,
+                jersey_number=position.jersey_number,
+                is_starter=position.is_starter,
+                notes=position.notes
+            )
+        
+        return new_lineup
+
+
+class LineupPlayerPosition(models.Model):
+    """
+    Positions of players in a lineup
+    """
+    lineup = models.ForeignKey(Lineup, related_name='player_positions', on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, related_name='lineup_positions', on_delete=models.CASCADE)
+    position = models.ForeignKey(LineupPosition, on_delete=models.SET_NULL, null=True, blank=True)
+    x_coordinate = models.DecimalField(max_digits=5, decimal_places=2, help_text="X coordinate on pitch (0-100)")
+    y_coordinate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Y coordinate on pitch (0-100)")
+    jersey_number = models.PositiveSmallIntegerField(blank=True, null=True)
+    is_starter = models.BooleanField(default=True, help_text="Is this player in the starting lineup?")
+    notes = models.CharField(max_length=100, blank=True, null=True)
+    
+    class Meta:
+        unique_together = ('lineup', 'player')
+    
+    def __str__(self):
+        position_str = f" ({self.position})" if self.position else ""
+        return f"{self.player}{position_str} in {self.lineup}"
