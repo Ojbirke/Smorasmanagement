@@ -493,6 +493,8 @@ def export_lineup_pdf(request, pk):
         p.drawString(30, height - 90, f"Formation: {lineup.formation.formation_structure}")
     
     # Draw the pitch with clear dimensions and coordinates
+    # IMPORTANT: Pitch orientation: Left = Goalkeeper side (x=0), Right = Striker side (x=100%)
+    # This matches the orientation in the lineup builder: GK on left, Strikers on right
     # Leave more space at the bottom for text
     pitch_width = width - 150  # Slightly narrower pitch
     pitch_height = height - 180  # More space at bottom
@@ -605,9 +607,9 @@ def export_lineup_pdf(request, pk):
     # Draw each positioned player
     for player in players_info:
         # Convert percentage coordinates to absolute PDF coordinates
-        # Mirror the x-coordinate to fix the left/right orientation
-        # 100 - player['x'] inverts the x position to correctly show left/right positions
-        player_x = pitch_x + ((100 - player['x']) / 100) * pitch_width
+        # IMPORTANT: Keep original orientation (GK at left (x=0), strikers at right (x=100))
+        # This ensures the PDF matches the lineup builder view orientation
+        player_x = pitch_x + (player['x'] / 100) * pitch_width
         player_y = pitch_y + (player['y'] / 100) * pitch_height
         
         print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y}), Original x: {player['x']}")
