@@ -733,8 +733,22 @@ document.addEventListener('DOMContentLoaded', function() {
         playersOnPitch.forEach(player => {
             const playerId = player.getAttribute('data-player-id');
             const positionId = player.getAttribute('data-position-id') || null;
-            const x = parseFloat(player.getAttribute('data-x')) || parseFloat(player.style.left);
-            const y = parseFloat(player.getAttribute('data-y')) || parseFloat(player.style.top);
+            // Extract coordinates, properly handling percentage values
+            let x = parseFloat(player.getAttribute('data-x'));
+            let y = parseFloat(player.getAttribute('data-y'));
+            
+            // If data attributes aren't set, try to extract from style
+            if (isNaN(x) || isNaN(y)) {
+                const styleLeft = player.style.left;
+                const styleTop = player.style.top;
+                
+                x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 0;
+                y = styleTop ? parseFloat(styleTop.replace('%', '')) : 0;
+                
+                console.log(`Got coordinates from style: ${x}, ${y} for player ${playerId}`);
+            } else {
+                console.log(`Got coordinates from data attributes: ${x}, ${y} for player ${playerId}`);
+            }
             const playerCircle = player.querySelector('.player-circle');
             const isStarter = playerCircle.classList.contains('starter');
             const jerseyNumber = player.querySelector('.player-jersey').textContent;

@@ -322,53 +322,93 @@ def save_lineup_positions(request, pk):
     
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         try:
+            # Log request info for debugging
+            print(f"Saving positions for lineup {pk}, user: {request.user.username}")
+            
             data = json.loads(request.body)
             positions = data.get('positions', [])
             
+            print(f"Received {len(positions)} player positions to save")
+            
+            # Track which players have been processed to handle deletions
+            processed_player_ids = []
+            
             # Process each position
             for pos in positions:
-                player_id = pos.get('player_id')
-                position_id = pos.get('position_id')
-                x = pos.get('x')
-                y = pos.get('y')
-                is_starter = pos.get('is_starter', True)
-                jersey_number = pos.get('jersey_number')
-                notes = pos.get('notes', '')
-                
-                # Validate coordinate values
-                x = max(0, min(100, float(x)))
-                y = max(0, min(100, float(y)))
-                
-                # Check if this position already exists
                 try:
-                    player_position = LineupPlayerPosition.objects.get(
-                        lineup=lineup,
-                        player_id=player_id
-                    )
-                    # Update existing position
-                    player_position.position_id = position_id
-                    player_position.x_coordinate = x
-                    player_position.y_coordinate = y
-                    player_position.is_starter = is_starter
-                    player_position.jersey_number = jersey_number
-                    player_position.notes = notes
-                    player_position.save()
-                except LineupPlayerPosition.DoesNotExist:
-                    # Create new position
-                    LineupPlayerPosition.objects.create(
-                        lineup=lineup,
-                        player_id=player_id,
-                        position_id=position_id,
-                        x_coordinate=x,
-                        y_coordinate=y,
-                        is_starter=is_starter,
-                        jersey_number=jersey_number,
-                        notes=notes
-                    )
+                    player_id = pos.get('player_id')
+                    if not player_id:
+                        print(f"Warning: Missing player_id in position data: {pos}")
+                        continue
+                        
+                    position_id = pos.get('position_id')
+                    x = pos.get('x')
+                    y = pos.get('y')
+                    is_starter = pos.get('is_starter', True)
+                    jersey_number = pos.get('jersey_number')
+                    notes = pos.get('notes', '')
+                    
+                    # Ensure we have valid coordinates
+                    if x is None or y is None:
+                        print(f"Warning: Missing coordinates for player {player_id}: x={x}, y={y}")
+                        continue
+                        
+                    # Validate coordinate values
+                    x = max(0, min(100, float(x)))
+                    y = max(0, min(100, float(y)))
+                    
+                    processed_player_ids.append(int(player_id))
+                    
+                    # Check if this position already exists
+                    try:
+                        player_position = LineupPlayerPosition.objects.get(
+                            lineup=lineup,
+                            player_id=player_id
+                        )
+                        # Update existing position
+                        player_position.position_id = position_id
+                        player_position.x_coordinate = x
+                        player_position.y_coordinate = y
+                        player_position.is_starter = is_starter
+                        player_position.jersey_number = jersey_number
+                        player_position.notes = notes
+                        player_position.save()
+                        print(f"Updated position for player {player_id} at coordinates ({x}, {y})")
+                    except LineupPlayerPosition.DoesNotExist:
+                        # Create new position
+                        LineupPlayerPosition.objects.create(
+                            lineup=lineup,
+                            player_id=player_id,
+                            position_id=position_id,
+                            x_coordinate=x,
+                            y_coordinate=y,
+                            is_starter=is_starter,
+                            jersey_number=jersey_number,
+                            notes=notes
+                        )
+                        print(f"Created new position for player {player_id} at coordinates ({x}, {y})")
+                except Exception as e:
+                    print(f"Error processing position for player {pos.get('player_id')}: {str(e)}")
             
-            return JsonResponse({'status': 'success', 'message': 'Lineup saved successfully'})
+            # Clear any positions for players who were removed from the lineup
+            if processed_player_ids:
+                removed = LineupPlayerPosition.objects.filter(lineup=lineup).exclude(player_id__in=processed_player_ids).delete()[0]
+                if removed > 0:
+                    print(f"Removed {removed} positions for players no longer in the lineup")
+            
+            # Verify that positions were saved
+            position_count = LineupPlayerPosition.objects.filter(lineup=lineup).count()
+            print(f"Lineup {pk} now has {position_count} player positions")
+            
+            return JsonResponse({
+                'status': 'success', 
+                'message': 'Lineup saved successfully',
+                'position_count': position_count
+            })
         
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
