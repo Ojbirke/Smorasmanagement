@@ -199,13 +199,15 @@ class LineupPositionForm(forms.ModelForm):
 class LineupForm(forms.ModelForm):
     class Meta:
         model = Lineup
-        fields = ['name', 'match', 'team', 'formation', 'is_template', 'notes']
+        fields = ['name', 'match', 'team', 'formation', 'is_template', 'direction', 'notes']
         widgets = {
             'notes': forms.Textarea(attrs={'rows': 3}),
             'is_template': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'direction': forms.RadioSelect(attrs={'class': 'form-check-input'}),
         }
         help_texts = {
-            'is_template': 'Check if you want to save this as a reusable template.'
+            'is_template': 'Check if you want to save this as a reusable template.',
+            'direction': 'Choose the direction of play: first period (goalkeeper on left) or second period (goalkeeper on right).'
         }
         
     def __init__(self, *args, **kwargs):

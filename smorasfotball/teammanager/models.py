@@ -249,12 +249,19 @@ class Lineup(models.Model):
     """
     Stores lineups for matches
     """
+    DIRECTION_CHOICES = [
+        ('LR', 'First Period (GK Left)'),
+        ('RL', 'Second Period (GK Right)'),
+    ]
+    
     name = models.CharField(max_length=100)
     match = models.ForeignKey(Match, related_name='lineups', on_delete=models.CASCADE, null=True, blank=True)
     team = models.ForeignKey(Team, related_name='lineups', on_delete=models.CASCADE)
     formation = models.ForeignKey(FormationTemplate, on_delete=models.SET_NULL, null=True, blank=True)
     is_template = models.BooleanField(default=False, help_text="Is this a reusable template lineup?")
     notes = models.TextField(blank=True, null=True)
+    direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, default='LR',
+                                help_text="Direction of play (LR=GK on left, RL=GK on right)")
     created_by = models.ForeignKey(User, related_name='created_lineups', on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
