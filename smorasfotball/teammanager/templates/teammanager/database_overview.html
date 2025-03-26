@@ -153,6 +153,17 @@
                         <li><strong>SQLite Database:</strong> Direct copy of the SQLite database file. Contains all data including system tables. Only works with SQLite.</li>
                     </ul>
                     
+                    <div class="alert alert-primary">
+                        <h5><i class="fas fa-shield-alt"></i> Persistent Backups</h5>
+                        <p>When you create a backup, it's automatically stored in two locations:</p>
+                        <ul>
+                            <li><strong>Regular location:</strong> The <code>/backups</code> folder (visible in the table above)</li>
+                            <li><strong>Persistent location:</strong> A special <code>/persistent_backups</code> folder that remains available after redeployments</li>
+                        </ul>
+                        <p>To restore from a persistent backup after redeployment, use this command in the terminal:</p>
+                        <pre class="bg-light p-2"><code>cd smorasfotball && python manage.py restore_persistent_backup your_backup_filename.json</code></pre>
+                    </div>
+                    
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Always create a backup before making major changes to the system or data.
                     </div>

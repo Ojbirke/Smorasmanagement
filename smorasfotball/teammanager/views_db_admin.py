@@ -88,40 +88,21 @@ def create_backup(request):
     if request.method != 'POST':
         return redirect('database-overview')
     
-    # Create backup directory if it doesn't exist
-    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
-    os.makedirs(backup_dir, exist_ok=True)
-    
-    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
-    
-    # Backup data as JSON
     try:
-        json_filename = f'backup_{timestamp}.json'
-        json_filepath = os.path.join(backup_dir, json_filename)
-        
-        # Use Django's dumpdata command to create JSON backup
+        # Use the management command to create persistent backups
         output = io.StringIO()
-        original_stdout = sys.stdout
-        sys.stdout = output
-        call_command('dumpdata', '--exclude', 'auth.permission', '--exclude', 'contenttypes', 
-                    '--exclude', 'admin.logentry', '--indent', '2', stdout=output)
-        sys.stdout = original_stdout
+        call_command('persistent_backup', stdout=output)
         
-        with open(json_filepath, 'w') as f:
-            f.write(output.getvalue())
+        # Extract messages from command output
+        for line in output.getvalue().splitlines():
+            if line.strip():
+                if "success" in line.lower():
+                    messages.success(request, line)
+                else:
+                    messages.info(request, line)
         
-        messages.success(request, f"JSON data backup created successfully.")
-        
-        # If using SQLite, also backup the database file
-        if 'sqlite3' in settings.DATABASES['default']['ENGINE']:
-            db_path = settings.DATABASES['default']['NAME']
-            if os.path.exists(db_path):
-                sqlite_filename = f'backup_{timestamp}.sqlite3'
-                sqlite_filepath = os.path.join(backup_dir, sqlite_filename)
-                
-                # Create a copy of the SQLite database
-                shutil.copy2(db_path, sqlite_filepath)
-                messages.success(request, f"SQLite database backup created successfully.")
+        messages.success(request, "Backup created successfully and stored in both regular and persistent locations.")
+        messages.info(request, "The persistent backup will be available even after redeployments.")
     
     except Exception as e:
         messages.error(request, f"Error creating backup: {str(e)}")
