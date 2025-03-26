@@ -608,11 +608,12 @@ def export_lineup_pdf(request, pk):
     for player in players_info:
         # Convert percentage coordinates to absolute PDF coordinates
         # IMPORTANT: Keep original orientation (GK at left (x=0), strikers at right (x=100))
-        # This ensures the PDF matches the lineup builder view orientation
+        # NOTE: We need to flip the y-axis because PDF coordinate system has (0,0) at bottom-left,
+        # while the web coordinate system has (0,0) at top-left
         player_x = pitch_x + (player['x'] / 100) * pitch_width
-        player_y = pitch_y + (player['y'] / 100) * pitch_height
+        player_y = pitch_y + pitch_height - ((player['y'] / 100) * pitch_height)  # Flip y-axis
         
-        print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y}), Original x: {player['x']}")
+        print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y}), Original x: {player['x']}, y: {player['y']}")
         
         # Draw shadow for 3D effect
         p.setFillColor(colors.Color(0, 0, 0, 0.2))
