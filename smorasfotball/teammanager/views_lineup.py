@@ -454,16 +454,64 @@ def export_lineup_pdf(request, pk):
     # Center circle
     p.circle(50 + pitch_width/2, 50 + pitch_height/2, 50, stroke=1, fill=0)
     
-    # Goal areas
-    goal_width = 100
-    goal_height = 40
+    # Penalty spots
+    p.circle(50 + 60, 50 + pitch_height/2, 3, fill=1)
+    p.circle(50 + pitch_width - 60, 50 + pitch_height/2, 3, fill=1)
+    
+    # Goal areas (6-yard boxes) - properly oriented
+    goal_width = 40
+    goal_height = 120
+    # Left goal area
     p.rect(50, 50 + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
+    # Right goal area
     p.rect(50 + pitch_width - goal_width, 50 + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
+    
+    # Penalty areas (18-yard boxes)
+    penalty_width = 80
+    penalty_height = 220
+    # Left penalty area
+    p.rect(50, 50 + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
+    # Right penalty area
+    p.rect(50 + pitch_width - penalty_width, 50 + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
+    
+    # Draw goals
+    p.setFillColor(colors.white)
+    goal_post_width = 5
+    goal_post_depth = 8
+    # Left goal
+    p.rect(50 - goal_post_depth, 50 + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
+    # Right goal
+    p.rect(50 + pitch_width, 50 + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
     
     # Draw players
     player_positions = lineup.player_positions.all().select_related('player', 'position')
     
+    # Debug info to console
+    print(f"Lineup {lineup.id} has {player_positions.count()} player positions")
+    
+    # If there are no saved positions but lineup has a formation, create default positions
+    if player_positions.count() == 0 and lineup.formation:
+        print(f"No player positions found, applying default formation: {lineup.formation.formation_structure}")
+        # In this case we'll display a placeholder setup based on the formation
+        formation_string = lineup.formation.formation_structure
+        layers = formation_string.split('-')
+        
+        # Draw a template formation with placeholder positions
+        p.setFont("Helvetica-Bold", 14)
+        p.setFillColor(colors.black)
+        p.drawCentredString(50 + pitch_width/2, 50 + pitch_height/2, 
+                           f"Formation: {formation_string} (No players positioned yet)")
+        p.setFont("Helvetica", 10)
+        p.drawCentredString(50 + pitch_width/2, 50 + pitch_height/2 - 20, 
+                           "Open in the Lineup Builder to position players")
+    
+    # Draw each positioned player
     for pos in player_positions:
+        # Make sure we have valid coordinates
+        if pos.x_coordinate is None or pos.y_coordinate is None:
+            print(f"Invalid coordinates for player position {pos.id}, player {pos.player.id}")
+            continue
+            
         player_x = 50 + (pos.x_coordinate / 100) * pitch_width
         player_y = 50 + (pos.y_coordinate / 100) * pitch_height
         
