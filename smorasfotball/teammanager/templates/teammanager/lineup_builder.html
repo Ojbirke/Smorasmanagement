@@ -524,16 +524,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const boundedX = Math.max(0, Math.min(100, newX));
         const boundedY = Math.max(0, Math.min(100, newY));
         
+        // Format to 2 decimal places to avoid excessive precision
+        const formattedX = parseFloat(boundedX.toFixed(2));
+        const formattedY = parseFloat(boundedY.toFixed(2));
+        
         // Update the position with both style and data attributes
-        activeDragElement.style.left = `${boundedX}%`;
-        activeDragElement.style.top = `${boundedY}%`;
+        activeDragElement.style.left = `${formattedX}%`;
+        activeDragElement.style.top = `${formattedY}%`;
         
-        // Set the data attributes explicitly
-        activeDragElement.setAttribute('data-x', boundedX);
-        activeDragElement.setAttribute('data-y', boundedY);
+        // Set the data attributes explicitly with the same values
+        activeDragElement.setAttribute('data-x', formattedX);
+        activeDragElement.setAttribute('data-y', formattedY);
         
-        // Log for debugging
-        //console.log(`Dragging to: (${boundedX}%, ${boundedY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
+        // Log for debugging (uncomment if needed)
+        // console.log(`Dragging to: (${formattedX}%, ${formattedY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
     }
     
     // End dragging
@@ -542,9 +546,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Remove the dragging class
         activeDragElement.classList.remove('dragging');
-        
-        // Ensure the element is properly within the pitch
-        positionWithinPitch(activeDragElement);
         
         // Get the final position from style (most accurate after drag)
         let finalX = parseFloat(activeDragElement.style.left);
@@ -556,12 +557,27 @@ document.addEventListener('DOMContentLoaded', function() {
             finalY = parseFloat(activeDragElement.style.top.replace('%', ''));
         }
         
-        // Make sure these are valid numbers and update data attributes
+        // Format to 2 decimal places to avoid excessive precision
+        finalX = parseFloat(finalX.toFixed(2));
+        finalY = parseFloat(finalY.toFixed(2));
+        
+        // Ensure coordinates are within valid range
+        finalX = Math.max(0, Math.min(100, finalX));
+        finalY = Math.max(0, Math.min(100, finalY));
+        
+        // Make sure these are valid numbers and update data attributes and style consistently
         if (!isNaN(finalX) && !isNaN(finalY)) {
+            // Update both data attributes and style properties with the same values
             activeDragElement.setAttribute('data-x', finalX);
             activeDragElement.setAttribute('data-y', finalY);
-            //console.log(`Drag ended at: (${finalX}%, ${finalY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
+            activeDragElement.style.left = `${finalX}%`;
+            activeDragElement.style.top = `${finalY}%`;
+            
+            console.log(`Drag ended at: (${finalX}%, ${finalY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
         }
+        
+        // Ensure the element is properly within the pitch
+        positionWithinPitch(activeDragElement);
         
         // Remove the event listeners
         document.removeEventListener('mousemove', drag, false);
@@ -576,15 +592,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const x = parseFloat(element.getAttribute('data-x'));
         const y = parseFloat(element.getAttribute('data-y'));
         
-        // Constrain to pitch boundaries
-        const boundedX = Math.max(0, Math.min(100, x));
-        const boundedY = Math.max(0, Math.min(100, y));
+        // If data attributes aren't set, get from style
+        let finalX = x;
+        let finalY = y;
         
-        // Update the position
-        element.style.left = `${boundedX}%`;
-        element.style.top = `${boundedY}%`;
-        element.setAttribute('data-x', boundedX);
-        element.setAttribute('data-y', boundedY);
+        if (isNaN(finalX) || isNaN(finalY)) {
+            finalX = parseFloat(element.style.left.replace('%', '')) || 50;
+            finalY = parseFloat(element.style.top.replace('%', '')) || 50;
+        }
+        
+        // Format to 2 decimal places to avoid excessive precision
+        finalX = parseFloat(finalX.toFixed(2));
+        finalY = parseFloat(finalY.toFixed(2));
+        
+        // Constrain to pitch boundaries
+        finalX = Math.max(0, Math.min(100, finalX));
+        finalY = Math.max(0, Math.min(100, finalY));
+        
+        // Update both style and data attributes with the exact same value
+        element.style.left = `${finalX}%`;
+        element.style.top = `${finalY}%`;
+        element.setAttribute('data-x', finalX);
+        element.setAttribute('data-y', finalY);
     }
     
     // Clone a player from the bank to the pitch
