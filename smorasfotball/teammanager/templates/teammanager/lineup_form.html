@@ -99,7 +99,7 @@
                                     {% for choice in form.formation.field.queryset %}
                                         <option value="{{ choice.id }}" 
                                                 {% if form.formation.value|stringformat:'s' == choice.id|stringformat:'s' %}selected{% endif %}>
-                                            {{ choice.name }} ({{ choice.formation_structure }})
+                                            {{ choice.name }} - {{ choice.get_player_count_display }} ({{ choice.formation_structure }})
                                         </option>
                                     {% endfor %}
                                 </select>
