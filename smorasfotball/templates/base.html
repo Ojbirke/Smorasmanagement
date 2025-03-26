@@ -36,6 +36,18 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'match-list' %}">Matches</a>
                     </li>
+                    {% if is_coach or is_admin %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-clipboard-list me-1"></i>Lineup Builder
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'lineup-list' %}">Lineups</a></li>
+                            <li><a class="dropdown-item" href="{% url 'formation-list' %}">Formations</a></li>
+                            <li><a class="dropdown-item" href="{% url 'position-list' %}">Positions</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
                     {% if is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'database-overview' %}">Database</a>
