@@ -139,7 +139,7 @@
                 <div class="card-body">
                     {% if has_persistent_backups %}
                     <div class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle"></i> These backups are stored in a persistent location and will remain available after redeployments.
+                        <i class="fas fa-info-circle"></i> These backups are stored in a persistent location and will remain available after redeployments. They will be automatically detected and restored if the database is empty during startup.
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -149,7 +149,7 @@
                                     <th>Type</th>
                                     <th>Size</th>
                                     <th>Date</th>
-                                    <th>Command</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -160,12 +160,38 @@
                                     <td>{{ backup.size }}</td>
                                     <td>{{ backup.date|date:"Y-m-d H:i" }}</td>
                                     <td>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control form-control-sm" value="python manage.py restore_persistent_backup {{ backup.filename }}" readonly>
-                                            <div class="input-group-append">
-                                                <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-clipboard-text="python manage.py restore_persistent_backup {{ backup.filename }}" title="Copy to clipboard">
-                                                    <i class="fas fa-copy"></i>
+                                        <div class="btn-group" role="group">
+                                            <form action="{% url 'restore-backup' backup.filename %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="is_persistent" value="true">
+                                                <button type="submit" class="btn btn-warning btn-sm" 
+                                                        onclick="return confirm('WARNING: This will replace your current database with the backup. All current data not in the backup will be lost. Are you sure you want to continue?')">
+                                                    <i class="fas fa-undo"></i> Restore
                                                 </button>
+                                            </form>
+                                            <a href="{% url 'download-backup' backup.filename %}?persistent=true" class="btn btn-info btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                            <form action="{% url 'delete-backup' backup.filename %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="is_persistent" value="true">
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                        onclick="return confirm('Are you sure you want to permanently delete this persistent backup file? This cannot be undone.')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <div class="mt-2">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text">CLI Command</span>
+                                                </div>
+                                                <input type="text" class="form-control form-control-sm" value="python manage.py restore_persistent_backup {{ backup.filename }}" readonly>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-clipboard-text="python manage.py restore_persistent_backup {{ backup.filename }}" title="Copy to clipboard">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -207,10 +233,24 @@
                         <h5><i class="fas fa-shield-alt"></i> Persistent Backups</h5>
                         <p>When you create a backup, it's automatically stored in two locations:</p>
                         <ul>
-                            <li><strong>Regular location:</strong> The <code>/backups</code> folder (visible in the table above)</li>
+                            <li><strong>Regular location:</strong> The <code>/backups</code> folder inside the application directory</li>
                             <li><strong>Persistent location:</strong> A special <code>/persistent_backups</code> folder that remains available after redeployments</li>
                         </ul>
-                        <p>To restore from a persistent backup after redeployment, use this command in the terminal:</p>
+                        
+                        <h6><i class="fas fa-sync"></i> Automatic Restoration</h6>
+                        <p>The system will automatically detect and restore from the latest persistent backup when:</p>
+                        <ul>
+                            <li>The application is redeployed</li>
+                            <li>The database is empty or not initialized</li>
+                        </ul>
+                        <p>This ensures your data is preserved across redeployments without manual intervention.</p>
+                        
+                        <h6><i class="fas fa-terminal"></i> Manual Restoration</h6>
+                        <p>You can also manually restore from a persistent backup:</p>
+                        <ol>
+                            <li>Use the <strong>Restore</strong> button in the Persistent Backups section above</li>
+                            <li>Or use this command in the terminal:</li>
+                        </ol>
                         <pre class="bg-light p-2"><code>cd smorasfotball && python manage.py restore_persistent_backup your_backup_filename.json</code></pre>
                     </div>
                     
