@@ -642,11 +642,11 @@ def export_lineup_pdf(request, pk):
         # Draw position if available
         if player['position']:
             p.setFillColor(colors.white)
-            position_width = p.stringWidth(player['position'], "Helvetica-Oblique", 6) + 4
+            position_width = p.stringWidth(player['position'], "Helvetica", 6) + 4
             p.rect(player_x - position_width/2, player_y - 40, position_width, 10, fill=1, stroke=0)
             
             p.setFillColor(colors.darkblue)
-            p.setFont("Helvetica-Oblique", 6)
+            p.setFont("Helvetica", 6)
             p.drawCentredString(player_x, player_y - 35, player['position'])
     
     # Add player list with roles on the side
@@ -708,7 +708,7 @@ def export_lineup_pdf(request, pk):
     p.drawRightString(width - 50, 30, f"Smørås Fotball - G2015")
     
     if lineup.notes:
-        p.setFont("Helvetica-Italic", 9)
+        p.setFont("Helvetica", 9)
         notes = lineup.notes[:100] + ('...' if len(lineup.notes) > 100 else '')
         p.drawString(pitch_x + 250, 30, f"Notes: {notes}")
     
