@@ -854,7 +854,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Send the data to the server
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        // Get CSRF token from our hidden form
+        const csrfToken = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]').value;
         
         fetch(`/lineups/${lineupId}/save-positions/`, {
             method: 'POST',
@@ -1014,8 +1015,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Find the CSRF token
-            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            // Find the CSRF token from our hidden form
+            const csrfTokenElement = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]');
             if (!csrfTokenElement) {
                 console.error('CSRF token not found, cannot save positions');
                 return;
@@ -1155,8 +1156,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Find the CSRF token
-                const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+                // Find the CSRF token from our hidden form
+                const csrfTokenElement = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]');
                 if (!csrfTokenElement) {
                     console.error('Cannot perform final save: CSRF token not found');
                     return;
@@ -1370,8 +1371,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Find the CSRF token
-            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            // Find the CSRF token from our hidden form
+            const csrfTokenElement = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]');
             if (!csrfTokenElement) {
                 console.error('CSRF token not found, cannot save positions');
                 alert('Error: CSRF token not found. Please refresh the page and try again.');
