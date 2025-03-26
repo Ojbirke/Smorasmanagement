@@ -605,11 +605,12 @@ def export_lineup_pdf(request, pk):
     # Draw each positioned player
     for player in players_info:
         # Convert percentage coordinates to absolute PDF coordinates
-        # Using the original x coordinate to match the lineup builder orientation
-        player_x = pitch_x + (player['x'] / 100) * pitch_width
+        # Mirror the x-coordinate to fix the left/right orientation
+        # 100 - player['x'] inverts the x position to correctly show left/right positions
+        player_x = pitch_x + ((100 - player['x']) / 100) * pitch_width
         player_y = pitch_y + (player['y'] / 100) * pitch_height
         
-        print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y})")
+        print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y}), Original x: {player['x']}")
         
         # Draw shadow for 3D effect
         p.setFillColor(colors.Color(0, 0, 0, 0.2))
