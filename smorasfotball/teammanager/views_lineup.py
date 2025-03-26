@@ -187,10 +187,118 @@ class LineupCreateView(LoginRequiredMixin, CreateView):
                 messages.success(self.request, f"Lineup created from template '{template.name}'.")
             except Lineup.DoesNotExist:
                 messages.error(self.request, "Template lineup not found.")
+        # If no template but we have a match, add the match players to the lineup
+        elif form.instance.match:
+            match = form.instance.match
+            team = form.instance.team
+            
+            # Get all players who appeared in this match for this team
+            match_appearances = match.appearances.filter(team=team)
+            
+            # Get or create default positions based on formation
+            positions = self._get_positions_from_formation(form.instance.formation)
+            
+            # Add each player who appeared in the match to the lineup
+            for idx, appearance in enumerate(match_appearances):
+                # Skip if player is not active
+                if not appearance.player.active:
+                    continue
+                    
+                # Calculate default positions (evenly distributed)
+                position_type = None
+                if idx == 0:  # First player is goalkeeper
+                    position_type = LineupPosition.objects.filter(position_type='GK').first()
+                else:
+                    # Rotate through remaining position types for other players
+                    position_options = ['DEF', 'MID', 'FWD']
+                    position_type = LineupPosition.objects.filter(
+                        position_type=position_options[(idx - 1) % 3]
+                    ).first()
+                
+                # Calculate sensible default coordinates based on position type
+                x, y = self._get_default_coordinates(position_type, idx, len(match_appearances))
+                
+                # Create the player position in the lineup
+                LineupPlayerPosition.objects.create(
+                    lineup=self.object,
+                    player=appearance.player,
+                    position=position_type,
+                    x_coordinate=x,
+                    y_coordinate=y,
+                    jersey_number=idx + 1,  # Default jersey number
+                    is_starter=True,
+                    notes=f"Added from match: {match.smoras_team} vs {match.opponent_name}"
+                )
+            
+            messages.success(self.request, f"Lineup created with {match_appearances.count()} players from match: {match.smoras_team} vs {match.opponent_name}.")
         else:
             messages.success(self.request, "Lineup created successfully.")
         
         return response
+        
+    def _get_positions_from_formation(self, formation):
+        """Get appropriate positions based on the formation"""
+        position_types = {
+            'GK': 1,  # Always 1 goalkeeper
+            'DEF': 4, # Default 4 defenders
+            'MID': 4, # Default 4 midfielders
+            'FWD': 2  # Default 2 forwards
+        }
+        
+        # If we have a formation, parse its structure
+        if formation:
+            try:
+                parts = formation.formation_structure.split('-')
+                if len(parts) >= 3:  # Typical format: 4-4-2, 4-3-3, etc.
+                    position_types['DEF'] = int(parts[0])
+                    position_types['MID'] = int(parts[1])
+                    position_types['FWD'] = int(parts[2])
+            except (ValueError, IndexError):
+                # If parsing fails, use defaults
+                pass
+                
+        return position_types
+        
+    def _get_default_coordinates(self, position_type, idx, total_players):
+        """Calculate sensible default coordinates based on position and index"""
+        if not position_type:
+            # Default to middle if no position
+            return 50, 50
+            
+        # X coordinate - based on position type
+        if position_type.position_type == 'GK':
+            x = 10  # Goalkeeper near the goal
+        elif position_type.position_type == 'DEF':
+            x = 30  # Defenders
+        elif position_type.position_type == 'MID':
+            x = 60  # Midfielders
+        elif position_type.position_type == 'FWD':
+            x = 80  # Forwards
+        else:
+            x = 50  # Default to middle
+            
+        # Y coordinate - evenly distribute players of same position type
+        base_y = 50  # Start in the middle
+        spread = min(70, total_players * 5)  # Limit the spread based on player count
+        
+        # Distribute Y based on position and index to avoid overlap
+        if position_type.position_type == 'GK':
+            y = 50  # Goalkeeper in the middle
+        else:
+            # For each position type, calculate how many we have
+            position_count = {
+                'DEF': min(4, max(3, total_players // 4)),
+                'MID': min(4, max(3, total_players // 3)),
+                'FWD': min(3, max(2, total_players // 5))
+            }[position_type.position_type]
+            
+            # Distribute Y based on position count
+            offset = spread / (position_count + 1)
+            # Position index within its category
+            pos_idx = idx % position_count
+            y = 50 - (spread / 2) + (offset * (pos_idx + 1))
+            
+        return x, y
     
     def get_success_url(self):
         return reverse('lineup-builder', kwargs={'pk': self.object.pk})

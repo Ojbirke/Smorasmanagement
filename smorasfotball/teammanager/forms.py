@@ -228,6 +228,13 @@ class LineupForm(forms.ModelForm):
                 date__lte=one_month_ahead
             ).order_by('date')
             
+            # Improve the help text to explain player import feature
+            self.fields['match'].help_text = 'Optional. If selected, players from this match will be automatically added to the lineup.'
+            
+            # Customize the display of match options
+            self.fields['match'].label_from_instance = lambda obj: f"{obj.date.strftime('%Y-%m-%d')}: {obj.smoras_team} vs {obj.opponent_name}"
+            
+            # Make the match field optional
             self.fields['match'].required = False
 
 

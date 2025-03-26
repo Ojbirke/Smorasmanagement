@@ -23,6 +23,49 @@
                     </h2>
                 </div>
                 <div class="card-body">
+                    {% if not editing %}
+                    <!-- Information alert about match selection -->
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>New!</strong> When you select a match, the team will be auto-filled and all players from that match will be automatically added to your lineup.
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Store match team data for JavaScript -->
+                    <script>
+                        // Store match data for auto-filling the team
+                        const matchTeamMap = {
+                            {% for match in form.match.field.queryset %}
+                                "{{ match.id }}": "{{ match.smoras_team.id }}",
+                            {% endfor %}
+                        };
+                        
+                        // On document ready
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Get the select elements
+                            const matchSelect = document.getElementById('{{ form.match.id_for_label }}');
+                            const teamSelect = document.getElementById('{{ form.team.id_for_label }}');
+                            
+                            // Add change event to match select
+                            matchSelect.addEventListener('change', function() {
+                                const matchId = this.value;
+                                if (matchId && matchTeamMap[matchId]) {
+                                    // Set the team select to the match's team
+                                    teamSelect.value = matchTeamMap[matchId];
+                                    
+                                    // If match is selected, also suggest a name for the lineup
+                                    const matchOption = this.options[this.selectedIndex];
+                                    if (matchOption) {
+                                        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+                                        // Only suggest a name if it's empty
+                                        if (!nameInput.value) {
+                                            nameInput.value = 'Lineup for ' + matchOption.text;
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    </script>
                     <form method="post" novalidate>
                         {% csrf_token %}
                         
