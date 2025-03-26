@@ -126,6 +126,24 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label class="form-label">{{ form.direction.label }}</label>
+                            {{ form.direction.errors }}
+                            <div class="mt-2">
+                                {% for radio in form.direction %}
+                                <div class="form-check form-check-inline">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.direction.help_text %}
+                                <small class="form-text text-muted">{{ form.direction.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
                             <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
                             {{ form.notes.errors }}
                             <textarea name="{{ form.notes.name }}" 
