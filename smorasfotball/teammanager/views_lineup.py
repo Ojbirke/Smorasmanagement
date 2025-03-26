@@ -463,7 +463,7 @@ def duplicate_lineup(request, pk):
 
 @login_required
 def export_lineup_pdf(request, pk):
-    """Export a lineup as PDF with enhanced layout and player positioning"""
+    """Export a lineup as PDF with both directions (first and second period)"""
     if not request.user.is_authenticated:
         return redirect('login')
     
@@ -478,6 +478,9 @@ def export_lineup_pdf(request, pk):
     
     # Set up the document
     p.setTitle(f"Football Lineup - {lineup.name}")
+    
+    # Store the original direction
+    original_direction = lineup.direction
     
     # Draw the header
     p.setFont("Helvetica-Bold", 18)
@@ -721,6 +724,193 @@ def export_lineup_pdf(request, pk):
         p.setFont("Helvetica", 9)
         notes = lineup.notes[:100] + ('...' if len(lineup.notes) > 100 else '')
         p.drawString(pitch_x + 250, 30, f"Notes: {notes}")
+    
+    # Add text to indicate this is the first period direction
+    p.setFont("Helvetica-Bold", 16)
+    p.setFillColor(colors.black)
+    p.drawString(pitch_x, pitch_y + pitch_height + 40, "First Period Direction - Goalkeeper on Left")
+    
+    # End first page
+    p.showPage()
+    
+    # Start second page with opposite direction
+    # Temporarily change lineup direction to the opposite
+    lineup.direction = 'RL' if original_direction == 'LR' else 'LR'
+    
+    # Set up the document - second page
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(30, height - 30, f"Lineup: {lineup.name}")
+    
+    # Draw sub-header with more match details if available
+    p.setFont("Helvetica", 12)
+    if lineup.match:
+        match_date = lineup.match.date.strftime("%Y-%m-%d %H:%M")
+        location = lineup.match.location or "Unknown location"
+        match_type = lineup.match.match_type
+        p.drawString(30, height - 50, f"Match: {lineup.team.name} vs {lineup.match.opponent_name}")
+        p.drawString(30, height - 70, f"Date: {match_date} | Location: {location} | Type: {match_type}")
+    else:
+        p.drawString(30, height - 50, "Practice/Template Lineup")
+        p.drawString(30, height - 70, f"Team: {lineup.team.name}")
+    
+    # Draw formation if specified
+    if lineup.formation:
+        p.drawString(30, height - 90, f"Formation: {lineup.formation.formation_structure}")
+    
+    # Add text to indicate this is the second period direction
+    p.setFont("Helvetica-Bold", 16)
+    p.setFillColor(colors.black)
+    p.drawString(pitch_x, pitch_y + pitch_height + 40, "Second Period Direction - Goalkeeper on Right")
+    
+    # Draw the pitch with clear dimensions and coordinates
+    # Pitch orientation for second period: Left = Striker side, Right = Goalkeeper side
+    p.setStrokeColor(colors.darkgreen)
+    p.setFillColor(colors.green)
+    p.rect(pitch_x, pitch_y, pitch_width, pitch_height, fill=True)
+    
+    # Add striped pattern for grass effect
+    p.setStrokeColor(colors.Color(0, 0.5, 0, 0.1))  # Very light green
+    for i in range(0, int(pitch_height), stripe_width * 2):
+        p.rect(pitch_x, pitch_y + i, pitch_width, stripe_width, fill=True, stroke=False)
+    
+    # Draw pitch markings
+    p.setStrokeColor(colors.white)
+    p.setFillColor(colors.white)
+    
+    # Pitch outline
+    p.rect(pitch_x, pitch_y, pitch_width, pitch_height, fill=0)
+    
+    # Center line
+    p.line(pitch_x + pitch_width/2, pitch_y, pitch_x + pitch_width/2, pitch_y + pitch_height)
+    
+    # Center circle
+    p.circle(pitch_x + pitch_width/2, pitch_y + pitch_height/2, 50, stroke=1, fill=0)
+    p.circle(pitch_x + pitch_width/2, pitch_y + pitch_height/2, 5, fill=1)
+    
+    # Penalty spots
+    p.circle(pitch_x + 60, pitch_y + pitch_height/2, 3, fill=1)
+    p.circle(pitch_x + pitch_width - 60, pitch_y + pitch_height/2, 3, fill=1)
+    
+    # Goal areas (6-yard boxes)
+    # For second period: right side is goalkeeper side, left side is striker side
+    p.rect(pitch_x, pitch_y + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
+    p.rect(pitch_x + pitch_width - goal_width, pitch_y + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
+    
+    # Penalty areas (18-yard boxes)
+    p.rect(pitch_x, pitch_y + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
+    p.rect(pitch_x + pitch_width - penalty_width, pitch_y + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
+    
+    # Draw goals
+    p.setFillColor(colors.white)
+    # For second period: left side goal for strikers, right side goal for goalkeeper
+    p.rect(pitch_x - goal_post_depth, pitch_y + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
+    p.rect(pitch_x + pitch_width, pitch_y + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
+    
+    # Draw each positioned player with flipped x-coordinates for second period
+    for player in players_info:
+        # Convert percentage coordinates to absolute PDF coordinates
+        # For second period: Flip the x-coordinate (100-x)
+        # Still flip the y-axis for PDF coordinate system
+        player_x = pitch_x + ((100 - player['x']) / 100) * pitch_width  # Flip x-axis for second period
+        player_y = pitch_y + pitch_height - ((player['y'] / 100) * pitch_height)  # Flip y-axis
+        
+        print(f"[PDF Export] Second period: Drawing player at coordinates: ({player_x}, {player_y}), Original x: {player['x']}, y: {player['y']}")
+        
+        # Draw shadow for 3D effect
+        p.setFillColor(colors.Color(0, 0, 0, 0.2))
+        p.circle(player_x + 2, player_y - 2, 16, fill=1)
+        
+        # Draw player circle with different colors for starters vs substitutes
+        if player['is_starter']:
+            p.setFillColor(colors.blue)
+        else:
+            p.setFillColor(colors.lightblue)
+            
+        p.circle(player_x, player_y, 15, fill=1)
+        
+        # Draw jersey number if available
+        p.setFillColor(colors.white)
+        p.setFont("Helvetica-Bold", 10)
+        number = str(player['jersey_number']) if player['jersey_number'] else ""
+        p.drawCentredString(player_x, player_y - 4, number)
+        
+        # Draw player name with white background for better readability
+        name_width = p.stringWidth(player['name'], "Helvetica", 8) + 4
+        p.setFillColor(colors.white)
+        p.rect(player_x - name_width/2, player_y - 30, name_width, 12, fill=1, stroke=0)
+        
+        p.setFillColor(colors.black)
+        p.setFont("Helvetica", 8)
+        p.drawCentredString(player_x, player_y - 25, player['name'])
+        
+        # Draw position if available
+        if player['position']:
+            p.setFillColor(colors.white)
+            position_width = p.stringWidth(player['position'], "Helvetica", 6) + 4
+            p.rect(player_x - position_width/2, player_y - 40, position_width, 10, fill=1, stroke=0)
+            
+            p.setFillColor(colors.darkblue)
+            p.setFont("Helvetica", 6)
+            p.drawCentredString(player_x, player_y - 35, player['position'])
+    
+    # Add player list with roles on the side (same as first page)
+    right_col_x = pitch_x + pitch_width + 20
+    if players_info:
+        # List starters
+        starters = [p for p in players_info if p['is_starter']]
+        substitutes = [p for p in players_info if not p['is_starter']]
+        
+        top_y = pitch_y + pitch_height
+        current_y = top_y
+        
+        if starters:
+            p.setFont("Helvetica-Bold", 12)
+            p.setFillColor(colors.black)
+            p.drawString(right_col_x, current_y, "Starting XI")
+            current_y -= 20
+            
+            p.setFont("Helvetica", 9)
+            for player in starters:
+                jersey = f"#{player['jersey_number']}" if player['jersey_number'] else ""
+                pos = f" ({player['position']})" if player['position'] else ""
+                p.drawString(right_col_x, current_y, f"{jersey} {player['name']}{pos}")
+                current_y -= 15
+        
+        # Add spacing
+        current_y -= 10
+        
+        if substitutes:
+            p.setFont("Helvetica-Bold", 12)
+            p.setFillColor(colors.black)
+            p.drawString(right_col_x, current_y, "Substitutes")
+            current_y -= 20
+            
+            p.setFont("Helvetica", 9)
+            for player in substitutes:
+                jersey = f"#{player['jersey_number']}" if player['jersey_number'] else ""
+                pos = f" ({player['position']})" if player['position'] else ""
+                p.drawString(right_col_x, current_y, f"{jersey} {player['name']}{pos}")
+                current_y -= 15
+                
+    # Add a legend and footer (same as first page)
+    p.setFont("Helvetica-Bold", 10)
+    p.setFillColor(colors.black)
+    p.drawString(pitch_x, 50, "Starting XI")
+    p.setFillColor(colors.blue)
+    p.circle(pitch_x + 60, 50, 5, fill=1)
+    
+    p.setFillColor(colors.black)
+    p.drawString(pitch_x + 80, 50, "Substitutes")
+    p.setFillColor(colors.lightblue)
+    p.circle(pitch_x + 150, 50, 5, fill=1)
+    
+    p.setFont("Helvetica", 8)
+    p.setFillColor(colors.black)
+    p.drawString(pitch_x, 30, f"Generated on {timezone.now().strftime('%Y-%m-%d %H:%M')}")
+    p.drawRightString(width - 50, 30, f"Smørås Fotball - G2015")
+    
+    # Restore the original direction for the lineup object
+    lineup.direction = original_direction
     
     # Close the PDF object cleanly
     p.showPage()
