@@ -5,6 +5,33 @@
 
 {% block extra_css %}
 <style>
+    /* Player status toggle styling */
+    .form-switch .form-check-input {
+        height: 24px;
+        width: 48px;
+        cursor: pointer;
+    }
+    
+    .form-switch .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .form-switch .form-check-input:not(:checked) {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+    
+    .starter-label {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .substitute-label {
+        color: #ffc107;
+        font-weight: bold;
+    }
+    
     #pitch-container {
         position: relative;
         width: 100%;
@@ -301,11 +328,15 @@
                             <input type="number" class="form-control" id="edit-jersey" min="1" max="99">
                         </div>
                         
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="edit-starter" checked>
-                            <label class="form-check-label" for="edit-starter">
-                                Starting XI
-                            </label>
+                        <div class="mb-3">
+                            <label class="form-label">Player Status</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="edit-starter" checked style="height: 24px; width: 48px;">
+                                <label class="form-check-label fw-bold" for="edit-starter">
+                                    <span class="starter-label text-success">Starting XI</span>
+                                    <span class="substitute-label text-warning d-none">Substitute</span>
+                                </label>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -393,6 +424,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let yOffset = 0;
     let positionsChanged = false; // Track if positions have changed
     
+    // Elements for the player status switch
+    const starterLabel = document.querySelector('.starter-label');
+    const substituteLabel = document.querySelector('.substitute-label');
+    
     const playerItems = document.querySelectorAll('.player-item');
     const playerBank = document.getElementById('player-bank');
     const pitchContainer = document.getElementById('pitch-container');
@@ -447,6 +482,18 @@ document.addEventListener('DOMContentLoaded', function() {
     playerEditForm.addEventListener('submit', function(event) {
         event.preventDefault();
         applyPlayerEdits();
+    });
+    
+    // Handle starter/substitute switch toggling
+    editStarterCheckbox.addEventListener('change', function() {
+        // Toggle visibility of starter/substitute labels
+        if (this.checked) {
+            starterLabel.classList.remove('d-none');
+            substituteLabel.classList.add('d-none');
+        } else {
+            starterLabel.classList.add('d-none');
+            substituteLabel.classList.remove('d-none');
+        }
     });
     
     // Cancel button in player editor
@@ -765,7 +812,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set up the form
         editPlayerIdInput.value = playerId;
         editJerseyInput.value = jerseyNumber || '';
-        editStarterCheckbox.checked = playerCircle.classList.contains('starter');
+        const isStarter = playerCircle.classList.contains('starter');
+        editStarterCheckbox.checked = isStarter;
+        
+        // Update the toggle labels to match current state
+        if (isStarter) {
+            starterLabel.classList.remove('d-none');
+            substituteLabel.classList.add('d-none');
+        } else {
+            starterLabel.classList.add('d-none');
+            substituteLabel.classList.remove('d-none');
+        }
         
         // Find the position ID if it exists
         if (playerPosition) {

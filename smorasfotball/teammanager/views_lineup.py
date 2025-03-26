@@ -199,6 +199,15 @@ class LineupCreateView(LoginRequiredMixin, CreateView):
             positions = self._get_positions_from_formation(form.instance.formation)
             
             # Add each player who appeared in the match to the lineup
+            # First, determine how many players should be in the starting lineup
+            formation = form.instance.formation
+            starting_count = 11  # Default for standard football
+            
+            # If we have a formation, use its player count to determine starters
+            if formation:
+                starting_count = formation.player_count
+            
+            # Process each player
             for idx, appearance in enumerate(match_appearances):
                 # Skip if player is not active
                 if not appearance.player.active:
@@ -218,6 +227,19 @@ class LineupCreateView(LoginRequiredMixin, CreateView):
                 # Calculate sensible default coordinates based on position type
                 x, y = self._get_default_coordinates(position_type, idx, len(match_appearances))
                 
+                # Determine if this player is a starter based on position and index
+                # First 'starting_count' players are starters, rest are substitutes
+                is_starter = idx < starting_count
+                
+                # If it's a substitute, place them on the sideline
+                if not is_starter:
+                    # Place substitutes on the left edge of the pitch
+                    x = 1
+                    # Distribute them vertically with equal spacing
+                    sub_idx = idx - starting_count
+                    sub_spacing = 80 / max(1, match_appearances.count() - starting_count)
+                    y = 10 + (sub_idx * sub_spacing)
+                
                 # Create the player position in the lineup
                 LineupPlayerPosition.objects.create(
                     lineup=self.object,
@@ -226,7 +248,7 @@ class LineupCreateView(LoginRequiredMixin, CreateView):
                     x_coordinate=x,
                     y_coordinate=y,
                     jersey_number=idx + 1,  # Default jersey number
-                    is_starter=True,
+                    is_starter=is_starter,
                     notes=f"Added from match: {match.smoras_team} vs {match.opponent_name}"
                 )
             
