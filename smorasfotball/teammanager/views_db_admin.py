@@ -282,3 +282,37 @@ def restore_sqlite_backup(backup_path):
         if os.path.exists(current_backup):
             shutil.copy2(current_backup, db_path)
         raise e
+
+@login_required
+def cleanup_backups(request):
+    """Clean up excess backup files to save space"""
+    if not is_admin(request.user):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('dashboard')
+    
+    if request.method != 'POST':
+        return redirect('database-overview')
+    
+    keep = int(request.POST.get('keep', '1'))
+    if keep < 1:
+        keep = 1
+    
+    try:
+        # Call the cleanup_backups management command to handle the cleanup
+        output = io.StringIO()
+        call_command('cleanup_backups', keep=keep, force_cleanup=True, stdout=output)
+        
+        # Extract messages from command output
+        for line in output.getvalue().splitlines():
+            if line.strip():
+                if "error" in line.lower():
+                    messages.error(request, line)
+                else:
+                    messages.info(request, line)
+        
+        messages.success(request, f"Backup cleanup completed. Kept the latest {keep} backup(s) of each type.")
+    
+    except Exception as e:
+        messages.error(request, f"Error cleaning up backups: {str(e)}")
+    
+    return redirect('database-overview')

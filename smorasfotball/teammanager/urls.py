@@ -45,6 +45,7 @@ urlpatterns = [
     # Database Management
     path('database/', views_db_admin.database_overview, name='database-overview'),
     path('database/backup/create/', views_db_admin.create_backup, name='create-backup'),
+    path('database/backup/cleanup/', views_db_admin.cleanup_backups, name='cleanup-backups'),
     path('database/backup/<str:filename>/restore/', views_db_admin.restore_backup, name='restore-backup'),
     path('database/backup/<str:filename>/delete/', views_db_admin.delete_backup, name='delete-backup'),
     path('database/backup/<str:filename>/download/', views_db_admin.download_backup, name='download-backup'),
