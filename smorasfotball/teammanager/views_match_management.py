@@ -114,9 +114,65 @@ class MatchSessionCreateView(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         response = super().form_valid(form)
         
-        # Redirect to player selection page
-        messages.success(self.request, "Match session created successfully. Now select players for this session.")
-        return redirect('match-session-players', pk=self.object.pk)
+        # Check if match has appearances we could auto-import
+        match = form.instance.match
+        appearances = match.appearances.all()
+        
+        if appearances.exists():
+            # Auto-import players from match appearances
+            players_from_match = Player.objects.filter(
+                match_appearances__match=match
+            ).distinct()
+            
+            # Determine formation based on player count
+            formation_count = 7
+            if players_from_match.count() >= 11:
+                formation_count = 11  # 11-a-side
+            elif players_from_match.count() >= 9:
+                formation_count = 9  # 9-a-side
+            elif players_from_match.count() >= 7:
+                formation_count = 7  # 7-a-side
+            elif players_from_match.count() >= 5:
+                formation_count = 5  # 5-a-side
+            
+            # Determine starters and bench
+            all_players = list(players_from_match)
+            starters = all_players[:formation_count]
+            bench = all_players[formation_count:]
+            
+            # Create playing time records
+            for player in starters:
+                PlayingTime.objects.update_or_create(
+                    match_session=self.object,
+                    player=player,
+                    defaults={
+                        'is_on_pitch': True,
+                        'minutes_played': 0,
+                        'last_substitution_time': timezone.now() if self.object.is_active else None
+                    }
+                )
+            
+            for player in bench:
+                PlayingTime.objects.update_or_create(
+                    match_session=self.object,
+                    player=player,
+                    defaults={
+                        'is_on_pitch': False,
+                        'minutes_played': 0,
+                        'last_substitution_time': None
+                    }
+                )
+            
+            messages.success(
+                self.request, 
+                f"Match session created and players auto-imported from match! "
+                f"{len(all_players)} players imported with {len(starters)} as starters."
+            )
+            return redirect('match-session-detail', pk=self.object.pk)
+        else:
+            # No appearances found, redirect to manual player selection
+            messages.success(self.request, "Match session created successfully. Now select players for this session.")
+            return redirect('match-session-players', pk=self.object.pk)
 
 
 class MatchSessionUpdateView(LoginRequiredMixin, UpdateView):
