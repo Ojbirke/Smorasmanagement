@@ -493,10 +493,11 @@ def export_lineup_pdf(request, pk):
         p.drawString(30, height - 90, f"Formation: {lineup.formation.formation_structure}")
     
     # Draw the pitch with clear dimensions and coordinates
-    pitch_width = width - 100
-    pitch_height = height - 150
+    # Leave more space at the bottom for text
+    pitch_width = width - 150  # Slightly narrower pitch
+    pitch_height = height - 180  # More space at bottom
     pitch_x = 50  # Left side of pitch
-    pitch_y = 50  # Bottom of pitch
+    pitch_y = 70  # Bottom of pitch - increased to leave more space
     
     # Draw realistic grass pattern
     p.setStrokeColor(colors.darkgreen)
@@ -686,28 +687,28 @@ def export_lineup_pdf(request, pk):
                 p.drawString(right_col_x, current_y, f"{jersey} {player['name']}{pos}")
                 current_y -= 15
     
-    # Add a legend
+    # Add a legend - moved up to avoid text overlap
     p.setFont("Helvetica-Bold", 10)
     p.setFillColor(colors.black)
-    p.drawString(pitch_x, 30, "Starting XI")
+    p.drawString(pitch_x, 50, "Starting XI")
     p.setFillColor(colors.blue)
-    p.circle(pitch_x + 60, 30, 5, fill=1)
+    p.circle(pitch_x + 60, 50, 5, fill=1)
     
     p.setFillColor(colors.black)
-    p.drawString(pitch_x + 80, 30, "Substitutes")
+    p.drawString(pitch_x + 80, 50, "Substitutes")
     p.setFillColor(colors.lightblue)
-    p.circle(pitch_x + 150, 30, 5, fill=1)
+    p.circle(pitch_x + 150, 50, 5, fill=1)
     
-    # Add footer with date and notes
+    # Add footer with date and notes - moved up to avoid overlap
     p.setFont("Helvetica", 8)
     p.setFillColor(colors.black)
-    p.drawString(pitch_x, 10, f"Generated on {timezone.now().strftime('%Y-%m-%d %H:%M')}")
-    p.drawRightString(width - 50, 10, f"Smørås Fotball - G2015")
+    p.drawString(pitch_x, 30, f"Generated on {timezone.now().strftime('%Y-%m-%d %H:%M')}")
+    p.drawRightString(width - 50, 30, f"Smørås Fotball - G2015")
     
     if lineup.notes:
         p.setFont("Helvetica-Italic", 9)
         notes = lineup.notes[:100] + ('...' if len(lineup.notes) > 100 else '')
-        p.drawString(pitch_x + 250, 10, f"Notes: {notes}")
+        p.drawString(pitch_x + 250, 30, f"Notes: {notes}")
     
     # Close the PDF object cleanly
     p.showPage()
