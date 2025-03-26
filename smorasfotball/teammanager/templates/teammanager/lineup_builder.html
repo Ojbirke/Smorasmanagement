@@ -524,13 +524,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const boundedX = Math.max(0, Math.min(100, newX));
         const boundedY = Math.max(0, Math.min(100, newY));
         
-        // Update the position
+        // Update the position with both style and data attributes
         activeDragElement.style.left = `${boundedX}%`;
         activeDragElement.style.top = `${boundedY}%`;
         
-        // Save the position as data attributes
+        // Set the data attributes explicitly
         activeDragElement.setAttribute('data-x', boundedX);
         activeDragElement.setAttribute('data-y', boundedY);
+        
+        // Log for debugging
+        //console.log(`Dragging to: (${boundedX}%, ${boundedY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
     }
     
     // End dragging
@@ -542,6 +545,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Ensure the element is properly within the pitch
         positionWithinPitch(activeDragElement);
+        
+        // Get the final position from style (most accurate after drag)
+        let finalX = parseFloat(activeDragElement.style.left);
+        let finalY = parseFloat(activeDragElement.style.top);
+        
+        // Handle percentage signs if present
+        if (isNaN(finalX) || isNaN(finalY)) {
+            finalX = parseFloat(activeDragElement.style.left.replace('%', ''));
+            finalY = parseFloat(activeDragElement.style.top.replace('%', ''));
+        }
+        
+        // Make sure these are valid numbers and update data attributes
+        if (!isNaN(finalX) && !isNaN(finalY)) {
+            activeDragElement.setAttribute('data-x', finalX);
+            activeDragElement.setAttribute('data-y', finalY);
+            //console.log(`Drag ended at: (${finalX}%, ${finalY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
+        }
         
         // Remove the event listeners
         document.removeEventListener('mousemove', drag, false);
@@ -730,14 +750,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const positions = [];
         const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
         
+        // First, ensure all players' positions are within pitch bounds
+        playersOnPitch.forEach(player => {
+            positionWithinPitch(player);
+        });
+        
+        // Now collect the data
         playersOnPitch.forEach(player => {
             const playerId = player.getAttribute('data-player-id');
             const positionId = player.getAttribute('data-position-id') || null;
-            // Extract coordinates, properly handling percentage values
+            
+            // Try to get coordinates from data attributes first (should be most reliable now)
             let x = parseFloat(player.getAttribute('data-x'));
             let y = parseFloat(player.getAttribute('data-y'));
             
-            // If data attributes aren't set, try to extract from style
+            // If data attributes aren't set for some reason, fall back to style
             if (isNaN(x) || isNaN(y)) {
                 const styleLeft = player.style.left;
                 const styleTop = player.style.top;
@@ -745,10 +772,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 0;
                 y = styleTop ? parseFloat(styleTop.replace('%', '')) : 0;
                 
-                console.log(`Got coordinates from style: ${x}, ${y} for player ${playerId}`);
+                // Update the data attributes to maintain consistency
+                player.setAttribute('data-x', x);
+                player.setAttribute('data-y', y);
+                
+                console.log(`Updated from style: ${x}, ${y} for player ${playerId}`);
             } else {
-                console.log(`Got coordinates from data attributes: ${x}, ${y} for player ${playerId}`);
+                console.log(`Using data attributes: ${x}, ${y} for player ${playerId}`);
             }
+            
+            // Ensure coordinates are within valid range
+            x = Math.max(0, Math.min(100, x));
+            y = Math.max(0, Math.min(100, y));
+            
             const playerCircle = player.querySelector('.player-circle');
             const isStarter = playerCircle.classList.contains('starter');
             const jerseyNumber = player.querySelector('.player-jersey').textContent;
