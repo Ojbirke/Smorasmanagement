@@ -250,8 +250,8 @@ class Lineup(models.Model):
     Stores lineups for matches
     """
     DIRECTION_CHOICES = [
-        ('LR', 'First Period (GK Left)'),
-        ('RL', 'Second Period (GK Right)'),
+        ('LR', 'Playing from Left (GK Left)'),
+        ('RL', 'Playing from Right (GK Right)'),
     ]
     
     name = models.CharField(max_length=100)
