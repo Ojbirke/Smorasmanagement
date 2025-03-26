@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}Lineups | Smørås Fotball{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h1>Team Lineups</h1>
+            <p class="lead">Manage your team formations and lineup configurations</p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if is_coach %}
+            <a href="{% url 'lineup-add' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create New Lineup
+            </a>
+            {% endif %}
+            
+            {% if is_admin %}
+            <div class="dropdown d-inline-block ms-2">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                    <li><a class="dropdown-item" href="{% url 'formation-templates' %}">Formation Templates</a></li>
+                    <li><a class="dropdown-item" href="{% url 'lineup-positions' %}">Position Types</a></li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if messages %}
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if lineups %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active Lineups</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Team</th>
+                                    <th>Match</th>
+                                    <th>Formation</th>
+                                    <th>Created</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lineup in lineups %}
+                                {% if not lineup.is_template %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'lineup-detail' lineup.id %}">{{ lineup.name }}</a>
+                                    </td>
+                                    <td>{{ lineup.team.name }}</td>
+                                    <td>
+                                        {% if lineup.match %}
+                                        <a href="{% url 'match-detail' lineup.match.id %}">
+                                            {{ lineup.match }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">No match</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lineup.formation %}
+                                        {{ lineup.formation.name }} ({{ lineup.formation.formation_structure }})
+                                        {% else %}
+                                        <span class="text-muted">Custom</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ lineup.created_at|date:"M d, Y" }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <a href="{% url 'lineup-detail' lineup.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if is_coach %}
+                                            <a href="{% url 'lineup-edit' lineup.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'lineup-duplicate' lineup.id %}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-copy"></i>
+                                            </a>
+                                            <a href="{% url 'lineup-delete' lineup.id %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h4 class="alert-heading">No lineups yet!</h4>
+                <p>You haven't created any lineups yet. Lineups help you organize your team for matches.</p>
+                {% if is_coach %}
+                <hr>
+                <p class="mb-0">
+                    <a href="{% url 'lineup-add' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create your first lineup
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if templates and is_coach %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Lineup Templates</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Team</th>
+                                    <th>Formation</th>
+                                    <th>Players</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'lineup-detail' template.id %}">{{ template.name }}</a>
+                                    </td>
+                                    <td>{{ template.team.name }}</td>
+                                    <td>
+                                        {% if template.formation %}
+                                        {{ template.formation.name }} ({{ template.formation.formation_structure }})
+                                        {% else %}
+                                        <span class="text-muted">Custom</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ template.player_positions.count }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <a href="{% url 'lineup-detail' template.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'lineup-edit' template.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'lineup-duplicate' template.id %}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-copy"></i>
+                                            </a>
+                                            <a href="{% url 'lineup-delete' template.id %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if formations and is_coach %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Available Formations</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Structure</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for formation in formations %}
+                                <tr>
+                                    <td>{{ formation.name }}</td>
+                                    <td><span class="badge bg-secondary">{{ formation.formation_structure }}</span></td>
+                                    <td>{{ formation.description|default:"No description" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

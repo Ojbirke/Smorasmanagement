@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_db_admin
+from . import views_lineup
 
 urlpatterns = [
     # Authentication
@@ -52,4 +53,30 @@ urlpatterns = [
     path('api/player-stats/', views.player_stats, name='player-stats'),
     path('api/match-stats/', views.match_stats, name='match-stats'),
     path('api/player-matrix/', views.player_matrix, name='player-matrix'),
+    
+    # Lineup Builder
+    path('lineups/', views_lineup.LineupListView.as_view(), name='lineup-list'),
+    path('lineups/add/', views_lineup.LineupCreateView.as_view(), name='lineup-add'),
+    path('lineups/<int:pk>/', views_lineup.LineupDetailView.as_view(), name='lineup-detail'),
+    path('lineups/<int:pk>/builder/', views_lineup.LineupBuilderView.as_view(), name='lineup-builder'),
+    path('lineups/<int:pk>/edit/', views_lineup.LineupUpdateView.as_view(), name='lineup-edit'),
+    path('lineups/<int:pk>/duplicate/', views_lineup.duplicate_lineup, name='lineup-duplicate'),
+    path('lineups/<int:pk>/delete/', views_lineup.LineupDeleteView.as_view(), name='lineup-delete'),
+    path('lineups/<int:pk>/export-pdf/', views_lineup.export_lineup_pdf, name='lineup-export-pdf'),
+    
+    # Lineup Player Position AJAX endpoints
+    path('lineups/<int:pk>/save-positions/', views_lineup.save_lineup_positions, name='save-lineup-positions'),
+    path('lineups/<int:lineup_id>/remove-player/<int:player_id>/', views_lineup.remove_player_from_lineup, name='remove-player-from-lineup'),
+    
+    # Formation Templates
+    path('formations/', views_lineup.FormationTemplateListView.as_view(), name='formation-list'),
+    path('formations/add/', views_lineup.FormationTemplateCreateView.as_view(), name='formation-add'),
+    path('formations/<int:pk>/edit/', views_lineup.FormationTemplateUpdateView.as_view(), name='formation-edit'),
+    path('formations/<int:pk>/delete/', views_lineup.FormationTemplateDeleteView.as_view(), name='formation-delete'),
+    
+    # Lineup Positions
+    path('positions/', views_lineup.LineupPositionListView.as_view(), name='position-list'),
+    path('positions/add/', views_lineup.LineupPositionCreateView.as_view(), name='position-add'), 
+    path('positions/<int:pk>/edit/', views_lineup.LineupPositionUpdateView.as_view(), name='position-edit'),
+    path('positions/<int:pk>/delete/', views_lineup.LineupPositionDeleteView.as_view(), name='position-delete'),
 ]

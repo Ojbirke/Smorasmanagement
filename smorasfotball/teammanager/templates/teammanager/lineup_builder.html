@@ -1,0 +1,895 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lineup Builder | Smørås G2015 Fotball{% endblock %}
+
+{% block extra_css %}
+<style>
+    #pitch-container {
+        position: relative;
+        width: 100%;
+        background-color: #4CAF50;
+        border: 2px solid white;
+        border-radius: 5px;
+        padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        overflow: hidden;
+    }
+    
+    #pitch {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .pitch-marking {
+        stroke: rgba(255, 255, 255, 0.8);
+        stroke-width: 2px;
+        fill: none;
+    }
+    
+    .player-item {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        margin-left: -30px;
+        margin-top: -30px;
+        text-align: center;
+        font-size: 0.8rem;
+        cursor: move;
+        z-index: 10;
+        touch-action: none;
+        user-select: none;
+    }
+    
+    .player-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #0066cc;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-weight: bold;
+        position: relative;
+    }
+    
+    .player-circle.starter {
+        background-color: #0066cc;
+    }
+    
+    .player-circle.substitute {
+        background-color: #6699cc;
+    }
+    
+    .player-jersey {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .player-name {
+        width: 100%;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        border-radius: 10px;
+        padding: 2px 5px;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .player-position {
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7rem;
+        background-color: black;
+        color: white;
+        border-radius: 8px;
+        padding: 1px 4px;
+    }
+    
+    .player-bank {
+        border: 2px dashed #aaa;
+        border-radius: 5px;
+        min-height: 150px;
+        padding: 10px;
+        background-color: #f7f7f7;
+    }
+    
+    .player-bank .player-item {
+        position: relative;
+        display: inline-block;
+        margin: 5px;
+        vertical-align: top;
+    }
+    
+    .remove-player {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: red;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 20;
+    }
+    
+    #position-editor {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+        margin-bottom: 15px;
+    }
+    
+    .controls-container {
+        position: sticky;
+        top: 80px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>
+            Lineup Builder: {{ lineup.name }}
+            {% if lineup.match %}
+                <small class="text-muted d-block fs-5">{{ lineup.match }} ({{ lineup.match.date|date:"M d, Y" }})</small>
+            {% endif %}
+        </h1>
+        
+        <div class="btn-group">
+            <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Lineups
+            </a>
+            <a href="{% url 'lineup-edit' lineup.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-pencil-alt"></i> Edit Details
+            </a>
+            <a href="{% url 'lineup-export-pdf' lineup.id %}" class="btn btn-outline-success">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Pitch Container -->
+            <div id="pitch-container">
+                <svg id="pitch" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                    <!-- Field Background -->
+                    <rect width="100" height="100" fill="#4CAF50" />
+                    
+                    <!-- Field Markings -->
+                    <!-- Outer Boundary -->
+                    <rect x="5" y="5" width="90" height="90" class="pitch-marking" />
+                    
+                    <!-- Center Line -->
+                    <line x1="50" y1="5" x2="50" y2="95" class="pitch-marking" />
+                    
+                    <!-- Center Circle -->
+                    <circle cx="50" cy="50" r="9.15" class="pitch-marking" />
+                    
+                    <!-- Center Spot -->
+                    <circle cx="50" cy="50" r="0.5" class="pitch-marking" fill="white" />
+                    
+                    <!-- Goal Areas (6-yard boxes) -->
+                    <rect x="5" y="36" width="5" height="28" class="pitch-marking" />
+                    <rect x="90" y="36" width="5" height="28" class="pitch-marking" />
+                    
+                    <!-- Penalty Areas (18-yard boxes) -->
+                    <rect x="5" y="25" width="16" height="50" class="pitch-marking" />
+                    <rect x="79" y="25" width="16" height="50" class="pitch-marking" />
+                    
+                    <!-- Penalty Spots -->
+                    <circle cx="16" cy="50" r="0.5" class="pitch-marking" fill="white" />
+                    <circle cx="84" cy="50" r="0.5" class="pitch-marking" fill="white" />
+                    
+                    <!-- Penalty Arcs -->
+                    <path d="M 21.15,41 A 9.15,9.15 0 0,1 21.15,59" class="pitch-marking" />
+                    <path d="M 78.85,41 A 9.15,9.15 0 0,0 78.85,59" class="pitch-marking" />
+                    
+                    <!-- Goal Lines -->
+                    <line x1="5" y1="36" x2="1" y2="36" class="pitch-marking" />
+                    <line x1="5" y1="64" x2="1" y2="64" class="pitch-marking" />
+                    <line x1="95" y1="36" x2="99" y2="36" class="pitch-marking" />
+                    <line x1="95" y1="64" x2="99" y2="64" class="pitch-marking" />
+                    <line x1="1" y1="36" x2="1" y2="64" class="pitch-marking" />
+                    <line x1="99" y1="36" x2="99" y2="64" class="pitch-marking" />
+                </svg>
+                
+                <!-- Player elements will be added dynamically -->
+                {% for position in player_positions %}
+                    <div class="player-item" data-player-id="{{ position.player.id }}" 
+                         style="top: {{ position.y_coordinate }}%; left: {{ position.x_coordinate }}%;" 
+                         data-x="{{ position.x_coordinate }}" data-y="{{ position.y_coordinate }}">
+                        <div class="player-circle {% if position.is_starter %}starter{% else %}substitute{% endif %}">
+                            <span class="player-jersey">{{ position.jersey_number|default:'' }}</span>
+                            {% if position.position %}
+                                <span class="player-position">{{ position.position.short_name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="player-name">{{ position.player.first_name }}</div>
+                        <span class="remove-player" title="Remove from lineup">×</span>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-3 d-flex justify-content-between">
+                <button id="save-positions" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Positions
+                </button>
+                
+                <div class="btn-group">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="formationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-th"></i> Apply Formation
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="formationDropdown">
+                            {% for formation in formations %}
+                                <li><a class="dropdown-item formation-option" href="#" data-formation="{{ formation.formation_structure }}">
+                                    {{ formation.name }} ({{ formation.formation_structure }})
+                                </a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <button id="clear-positions" class="btn btn-outline-danger">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="controls-container">
+                <!-- Player Editor Panel -->
+                <div id="position-editor" class="mb-3" style="display: none;">
+                    <h5>Edit Player</h5>
+                    <form id="player-edit-form">
+                        <input type="hidden" id="edit-player-id">
+                        
+                        <div class="mb-3">
+                            <label for="edit-position" class="form-label">Position</label>
+                            <select id="edit-position" class="form-select">
+                                <option value="">-- No Position --</option>
+                                {% for position in available_positions %}
+                                    <option value="{{ position.id }}">{{ position.name }} ({{ position.short_name }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit-jersey" class="form-label">Jersey Number</label>
+                            <input type="number" class="form-control" id="edit-jersey" min="1" max="99">
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="edit-starter" checked>
+                            <label class="form-check-label" for="edit-starter">
+                                Starting XI
+                            </label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit-notes" class="form-label">Notes</label>
+                            <input type="text" class="form-control" id="edit-notes" maxlength="100">
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="cancel-edit" class="btn btn-outline-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Apply Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Available Players -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Available Players</h5>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="player-bank" id="player-bank">
+                            {% for player in available_players %}
+                                <div class="player-item" data-player-id="{{ player.id }}">
+                                    <div class="player-circle starter">
+                                        <span class="player-jersey"></span>
+                                    </div>
+                                    <div class="player-name">{{ player.first_name }}</div>
+                                    <span class="remove-player" title="Remove from lineup">×</span>
+                                </div>
+                            {% endfor %}
+                            
+                            {% if not available_players %}
+                                <div class="text-center text-muted p-3">
+                                    All active players are in the lineup
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Position Legend -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Positions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for position in available_positions %}
+                                <div class="col-6 mb-2">
+                                    <span class="badge" style="background-color: #0066cc;">{{ position.short_name }}</span>
+                                    {{ position.name }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if not available_positions %}
+                            <div class="text-center text-muted">
+                                No positions defined yet
+                            </div>
+                            {% if is_admin %}
+                                <div class="mt-2">
+                                    <a href="{% url 'position-list' %}" class="btn btn-sm btn-outline-primary">Manage Positions</a>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize draggable elements
+    let activeDragElement = null;
+    let selectedElement = null;
+    let initialX = 0;
+    let initialY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    const playerItems = document.querySelectorAll('.player-item');
+    const playerBank = document.getElementById('player-bank');
+    const pitchContainer = document.getElementById('pitch-container');
+    
+    // Player editor elements
+    const positionEditor = document.getElementById('position-editor');
+    const editPlayerIdInput = document.getElementById('edit-player-id');
+    const editPositionSelect = document.getElementById('edit-position');
+    const editJerseyInput = document.getElementById('edit-jersey');
+    const editStarterCheckbox = document.getElementById('edit-starter');
+    const editNotesInput = document.getElementById('edit-notes');
+    const playerEditForm = document.getElementById('player-edit-form');
+    const cancelEditButton = document.getElementById('cancel-edit');
+    
+    // Buttons and controls
+    const savePositionsButton = document.getElementById('save-positions');
+    const clearPositionsButton = document.getElementById('clear-positions');
+    const formationOptions = document.querySelectorAll('.formation-option');
+    
+    // Lineup data
+    const lineupId = {{ lineup.id }};
+    const lineupData = {
+        playerPositions: []
+    };
+    
+    // Make all player items draggable
+    playerItems.forEach(item => {
+        initDraggable(item);
+        
+        // Add click event for editing
+        item.addEventListener('dblclick', function(event) {
+            if (event.target.classList.contains('remove-player')) {
+                // Don't open editor if the remove button was clicked
+                return;
+            }
+            openPlayerEditor(item);
+        });
+        
+        // Add remove button functionality
+        const removeButton = item.querySelector('.remove-player');
+        if (removeButton) {
+            removeButton.addEventListener('click', function() {
+                removePlayerFromLineup(item);
+            });
+        }
+    });
+    
+    // Handle player edit form submission
+    playerEditForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        applyPlayerEdits();
+    });
+    
+    // Cancel button in player editor
+    cancelEditButton.addEventListener('click', function() {
+        positionEditor.style.display = 'none';
+        selectedElement = null;
+    });
+    
+    // Save positions button
+    savePositionsButton.addEventListener('click', function() {
+        saveLineupPositions();
+    });
+    
+    // Clear positions button
+    clearPositionsButton.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all players from the pitch? This cannot be undone.')) {
+            clearAllPositions();
+        }
+    });
+    
+    // Formation options
+    formationOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            const formation = this.getAttribute('data-formation');
+            applyFormation(formation);
+        });
+    });
+    
+    // Initialize draggable functionality for an element
+    function initDraggable(element) {
+        element.addEventListener('mousedown', dragStart, false);
+        element.addEventListener('mouseup', dragEnd, false);
+        element.addEventListener('touchstart', dragStart, false);
+        element.addEventListener('touchend', dragEnd, false);
+        element.addEventListener('touchcancel', dragEnd, false);
+    }
+    
+    // Start dragging an element
+    function dragStart(e) {
+        e.preventDefault();
+        
+        if (e.type === 'touchstart') {
+            initialX = e.touches[0].clientX;
+            initialY = e.touches[0].clientY;
+        } else {
+            initialX = e.clientX;
+            initialY = e.clientY;
+        }
+        
+        activeDragElement = e.currentTarget;
+        
+        // If the element is in the player bank, we need to clone it
+        if (activeDragElement.parentNode === playerBank) {
+            activeDragElement = clonePlayerToField(activeDragElement);
+        }
+        
+        // Get the current position of the draggable element
+        const style = window.getComputedStyle(activeDragElement);
+        if (activeDragElement.style.top) {
+            xOffset = parseFloat(activeDragElement.style.left) || 0;
+            yOffset = parseFloat(activeDragElement.style.top) || 0;
+        } else {
+            const rect = activeDragElement.getBoundingClientRect();
+            const pitchRect = pitchContainer.getBoundingClientRect();
+            
+            xOffset = ((rect.left + rect.width/2) - pitchRect.left) / pitchRect.width * 100;
+            yOffset = ((rect.top + rect.height/2) - pitchRect.top) / pitchRect.height * 100;
+            
+            activeDragElement.style.left = `${xOffset}%`;
+            activeDragElement.style.top = `${yOffset}%`;
+        }
+        
+        // Add the dragging class
+        activeDragElement.classList.add('dragging');
+        
+        document.addEventListener('mousemove', drag, false);
+        document.addEventListener('touchmove', drag, false);
+    }
+    
+    // Handle drag movement
+    function drag(e) {
+        if (activeDragElement === null) return;
+        
+        e.preventDefault();
+        
+        if (e.type === 'touchmove') {
+            currentX = e.touches[0].clientX;
+            currentY = e.touches[0].clientY;
+        } else {
+            currentX = e.clientX;
+            currentY = e.clientY;
+        }
+        
+        // Calculate the new position as a percentage of the pitch size
+        const pitchRect = pitchContainer.getBoundingClientRect();
+        const newX = ((currentX - pitchRect.left) / pitchRect.width) * 100;
+        const newY = ((currentY - pitchRect.top) / pitchRect.height) * 100;
+        
+        // Constrain to pitch boundaries (with a small margin)
+        const boundedX = Math.max(0, Math.min(100, newX));
+        const boundedY = Math.max(0, Math.min(100, boundedY));
+        
+        // Update the position
+        activeDragElement.style.left = `${boundedX}%`;
+        activeDragElement.style.top = `${boundedY}%`;
+        
+        // Save the position as data attributes
+        activeDragElement.setAttribute('data-x', boundedX);
+        activeDragElement.setAttribute('data-y', boundedY);
+    }
+    
+    // End dragging
+    function dragEnd(e) {
+        if (activeDragElement === null) return;
+        
+        // Remove the dragging class
+        activeDragElement.classList.remove('dragging');
+        
+        // Ensure the element is properly within the pitch
+        positionWithinPitch(activeDragElement);
+        
+        // Remove the event listeners
+        document.removeEventListener('mousemove', drag, false);
+        document.removeEventListener('touchmove', drag, false);
+        
+        // Reset active drag element
+        activeDragElement = null;
+    }
+    
+    // Ensure the element stays within the pitch boundaries
+    function positionWithinPitch(element) {
+        const x = parseFloat(element.getAttribute('data-x'));
+        const y = parseFloat(element.getAttribute('data-y'));
+        
+        // Constrain to pitch boundaries
+        const boundedX = Math.max(0, Math.min(100, x));
+        const boundedY = Math.max(0, Math.min(100, y));
+        
+        // Update the position
+        element.style.left = `${boundedX}%`;
+        element.style.top = `${boundedY}%`;
+        element.setAttribute('data-x', boundedX);
+        element.setAttribute('data-y', boundedY);
+    }
+    
+    // Clone a player from the bank to the pitch
+    function clonePlayerToField(playerElement) {
+        // Create a clone of the player
+        const clone = playerElement.cloneNode(true);
+        
+        // Add it to the pitch container
+        pitchContainer.appendChild(clone);
+        
+        // Set initial position near the center of the pitch
+        clone.style.left = '50%';
+        clone.style.top = '50%';
+        clone.setAttribute('data-x', 50);
+        clone.setAttribute('data-y', 50);
+        
+        // Add all event listeners to the clone
+        initDraggable(clone);
+        
+        // Add double-click for editing
+        clone.addEventListener('dblclick', function(event) {
+            if (event.target.classList.contains('remove-player')) {
+                return;
+            }
+            openPlayerEditor(clone);
+        });
+        
+        // Add remove button functionality
+        const removeButton = clone.querySelector('.remove-player');
+        if (removeButton) {
+            removeButton.addEventListener('click', function() {
+                removePlayerFromLineup(clone);
+            });
+        }
+        
+        // Hide the original player in the bank (as it's now on the field)
+        playerElement.style.display = 'none';
+        
+        return clone;
+    }
+    
+    // Open the player editor with a selected player's data
+    function openPlayerEditor(playerElement) {
+        selectedElement = playerElement;
+        const playerId = playerElement.getAttribute('data-player-id');
+        
+        // Get current values (if any)
+        const playerCircle = playerElement.querySelector('.player-circle');
+        const playerPosition = playerElement.querySelector('.player-position');
+        const jerseyNumber = playerElement.querySelector('.player-jersey').textContent;
+        
+        // Set up the form
+        editPlayerIdInput.value = playerId;
+        editJerseyInput.value = jerseyNumber || '';
+        editStarterCheckbox.checked = playerCircle.classList.contains('starter');
+        
+        // Find the position ID if it exists
+        if (playerPosition) {
+            const positionText = playerPosition.textContent;
+            
+            // Try to find the position in the dropdown by short_name
+            const options = editPositionSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].text.includes(`(${positionText})`)) {
+                    editPositionSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        } else {
+            editPositionSelect.selectedIndex = 0;
+        }
+        
+        // Get notes from data attribute if set
+        editNotesInput.value = playerElement.getAttribute('data-notes') || '';
+        
+        // Show the editor
+        positionEditor.style.display = 'block';
+        
+        // Scroll to the editor
+        positionEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    // Apply edits to the selected player
+    function applyPlayerEdits() {
+        if (!selectedElement) return;
+        
+        // Get values from the form
+        const positionId = editPositionSelect.value;
+        const positionText = editPositionSelect.options[editPositionSelect.selectedIndex].text;
+        const jerseyNumber = editJerseyInput.value;
+        const isStarter = editStarterCheckbox.checked;
+        const notes = editNotesInput.value;
+        
+        // Update the player element
+        const playerCircle = selectedElement.querySelector('.player-circle');
+        const jerseyElement = selectedElement.querySelector('.player-jersey');
+        
+        // Update jersey number
+        jerseyElement.textContent = jerseyNumber;
+        
+        // Update starter status
+        if (isStarter) {
+            playerCircle.classList.remove('substitute');
+            playerCircle.classList.add('starter');
+        } else {
+            playerCircle.classList.remove('starter');
+            playerCircle.classList.add('substitute');
+        }
+        
+        // Update position
+        let positionElement = selectedElement.querySelector('.player-position');
+        if (positionId) {
+            // Extract the short name from the option text (format: "Name (Short)")
+            const shortName = positionText.match(/\(([^)]+)\)/)[1];
+            
+            if (!positionElement) {
+                positionElement = document.createElement('span');
+                positionElement.className = 'player-position';
+                playerCircle.appendChild(positionElement);
+            }
+            positionElement.textContent = shortName;
+            selectedElement.setAttribute('data-position-id', positionId);
+        } else if (positionElement) {
+            positionElement.remove();
+            selectedElement.removeAttribute('data-position-id');
+        }
+        
+        // Store notes as data attribute
+        if (notes) {
+            selectedElement.setAttribute('data-notes', notes);
+        } else {
+            selectedElement.removeAttribute('data-notes');
+        }
+        
+        // Hide the editor
+        positionEditor.style.display = 'none';
+        selectedElement = null;
+    }
+    
+    // Remove a player from the lineup
+    function removePlayerFromLineup(playerElement) {
+        const playerId = playerElement.getAttribute('data-player-id');
+        
+        // Remove the player element from the pitch
+        playerElement.remove();
+        
+        // Unhide the player in the bank if it exists
+        const bankPlayer = document.querySelector(`#player-bank .player-item[data-player-id="${playerId}"]`);
+        if (bankPlayer) {
+            bankPlayer.style.display = 'inline-block';
+        }
+        
+        // If the editor is open for this player, close it
+        if (selectedElement && selectedElement.getAttribute('data-player-id') === playerId) {
+            positionEditor.style.display = 'none';
+            selectedElement = null;
+        }
+    }
+    
+    // Save all player positions
+    function saveLineupPositions() {
+        // Collect all player positions from the pitch
+        const positions = [];
+        const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+        
+        playersOnPitch.forEach(player => {
+            const playerId = player.getAttribute('data-player-id');
+            const positionId = player.getAttribute('data-position-id') || null;
+            const x = parseFloat(player.getAttribute('data-x')) || parseFloat(player.style.left);
+            const y = parseFloat(player.getAttribute('data-y')) || parseFloat(player.style.top);
+            const playerCircle = player.querySelector('.player-circle');
+            const isStarter = playerCircle.classList.contains('starter');
+            const jerseyNumber = player.querySelector('.player-jersey').textContent;
+            const notes = player.getAttribute('data-notes') || '';
+            
+            positions.push({
+                player_id: playerId,
+                position_id: positionId,
+                x: x,
+                y: y,
+                is_starter: isStarter,
+                jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                notes: notes
+            });
+        });
+        
+        // Send the data to the server
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/team/lineups/${lineupId}/save-positions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                positions: positions
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                alert('Lineup positions saved successfully!');
+            } else {
+                // Show error message
+                alert('Error saving lineup: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving lineup:', error);
+            alert('Error saving lineup. Please try again.');
+        });
+    }
+    
+    // Clear all players from the pitch
+    function clearAllPositions() {
+        // Get all players on the pitch
+        const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+        
+        // Remove each player and unhide them in the bank
+        playersOnPitch.forEach(player => {
+            const playerId = player.getAttribute('data-player-id');
+            
+            // Remove from pitch
+            player.remove();
+            
+            // Unhide in bank
+            const bankPlayer = document.querySelector(`#player-bank .player-item[data-player-id="${playerId}"]`);
+            if (bankPlayer) {
+                bankPlayer.style.display = 'inline-block';
+            }
+        });
+        
+        // Close editor if open
+        if (selectedElement) {
+            positionEditor.style.display = 'none';
+            selectedElement = null;
+        }
+    }
+    
+    // Apply a formation to the players on the pitch
+    function applyFormation(formationString) {
+        // Parse the formation string (e.g., "4-4-2")
+        const layers = formationString.split('-').map(num => parseInt(num));
+        
+        // Get all players on the pitch
+        const playersOnPitch = Array.from(pitchContainer.querySelectorAll('.player-item'));
+        
+        // Skip if not enough players
+        if (playersOnPitch.length < layers.reduce((a, b) => a + b, 1)) { // +1 for goalkeeper
+            alert('Not enough players on the pitch for this formation!');
+            return;
+        }
+        
+        // Sort players by position type (goalkeepers first, then defenders, etc.)
+        playersOnPitch.sort((a, b) => {
+            const posA = a.querySelector('.player-position');
+            const posB = b.querySelector('.player-position');
+            
+            if (!posA && !posB) return 0;
+            if (!posA) return 1;
+            if (!posB) return -1;
+            
+            const posTextA = posA.textContent;
+            const posTextB = posB.textContent;
+            
+            if (posTextA.includes('GK')) return -1;
+            if (posTextB.includes('GK')) return 1;
+            
+            if (posTextA.includes('DEF') && !posTextB.includes('DEF')) return -1;
+            if (posTextB.includes('DEF') && !posTextA.includes('DEF')) return 1;
+            
+            if (posTextA.includes('MID') && posTextB.includes('FWD')) return -1;
+            if (posTextB.includes('MID') && posTextA.includes('FWD')) return 1;
+            
+            return 0;
+        });
+        
+        // Position for goalkeeper
+        const goalkeeper = playersOnPitch.shift(); // Take first player for GK
+        if (goalkeeper) {
+            goalkeeper.style.left = '8%';
+            goalkeeper.style.top = '50%';
+            goalkeeper.setAttribute('data-x', 8);
+            goalkeeper.setAttribute('data-y', 50);
+        }
+        
+        // Calculate positions for other players
+        let currentPlayerIndex = 0;
+        
+        // For each layer of the formation
+        for (let i = 0; i < layers.length; i++) {
+            const numPlayers = layers[i];
+            const xPosition = 25 + (i * 20); // Distribute along x-axis (25%, 45%, 65%, 85%)
+            
+            // Calculate y-positions for this layer
+            for (let j = 0; j < numPlayers && currentPlayerIndex < playersOnPitch.length; j++) {
+                const player = playersOnPitch[currentPlayerIndex];
+                const yGap = 100 / (numPlayers + 1);
+                const yPosition = yGap * (j + 1);
+                
+                player.style.left = `${xPosition}%`;
+                player.style.top = `${yPosition}%`;
+                player.setAttribute('data-x', xPosition);
+                player.setAttribute('data-y', yPosition);
+                
+                currentPlayerIndex++;
+            }
+        }
+        
+        // Place any remaining players along the sideline
+        for (let i = currentPlayerIndex; i < playersOnPitch.length; i++) {
+            const player = playersOnPitch[i];
+            const yPosition = 5 + (i - currentPlayerIndex) * 10;
+            
+            player.style.left = '1%';
+            player.style.top = `${yPosition}%`;
+            player.setAttribute('data-x', 1);
+            player.setAttribute('data-y', yPosition);
+            
+            // Mark as substitute
+            const playerCircle = player.querySelector('.player-circle');
+            playerCircle.classList.remove('starter');
+            playerCircle.classList.add('substitute');
+        }
+    }
+});
+</script>
+{% endblock %}

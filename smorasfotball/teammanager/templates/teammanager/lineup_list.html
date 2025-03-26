@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lineups | Smørås G2015 Fotball{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            {% if show_templates %}
+                Lineup Templates
+            {% else %}
+                Match Lineups
+            {% endif %}
+        </h1>
+        
+        <div class="btn-group">
+            {% if is_coach or is_admin %}
+                <a href="{% url 'lineup-add' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> New Lineup
+                </a>
+                
+                {% if show_templates %}
+                    <a href="{% url 'lineup-list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> View Match Lineups
+                    </a>
+                {% else %}
+                    <a href="{% url 'lineup-list' %}?templates=true" class="btn btn-outline-primary">
+                        <i class="fas fa-bookmark"></i> View Templates
+                    </a>
+                {% endif %}
+                
+                {% if is_admin %}
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="manageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cog"></i> Manage
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="manageDropdown">
+                            <li><a class="dropdown-item" href="{% url 'formation-list' %}">
+                                <i class="fas fa-th"></i> Formations
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'position-list' %}">
+                                <i class="fas fa-user-tag"></i> Positions
+                            </a></li>
+                        </ul>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Filter controls -->
+    <div class="card mb-4">
+        <div class="card-body bg-light">
+            <form method="get" class="row g-3">
+                {% if not show_templates %}
+                    <div class="col-md-4">
+                        <label for="teamFilter" class="form-label">Team</label>
+                        <select id="teamFilter" name="team" class="form-select">
+                            <option value="">All Teams</option>
+                            {% for team in teams %}
+                                <option value="{{ team.id }}" {% if selected_team == team.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ team.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+                
+                <input type="hidden" name="templates" value="{{ show_templates|lower }}">
+                
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <a href="{% url 'lineup-list' %}{% if show_templates %}?templates=true{% endif %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-sync"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if lineups %}
+        <div class="row">
+            {% for lineup in lineups %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 {% if lineup.is_template %}border-info{% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-center {% if lineup.is_template %}bg-info bg-opacity-25{% endif %}">
+                            <h5 class="card-title mb-0">
+                                {{ lineup.name }}
+                            </h5>
+                            <span class="badge bg-secondary">
+                                {% if lineup.formation %}
+                                    {{ lineup.formation.formation_structure }}
+                                {% else %}
+                                    Custom
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            {% if lineup.match %}
+                                <p class="card-text">
+                                    <strong>Match:</strong> {{ lineup.match }}
+                                    <br>
+                                    <strong>Date:</strong> {{ lineup.match.date|date:"M d, Y" }}
+                                </p>
+                            {% else %}
+                                <p class="card-text text-muted">
+                                    {% if lineup.is_template %}Template lineup{% else %}No match assigned{% endif %}
+                                </p>
+                            {% endif %}
+                            
+                            <p class="card-text">
+                                <strong>Team:</strong> {{ lineup.team.name }}
+                            </p>
+                            
+                            {% if lineup.notes %}
+                                <p class="card-text">
+                                    <small>{{ lineup.notes|truncatechars:80 }}</small>
+                                </p>
+                            {% endif %}
+                            
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    Created {{ lineup.created_at|date:"M d, Y" }}
+                                    {% if lineup.created_by %}
+                                        by {{ lineup.created_by.username }}
+                                    {% endif %}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100">
+                                <a href="{% url 'lineup-detail' lineup.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                
+                                {% if is_coach or is_admin %}
+                                    <a href="{% url 'lineup-builder' lineup.id %}" class="btn btn-outline-success btn-sm">
+                                        <i class="fas fa-edit"></i> Builder
+                                    </a>
+                                    
+                                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        More
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{% url 'lineup-edit' lineup.id %}">
+                                            <i class="fas fa-pencil-alt"></i> Edit Details
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{% url 'lineup-duplicate' lineup.id %}">
+                                            <i class="fas fa-copy"></i> Duplicate
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{% url 'lineup-export-pdf' lineup.id %}">
+                                            <i class="fas fa-file-pdf"></i> Export PDF
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="{% url 'lineup-delete' lineup.id %}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a></li>
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            {% if show_templates %}
+                <h4>No lineup templates found</h4>
+                <p>Create a new lineup and mark it as a template to save it here.</p>
+            {% else %}
+                <h4>No match lineups found</h4>
+                <p>Create a new lineup to get started.</p>
+            {% endif %}
+            
+            {% if is_coach or is_admin %}
+                <a href="{% url 'lineup-add' %}" class="btn btn-success mt-2">
+                    <i class="fas fa-plus"></i> Create New Lineup
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ lineup.name }} | Smørås G2015 Fotball{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            {{ lineup.name }}
+            {% if lineup.is_template %}
+                <span class="badge bg-info ms-2">Template</span>
+            {% endif %}
+        </h1>
+        
+        <div class="btn-group">
+            <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Lineups
+            </a>
+            
+            {% if is_coach or is_admin %}
+                <a href="{% url 'lineup-builder' lineup.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-edit"></i> Builder
+                </a>
+                <a href="{% url 'lineup-export-pdf' lineup.id %}" class="btn btn-outline-success">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </a>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="moreDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreDropdown">
+                        <li><a class="dropdown-item" href="{% url 'lineup-edit' lineup.id %}">
+                            <i class="fas fa-pencil-alt"></i> Edit Details
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'lineup-duplicate' lineup.id %}">
+                            <i class="fas fa-copy"></i> Duplicate
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'lineup-delete' lineup.id %}">
+                            <i class="fas fa-trash"></i> Delete
+                        </a></li>
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Pitch Visualization -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Lineup Visualization</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div style="position: relative; width: 100%; background-color: #4CAF50; border: 2px solid white; border-radius: 5px; padding-top: 56.25%;">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                            <!-- Field Background -->
+                            <rect width="100" height="100" fill="#4CAF50" />
+                            
+                            <!-- Field Markings -->
+                            <!-- Outer Boundary -->
+                            <rect x="5" y="5" width="90" height="90" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            
+                            <!-- Center Line -->
+                            <line x1="50" y1="5" x2="50" y2="95" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            
+                            <!-- Center Circle -->
+                            <circle cx="50" cy="50" r="9.15" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            
+                            <!-- Center Spot -->
+                            <circle cx="50" cy="50" r="0.5" stroke="none" fill="white" />
+                            
+                            <!-- Goal Areas (6-yard boxes) -->
+                            <rect x="5" y="36" width="5" height="28" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            <rect x="90" y="36" width="5" height="28" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            
+                            <!-- Penalty Areas (18-yard boxes) -->
+                            <rect x="5" y="25" width="16" height="50" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            <rect x="79" y="25" width="16" height="50" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            
+                            <!-- Penalty Spots -->
+                            <circle cx="16" cy="50" r="0.5" stroke="none" fill="white" />
+                            <circle cx="84" cy="50" r="0.5" stroke="none" fill="white" />
+                            
+                            <!-- Penalty Arcs -->
+                            <path d="M 21.15,41 A 9.15,9.15 0 0,1 21.15,59" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            <path d="M 78.85,41 A 9.15,9.15 0 0,0 78.85,59" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" fill="none" />
+                            
+                            <!-- Goal Lines -->
+                            <line x1="5" y1="36" x2="1" y2="36" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            <line x1="5" y1="64" x2="1" y2="64" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            <line x1="95" y1="36" x2="99" y2="36" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            <line x1="95" y1="64" x2="99" y2="64" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            <line x1="1" y1="36" x2="1" y2="64" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            <line x1="99" y1="36" x2="99" y2="64" stroke="rgba(255, 255, 255, 0.8)" stroke-width="2" />
+                            
+                            <!-- Players -->
+                            {% for position in player_positions %}
+                                <g transform="translate({{ position.x_coordinate }}, {{ position.y_coordinate }})">
+                                    <!-- Player Circle -->
+                                    <circle r="3" fill="{% if position.is_starter %}#0066cc{% else %}#6699cc{% endif %}" />
+                                    
+                                    <!-- Jersey Number -->
+                                    {% if position.jersey_number %}
+                                        <text x="0" y="0.5" font-size="2.5" fill="white" text-anchor="middle">{{ position.jersey_number }}</text>
+                                    {% endif %}
+                                    
+                                    <!-- Player Name -->
+                                    <text x="0" y="5" font-size="2" fill="white" text-anchor="middle" style="filter: drop-shadow(0 0 1px black);">
+                                        {{ position.player.first_name }}
+                                    </text>
+                                    
+                                    <!-- Position -->
+                                    {% if position.position %}
+                                        <text x="0" y="8" font-size="1.5" fill="yellow" text-anchor="middle" style="filter: drop-shadow(0 0 1px black);">
+                                            {{ position.position.short_name }}
+                                        </text>
+                                    {% endif %}
+                                </g>
+                            {% endfor %}
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary me-1">Starting XI</span>
+                            <span class="badge bg-secondary">Substitutes</span>
+                        </div>
+                        
+                        {% if is_coach or is_admin %}
+                            <a href="{% url 'lineup-builder' lineup.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit Positions
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Lineup Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Lineup Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Team</dt>
+                        <dd class="col-sm-8">{{ lineup.team.name }}</dd>
+                        
+                        {% if lineup.match %}
+                            <dt class="col-sm-4">Match</dt>
+                            <dd class="col-sm-8">
+                                <a href="{% url 'match-detail' lineup.match.id %}">{{ lineup.match }}</a>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Date</dt>
+                            <dd class="col-sm-8">{{ lineup.match.date|date:"F j, Y - g:i A" }}</dd>
+                            
+                            <dt class="col-sm-4">Location</dt>
+                            <dd class="col-sm-8">{{ lineup.match.location_type }}{% if lineup.match.location %} ({{ lineup.match.location }}){% endif %}</dd>
+                        {% else %}
+                            <dt class="col-sm-4">Type</dt>
+                            <dd class="col-sm-8">{% if lineup.is_template %}Template Lineup{% else %}Unassigned Lineup{% endif %}</dd>
+                        {% endif %}
+                        
+                        {% if lineup.formation %}
+                            <dt class="col-sm-4">Formation</dt>
+                            <dd class="col-sm-8">{{ lineup.formation.name }} ({{ lineup.formation.formation_structure }})</dd>
+                        {% endif %}
+                        
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">{{ lineup.created_at|date:"M d, Y" }} {% if lineup.created_by %}by {{ lineup.created_by.username }}{% endif %}</dd>
+                        
+                        <dt class="col-sm-4">Last Updated</dt>
+                        <dd class="col-sm-8">{{ lineup.updated_at|date:"M d, Y g:i A" }}</dd>
+                    </dl>
+                    
+                    {% if lineup.notes %}
+                        <hr>
+                        <h6>Notes</h6>
+                        <p class="mb-0">{{ lineup.notes|linebreaks }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Player List -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Player Roster</h5>
+                    <span class="badge bg-primary">{{ player_positions.count }} Players</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Player</th>
+                                    <th>Position</th>
+                                    <th>Role</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for position in player_positions %}
+                                    <tr>
+                                        <td>
+                                            {% if position.jersey_number %}
+                                                {{ position.jersey_number }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'player-detail' position.player.id %}">
+                                                {{ position.player.first_name }} {{ position.player.last_name }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {% if position.position %}
+                                                <span class="badge" style="background-color: #0066cc;">{{ position.position.short_name }}</span>
+                                                {{ position.position.name }}
+                                            {% else %}
+                                                <span class="text-muted">Unassigned</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if position.is_starter %}
+                                                <span class="badge bg-primary">Starter</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Substitute</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">
+                                            <div class="text-muted">
+                                                No players added to this lineup yet.
+                                                {% if is_coach or is_admin %}
+                                                    <div class="mt-2">
+                                                        <a href="{% url 'lineup-builder' lineup.id %}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-plus"></i> Add Players
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
