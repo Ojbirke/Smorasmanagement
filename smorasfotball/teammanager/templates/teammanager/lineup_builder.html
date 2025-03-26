@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Constrain to pitch boundaries (with a small margin)
         const boundedX = Math.max(0, Math.min(100, newX));
-        const boundedY = Math.max(0, Math.min(100, boundedY));
+        const boundedY = Math.max(0, Math.min(100, newY));
         
         // Update the position
         activeDragElement.style.left = `${boundedX}%`;
@@ -754,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Send the data to the server
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
-        fetch(`/team/lineups/${lineupId}/save-positions/`, {
+        fetch(`/lineups/${lineupId}/save-positions/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
