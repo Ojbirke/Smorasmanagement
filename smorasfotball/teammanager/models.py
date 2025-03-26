@@ -200,10 +200,10 @@ class FormationTemplate(models.Model):
     Pre-defined formation templates (e.g., 4-4-2, 4-3-3, etc.)
     """
     PLAYER_COUNT_CHOICES = [
-        (5, '5-a-side'),
-        (7, '7-a-side'),
-        (9, '9-a-side'),
-        (11, '11-a-side'),
+        (5, '5er fotball'),
+        (7, '7er fotball'),
+        (9, '9er fotball'),
+        (11, '11er fotball'),
     ]
     
     name = models.CharField(max_length=50)
