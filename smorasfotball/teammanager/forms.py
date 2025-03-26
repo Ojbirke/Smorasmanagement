@@ -159,13 +159,35 @@ class ExcelUploadForm(forms.Form):
 class FormationTemplateForm(forms.ModelForm):
     class Meta:
         model = FormationTemplate
-        fields = ['name', 'description', 'formation_structure']
+        fields = ['name', 'description', 'player_count', 'formation_structure']
         help_texts = {
-            'formation_structure': 'Enter in the format "4-4-2", "4-3-3", etc.'
+            'formation_structure': 'Enter in the format "4-4-2", "4-3-3", etc.',
+            'player_count': 'Select the number of players for this formation (including goalkeeper)'
         }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
+            'player_count': forms.Select(attrs={'class': 'form-select'}),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        formation_structure = cleaned_data.get('formation_structure')
+        player_count = cleaned_data.get('player_count')
+        
+        if formation_structure and player_count:
+            try:
+                layers = formation_structure.split('-')
+                total_outfield_players = sum(int(layer) for layer in layers)
+                total_players = total_outfield_players + 1  # Add goalkeeper
+                
+                if total_players != player_count:
+                    self.add_error('formation_structure', 
+                                  f'Formation should have {player_count-1} outfield players for {player_count}-a-side format. '
+                                  f'Current structure has {total_outfield_players} outfield players.')
+            except (ValueError, AttributeError):
+                self.add_error('formation_structure', 'Invalid formation structure format. Use numbers and hyphens only (e.g. 4-4-2).')
+        
+        return cleaned_data
 
 
 class LineupPositionForm(forms.ModelForm):

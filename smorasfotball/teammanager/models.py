@@ -199,13 +199,31 @@ class FormationTemplate(models.Model):
     """
     Pre-defined formation templates (e.g., 4-4-2, 4-3-3, etc.)
     """
+    PLAYER_COUNT_CHOICES = [
+        (5, '5-a-side'),
+        (7, '7-a-side'),
+        (9, '9-a-side'),
+        (11, '11-a-side'),
+    ]
+    
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True, null=True)
     formation_structure = models.CharField(max_length=20, help_text="Format: e.g. '4-4-2', '4-3-3', etc.")
+    player_count = models.PositiveSmallIntegerField(choices=PLAYER_COUNT_CHOICES, default=7, 
+                                                   help_text="Select the number of players for this formation")
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.get_player_count_display()})"
+        
+    def validate_formation_structure(self):
+        """Validate that the formation structure matches the player count (including goalkeeper)"""
+        try:
+            layers = self.formation_structure.split('-')
+            total_outfield_players = sum(int(layer) for layer in layers)
+            return total_outfield_players + 1 == self.player_count  # +1 for goalkeeper
+        except (ValueError, AttributeError):
+            return False
 
 
 class LineupPosition(models.Model):
