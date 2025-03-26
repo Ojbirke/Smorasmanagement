@@ -1028,16 +1028,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // Use synchronous XMLHttpRequest (deprecated but necessary for beforeunload)
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `/lineups/${lineupId}/save-positions/`, false); // false = synchronous
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.setRequestHeader('X-CSRFToken', csrfToken);
-            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            xhr.send(JSON.stringify({ positions: positions }));
+            console.log(`About to auto-save ${positions.length} player positions before page unload...`);
             
-            // Log the result
-            console.log('Auto-save result:', xhr.responseText);
+            try {
+                // Use synchronous XMLHttpRequest (deprecated but necessary for beforeunload)
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `/lineups/${lineupId}/save-positions/`, false); // false = synchronous
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                
+                const positionsJson = JSON.stringify({ positions: positions });
+                console.log('Auto-save payload:', positionsJson);
+                
+                xhr.send(positionsJson);
+                
+                // Log the result
+                console.log('Auto-save response status:', xhr.status);
+                console.log('Auto-save result:', xhr.responseText);
+                
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    console.log('Auto-save successful!');
+                } else {
+                    console.error('Auto-save failed with status:', xhr.status);
+                }
+            } catch (e) {
+                console.error('Auto-save error:', e);
+            }
             
             // Classic way to show a confirmation dialog when leaving
             const confirmationMessage = 'You have unsaved changes. Your positions have been saved automatically, but do you want to leave now?';
