@@ -36,6 +36,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'match-list' %}">Matches</a>
                     </li>
+                    {% if is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'database-overview' %}">Database</a>
+                    </li>
+                    {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
