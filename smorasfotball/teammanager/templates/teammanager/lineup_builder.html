@@ -918,6 +918,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Mark positions as changed since we're rearranging players
+        positionsChanged = true;
+        
         // Sort players by position type (goalkeepers first, then defenders, etc.)
         playersOnPitch.sort((a, b) => {
             const posA = a.querySelector('.player-position');
@@ -995,11 +998,49 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeunload', function(e) {
         // Only prompt and save if positions have been changed
         if (positionsChanged) {
-            // Save the positions automatically
-            saveLineupPositions();
+            // We need to use synchronous AJAX here since the page is about to unload
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+            const positions = [];
+            
+            // Process player positions synchronously
+            playersOnPitch.forEach(player => {
+                positionWithinPitch(player);
+                
+                const playerId = player.getAttribute('data-player-id');
+                const positionId = player.getAttribute('data-position-id') || null;
+                const x = parseFloat(player.getAttribute('data-x'));
+                const y = parseFloat(player.getAttribute('data-y'));
+                
+                const playerCircle = player.querySelector('.player-circle');
+                const isStarter = playerCircle.classList.contains('starter');
+                const jerseyNumber = player.querySelector('.player-jersey').textContent;
+                const notes = player.getAttribute('data-notes') || '';
+                
+                positions.push({
+                    player_id: playerId,
+                    position_id: positionId,
+                    x: x,
+                    y: y,
+                    is_starter: isStarter,
+                    jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                    notes: notes
+                });
+            });
+            
+            // Use synchronous XMLHttpRequest (deprecated but necessary for beforeunload)
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/lineups/${lineupId}/save-positions/`, false); // false = synchronous
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('X-CSRFToken', csrfToken);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.send(JSON.stringify({ positions: positions }));
+            
+            // Log the result
+            console.log('Auto-save result:', xhr.responseText);
             
             // Classic way to show a confirmation dialog when leaving
-            const confirmationMessage = 'You have unsaved changes. Your positions will be saved automatically, but do you want to leave now?';
+            const confirmationMessage = 'You have unsaved changes. Your positions have been saved automatically, but do you want to leave now?';
             (e || window.event).returnValue = confirmationMessage;
             return confirmationMessage;
         }
@@ -1024,25 +1065,94 @@ document.addEventListener('DOMContentLoaded', function() {
         return originalRemovePlayerFromLineup(playerElement);
     };
     
-    // Modify the original saveLineupPositions function to handle the positionsChanged flag
+    // Update the original saveLineupPositions function to reset the positionsChanged flag
     const originalSaveLineupPositions = saveLineupPositions;
     saveLineupPositions = function() {
-        // Call the original function
-        originalSaveLineupPositions();
+        // Collect all player positions from the pitch (same as original)
+        const positions = [];
+        const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
         
-        // Intercept the fetch success handler
-        const originalThen = window.fetch.prototype.then;
-        window.fetch.prototype.then = function(callback) {
-            const newCallback = function(response) {
-                const result = callback(response);
-                if (response && response.status === 'success') {
-                    // Reset the changed flag on successful save
-                    positionsChanged = false;
-                }
-                return result;
-            };
-            return originalThen.call(this, newCallback);
-        };
+        console.log(`Saving positions for ${playersOnPitch.length} players on the pitch`);
+        
+        // First, ensure all players' positions are within pitch bounds
+        playersOnPitch.forEach(player => {
+            positionWithinPitch(player);
+        });
+        
+        // Now collect the data
+        playersOnPitch.forEach(player => {
+            const playerId = player.getAttribute('data-player-id');
+            const positionId = player.getAttribute('data-position-id') || null;
+            
+            // Try to get coordinates from data attributes first (should be most reliable now)
+            let x = parseFloat(player.getAttribute('data-x'));
+            let y = parseFloat(player.getAttribute('data-y'));
+            
+            // If data attributes aren't set for some reason, fall back to style
+            if (isNaN(x) || isNaN(y)) {
+                const styleLeft = player.style.left;
+                const styleTop = player.style.top;
+                
+                x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 0;
+                y = styleTop ? parseFloat(styleTop.replace('%', '')) : 0;
+                
+                // Update the data attributes to maintain consistency
+                player.setAttribute('data-x', x);
+                player.setAttribute('data-y', y);
+                
+                console.log(`Updated from style: ${x}, ${y} for player ${playerId}`);
+            }
+            
+            // Ensure coordinates are within valid range
+            x = Math.max(0, Math.min(100, x));
+            y = Math.max(0, Math.min(100, y));
+            
+            const playerCircle = player.querySelector('.player-circle');
+            const isStarter = playerCircle.classList.contains('starter');
+            const jerseyNumber = player.querySelector('.player-jersey').textContent;
+            const notes = player.getAttribute('data-notes') || '';
+            
+            positions.push({
+                player_id: playerId,
+                position_id: positionId,
+                x: x,
+                y: y,
+                is_starter: isStarter,
+                jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                notes: notes
+            });
+        });
+        
+        // Send the data to the server
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/lineups/${lineupId}/save-positions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                positions: positions
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                alert('Lineup positions saved successfully!');
+                // Reset the changed flag after successful save
+                positionsChanged = false;
+            } else {
+                // Show error message
+                alert('Error saving lineup: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving lineup:', error);
+            alert('Error saving lineup. Please try again.');
+        });
     };
 });
 </script>
