@@ -144,6 +144,11 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- Hidden form with CSRF token for JavaScript use -->
+    <form id="csrf-form" style="display: none;">
+        {% csrf_token %}
+    </form>
+    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>
             Lineup Builder: {{ lineup.name }}
