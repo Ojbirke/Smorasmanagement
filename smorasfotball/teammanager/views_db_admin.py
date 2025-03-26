@@ -145,11 +145,18 @@ def restore_backup(request, filename):
     if request.method != 'POST':
         return redirect('database-overview')
     
-    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    # Check if it's a persistent backup
+    is_persistent = request.POST.get('is_persistent', 'false') == 'true'
+    
+    if is_persistent:
+        backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
+    else:
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    
     backup_path = os.path.join(backup_dir, filename)
     
     if not os.path.exists(backup_path):
-        messages.error(request, f"Backup file {filename} not found.")
+        messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
         return redirect('database-overview')
     
     try:
@@ -162,6 +169,7 @@ def restore_backup(request, filename):
             # Restore from SQLite backup
             restore_sqlite_backup(backup_path)
             messages.success(request, f"Database restored successfully from {filename}.")
+            messages.info(request, "The application will restart to apply changes.")
         
         else:
             messages.error(request, f"Unsupported backup file format: {filename}")
@@ -181,16 +189,23 @@ def delete_backup(request, filename):
     if request.method != 'POST':
         return redirect('database-overview')
     
-    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    # Check if it's a persistent backup
+    is_persistent = request.POST.get('is_persistent', 'false') == 'true'
+    
+    if is_persistent:
+        backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
+    else:
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    
     backup_path = os.path.join(backup_dir, filename)
     
     if not os.path.exists(backup_path):
-        messages.error(request, f"Backup file {filename} not found.")
+        messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
         return redirect('database-overview')
     
     try:
         os.remove(backup_path)
-        messages.success(request, f"Backup file {filename} deleted successfully.")
+        messages.success(request, f"Backup file {filename} deleted successfully from {'persistent' if is_persistent else 'regular'} backup directory.")
     except Exception as e:
         messages.error(request, f"Error deleting backup: {str(e)}")
     
@@ -203,17 +218,26 @@ def download_backup(request, filename):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('dashboard')
     
-    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    # Check if it's a persistent backup
+    is_persistent = request.GET.get('persistent', 'false') == 'true'
+    
+    if is_persistent:
+        backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
+    else:
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    
     filepath = os.path.join(backup_dir, filename)
     
     if not os.path.exists(filepath):
-        messages.error(request, f"Backup file {filename} not found.")
+        messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
         return redirect('database-overview')
     
     context = {
         'filename': filename,
         'filepath': filepath,
-        'is_admin': True
+        'is_admin': True,
+        'is_persistent': is_persistent,
+        'backup_location': 'Persistent' if is_persistent else 'Regular'
     }
     
     return render(request, 'teammanager/download_backup.html', context)
