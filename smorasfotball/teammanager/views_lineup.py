@@ -323,12 +323,17 @@ def save_lineup_positions(request, pk):
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         try:
             # Log request info for debugging
-            print(f"Saving positions for lineup {pk}, user: {request.user.username}")
+            print(f"[Save] Saving positions for lineup {pk}, user: {request.user.username}")
             
             data = json.loads(request.body)
             positions = data.get('positions', [])
             
-            print(f"Received {len(positions)} player positions to save")
+            print(f"[Save] Received {len(positions)} player positions to save")
+            
+            # Log the position data being received
+            for pos in positions:
+                print(f"[Save] Player {pos.get('player_id')}: x={pos.get('x')}, y={pos.get('y')}, "
+                      f"position_id={pos.get('position_id')}, jersey={pos.get('jersey_number')}")
             
             # Track which players have been processed to handle deletions
             processed_player_ids = []
@@ -526,8 +531,15 @@ def export_lineup_pdf(request, pk):
     # Draw players
     player_positions = lineup.player_positions.all().select_related('player', 'position')
     
-    # Debug info to console
-    print(f"Lineup {lineup.id} has {player_positions.count()} player positions")
+    # Enhanced debug info to console
+    position_count = player_positions.count()
+    print(f"[PDF Export] Lineup {lineup.id} has {position_count} player positions")
+    
+    # Detailed logging of positions
+    for pos in player_positions:
+        print(f"[PDF Export] Position ID: {pos.id}, Player: {pos.player.first_name} {pos.player.last_name}, " 
+              f"Coords: ({pos.x_coordinate}, {pos.y_coordinate}), "
+              f"Position: {pos.position.short_name if pos.position else 'None'}")
     
     # If there are no saved positions but lineup has a formation, create default positions
     if player_positions.count() == 0 and lineup.formation:

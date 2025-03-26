@@ -750,6 +750,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const positions = [];
         const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
         
+        console.log(`Saving positions for ${playersOnPitch.length} players on the pitch`);
+        
         // First, ensure all players' positions are within pitch bounds
         playersOnPitch.forEach(player => {
             positionWithinPitch(player);
@@ -779,6 +781,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`Updated from style: ${x}, ${y} for player ${playerId}`);
             } else {
                 console.log(`Using data attributes: ${x}, ${y} for player ${playerId}`);
+            }
+            
+            // Check if style values match data attributes
+            const currentStyleLeft = parseFloat(player.style.left.replace('%', ''));
+            const currentStyleTop = parseFloat(player.style.top.replace('%', ''));
+            
+            if (Math.abs(currentStyleLeft - x) > 0.1 || Math.abs(currentStyleTop - y) > 0.1) {
+                console.log(`Style and data don't match for player ${playerId}!`);
+                console.log(`Style: (${currentStyleLeft}, ${currentStyleTop}), Data: (${x}, ${y})`);
+                // Force synchronization of style with data attributes
+                player.style.left = `${x}%`;
+                player.style.top = `${y}%`;
             }
             
             // Ensure coordinates are within valid range
