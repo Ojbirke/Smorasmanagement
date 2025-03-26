@@ -9,69 +9,128 @@
         <h1>Formation Templates</h1>
         
         <div class="btn-group">
-            <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Lineups
-            </a>
             {% if is_coach or is_admin %}
                 <a href="{% url 'formation-add' %}" class="btn btn-success">
                     <i class="fas fa-plus"></i> New Formation
+                </a>
+                <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Lineups
                 </a>
             {% endif %}
         </div>
     </div>
     
     <div class="row">
-        {% for formation in formations %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">{{ formation.name }}</h5>
-                        <div>
-                            <span class="badge bg-secondary me-1">{{ formation.get_player_count_display }}</span>
-                            <span class="badge bg-primary">{{ formation.formation_structure }}</span>
-                        </div>
+        <div class="col-md-8">
+            {% if formations %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Available Formations</h5>
                     </div>
-                    <div class="card-body">
-                        {% if formation.description %}
-                            <p class="card-text">{{ formation.description }}</p>
-                        {% else %}
-                            <p class="card-text text-muted">No description provided.</p>
-                        {% endif %}
-                    </div>
-                    <div class="card-footer bg-transparent">
-                        <div class="d-flex justify-content-between">
-                            <small class="text-muted">
-                                Created {{ formation.created_at|date:"M d, Y" }}
-                            </small>
-                            
-                            {% if is_coach or is_admin %}
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'formation-edit' formation.id %}" class="btn btn-outline-primary">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <a href="{% url 'formation-delete' formation.id %}" class="btn btn-outline-danger">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </a>
-                                </div>
-                            {% endif %}
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Structure</th>
+                                        <th>Player Count</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for formation in formations %}
+                                    <tr>
+                                        <td>{{ formation.name }}</td>
+                                        <td>{{ formation.formation_structure }}</td>
+                                        <td>{{ formation.get_player_count_display }}</td>
+                                        <td>{{ formation.description|truncatechars:50 }}</td>
+                                        <td class="text-end">
+                                            {% if is_coach or is_admin %}
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionDropdown{{ formation.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionDropdown{{ formation.id }}">
+                                                        <li><a class="dropdown-item" href="{% url 'formation-edit' formation.id %}">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item text-danger" href="{% url 'formation-delete' formation.id %}">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </a></li>
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        {% empty %}
-            <div class="col-12">
+            {% else %}
                 <div class="alert alert-info">
-                    <h4>No formations found</h4>
-                    <p>Create formation templates to quickly apply standard formations to your lineups.</p>
-                    
+                    <h4 class="alert-heading">No formations defined yet!</h4>
+                    <p>Formation templates help you quickly apply standard player positions on the pitch.</p>
                     {% if is_coach or is_admin %}
-                        <a href="{% url 'formation-add' %}" class="btn btn-success mt-2">
-                            <i class="fas fa-plus"></i> Create New Formation
+                    <hr>
+                    <p class="mb-0">
+                        <a href="{% url 'formation-add' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create your first formation
                         </a>
+                    </p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Formation Guide</h5>
+                </div>
+                <div class="card-body">
+                    <h6><i class="fas fa-info-circle me-2"></i> About Formations</h6>
+                    <p>Formations describe how players are positioned on the field, typically identified by numbers representing defenders, midfielders, and forwards.</p>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-th me-2"></i> Common Formations</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>4-4-2</strong>: 4 defenders, 4 midfielders, 2 forwards</li>
+                            <li><strong>4-3-3</strong>: 4 defenders, 3 midfielders, 3 forwards</li>
+                            <li><strong>3-5-2</strong>: 3 defenders, 5 midfielders, 2 forwards</li>
+                            <li><strong>5-3-2</strong>: 5 defenders, 3 midfielders, 2 forwards</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-users me-2"></i> Team Sizes</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>5-a-side</strong>: Usually 1-2-1 or 1-1-2</li>
+                            <li><strong>7-a-side</strong>: Usually 2-3-1, 2-2-2, or 3-2-1</li>
+                            <li><strong>9-a-side</strong>: Usually 3-3-2, 3-2-3, or 4-3-1</li>
+                            <li><strong>11-a-side</strong>: Full formations like 4-4-2, 4-3-3, etc.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> 
+                        The formation numbers do not include the goalkeeper, which is always assumed to be present.
+                    </div>
+                    
+                    {% if is_admin %}
+                        <div class="mt-3">
+                            <a href="{% url 'position-list' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-map-marker-alt"></i> Manage Positions
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>
-        {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}
