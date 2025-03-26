@@ -330,7 +330,10 @@
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <span class="fw-bold">{{ player.player.first_name }}</span>
-                            <small class="d-block text-muted">{{ player.minutes_played }} minutes played</small>
+                            <small class="d-block text-muted">
+                                <span id="pitch-time-{{ player.player.id }}">{{ player.minutes_played }}</span> minutes played
+                                <span class="badge bg-success">on pitch</span>
+                            </small>
                         </div>
                         
                         {% if match_session.is_active and can_edit and on_bench.count > 0 %}
@@ -373,7 +376,10 @@
                     <div class="list-group-item d-flex justify-content-between align-items-center player-bench-card">
                         <div>
                             <span class="fw-bold">{{ player.player.first_name }}</span>
-                            <small class="d-block text-muted">{{ player.minutes_played }} minutes played</small>
+                            <small class="d-block text-muted">
+                                <span id="bench-time-{{ player.player.id }}">{{ player.minutes_played }}</span> minutes played
+                                <span class="badge bg-secondary">on bench</span>
+                            </small>
                         </div>
                         
                         {% if match_session.is_active and can_edit and on_pitch.count > 0 %}
@@ -643,8 +649,8 @@
             // First immediate update
             updatePlayingTimes();
             
-            // Then set interval for periodic updates (every 30 seconds)
-            updateTimerInterval = setInterval(updatePlayingTimes, 30000);
+            // Then set interval for more frequent updates (every 5 seconds)
+            updateTimerInterval = setInterval(updatePlayingTimes, 5000);
             
             // Start the clock that updates every second
             startClock();
@@ -734,21 +740,29 @@
                             }
                         }
                         
-                        // Update player list times
-                        const playerItems = document.querySelectorAll('.list-group-item');
-                        playerItems.forEach(item => {
-                            const nameEl = item.querySelector('.fw-bold');
-                            if (nameEl && nameEl.textContent.trim() === playerData.name) {
-                                const minutesEl = item.querySelector('.text-muted');
-                                if (minutesEl) {
-                                    if (playerData.on_pitch) {
-                                        minutesEl.textContent = `${playerData.minutes} minutes played (on pitch)`;
-                                    } else {
-                                        minutesEl.textContent = `${playerData.minutes} minutes played, ${playerData.bench_minutes} minutes on bench`;
+                        // Update player list times - Using IDs for more reliable updates
+                        if (playerData.on_pitch) {
+                            // Update pitch player time
+                            const pitchTimeEl = document.getElementById(`pitch-time-${playerId}`);
+                            if (pitchTimeEl) {
+                                pitchTimeEl.textContent = playerData.minutes;
+                            }
+                        } else {
+                            // Update bench player time
+                            const benchTimeEl = document.getElementById(`bench-time-${playerId}`);
+                            if (benchTimeEl) {
+                                benchTimeEl.textContent = playerData.minutes;
+                                
+                                // Find the badge element and update it to show bench time
+                                const parent = benchTimeEl.closest('.text-muted');
+                                if (parent) {
+                                    const badge = parent.querySelector('.badge');
+                                    if (badge) {
+                                        badge.textContent = `${playerData.bench_minutes}m on bench`;
                                     }
                                 }
                             }
-                        });
+                        }
                     }
                 }
             })

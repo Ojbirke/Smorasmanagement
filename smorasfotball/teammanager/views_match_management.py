@@ -327,8 +327,13 @@ def match_session_start(request, pk):
     """Start a match session"""
     match_session = get_object_or_404(MatchSession, pk=pk)
     
+    # Check if this request came from the pitch view (mobile view)
+    from_pitch_view = request.META.get('HTTP_REFERER', '').endswith(f'/match-sessions/{pk}/pitch/')
+    
     if not is_coach_or_admin(request.user):
         messages.error(request, "You need to be a coach or admin to start match sessions.")
+        if from_pitch_view:
+            return redirect('match-session-pitch', pk=match_session.pk)
         return redirect('match-session-detail', pk=match_session.pk)
     
     # Ensure we have enough players to start
@@ -338,6 +343,8 @@ def match_session_start(request, pk):
     
     if players_on_pitch < 5:  # Minimum for a viable match (adjust as needed)
         messages.error(request, "You need at least 5 players on the pitch to start a match.")
+        if from_pitch_view:
+            return redirect('match-session-pitch', pk=match_session.pk)
         return redirect('match-session-detail', pk=match_session.pk)
     
     # Start the match
@@ -356,6 +363,9 @@ def match_session_start(request, pk):
     else:
         messages.success(request, "Match session started. Substitution tracking is now active.")
     
+    # Redirect back to the pitch view if that's where the request came from
+    if from_pitch_view:
+        return redirect('match-session-pitch', pk=match_session.pk)
     return redirect('match-session-detail', pk=match_session.pk)
 
 
@@ -364,8 +374,13 @@ def match_session_stop(request, pk):
     """Stop a match session"""
     match_session = get_object_or_404(MatchSession, pk=pk)
     
+    # Check if this request came from the pitch view (mobile view)
+    from_pitch_view = request.META.get('HTTP_REFERER', '').endswith(f'/match-sessions/{pk}/pitch/')
+    
     if not is_coach_or_admin(request.user):
         messages.error(request, "You need to be a coach or admin to stop match sessions.")
+        if from_pitch_view:
+            return redirect('match-session-pitch', pk=match_session.pk)
         return redirect('match-session-detail', pk=match_session.pk)
     
     if match_session.is_active:
@@ -387,6 +402,9 @@ def match_session_stop(request, pk):
     else:
         messages.warning(request, "This match session is not currently active.")
     
+    # Redirect back to the pitch view if that's where the request came from
+    if from_pitch_view:
+        return redirect('match-session-pitch', pk=match_session.pk)
     return redirect('match-session-detail', pk=match_session.pk)
 
 
