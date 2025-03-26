@@ -741,7 +741,11 @@
                             if (nameEl && nameEl.textContent.trim() === playerData.name) {
                                 const minutesEl = item.querySelector('.text-muted');
                                 if (minutesEl) {
-                                    minutesEl.textContent = `${playerData.minutes} minutes played`;
+                                    if (playerData.on_pitch) {
+                                        minutesEl.textContent = `${playerData.minutes} minutes played (on pitch)`;
+                                    } else {
+                                        minutesEl.textContent = `${playerData.minutes} minutes played, ${playerData.bench_minutes} minutes on bench`;
+                                    }
                                 }
                             }
                         });

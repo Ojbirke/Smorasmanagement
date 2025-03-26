@@ -633,8 +633,20 @@ def update_playing_times(request, session_pk):
                 elapsed = now - pt.last_substitution_time
                 real_time_minutes += math.floor(elapsed.total_seconds() / 60)
             
+            # Get total elapsed time for the match
+            match_elapsed_minutes = 0
+            if match_session.start_time:
+                match_elapsed = (now - match_session.start_time).total_seconds() / 60
+                match_elapsed_minutes = math.floor(match_elapsed)
+            
+            # Calculate bench time (total match time minus playing time)
+            bench_minutes = 0
+            if not pt.is_on_pitch:  # Currently on bench
+                bench_minutes = match_elapsed_minutes - real_time_minutes
+            
             playing_time_data[str(pt.player.id)] = {
                 'minutes': real_time_minutes,
+                'bench_minutes': max(0, bench_minutes),  # Ensure non-negative
                 'on_pitch': pt.is_on_pitch,
                 'name': str(pt.player)
             }
