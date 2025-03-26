@@ -236,41 +236,46 @@
                 {% endfor %}
             </div>
             
-            <div class="mt-3 d-flex justify-content-between">
-                <div>
-                    <button id="save-positions" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Positions
-                    </button>
+            <div class="mt-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <button id="save-positions" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Positions
+                        </button>
+                    </div>
                     
-                    <div class="btn-group ms-2">
-                        <button class="btn btn-outline-info {% if lineup.direction == 'LR' %}active{% endif %}" id="direction-lr">
-                            <i class="fas fa-arrow-right"></i> First Period (GK Left)
-                        </button>
-                        <button class="btn btn-outline-info {% if lineup.direction == 'RL' %}active{% endif %}" id="direction-rl">
-                            <i class="fas fa-arrow-left"></i> Second Period (GK Right)
-                        </button>
+                    <div class="col-md-4 text-center">
+                        <div class="btn-group mx-auto">
+                            <button class="btn btn-outline-info {% if lineup.direction == 'LR' %}active{% endif %}" id="direction-lr">
+                                <i class="fas fa-arrow-right"></i> First Period (GK Left)
+                            </button>
+                            <button class="btn btn-outline-info {% if lineup.direction == 'RL' %}active{% endif %}" id="direction-rl">
+                                <i class="fas fa-arrow-left"></i> Second Period (GK Right)
+                            </button>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="btn-group">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="formationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th"></i> Apply Formation
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="formationDropdown">
-                            {% for formation in formations %}
-                                <li><a class="dropdown-item formation-option" href="#" data-formation="{{ formation.formation_structure }}">
-                                    {{ formation.name }} ({{ formation.formation_structure }})
-                                </a></li>
-                            {% endfor %}
-                        </ul>
+                    
+                    <div class="col-md-4 text-end">
+                        <div class="btn-group">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="formationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-th"></i> Apply Formation
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="formationDropdown">
+                                    {% for formation in formations %}
+                                        <li><a class="dropdown-item formation-option" href="#" data-formation="{{ formation.formation_structure }}">
+                                            {{ formation.name }} ({{ formation.formation_structure }})
+                                        </a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <button id="clear-positions" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
+                        </div>
                     </div>
-                    <button id="clear-positions" class="btn btn-outline-danger">
-                        <i class="fas fa-trash"></i> Clear All
-                    </button>
                 </div>
             </div>
-        </div>
         
         <div class="col-lg-4">
             <div class="controls-container">
