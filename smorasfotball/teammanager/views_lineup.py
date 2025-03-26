@@ -326,7 +326,14 @@ def save_lineup_positions(request, pk):
             print(f"[Save] Saving positions for lineup {pk}, user: {request.user.username}")
             
             data = json.loads(request.body)
-            positions = data.get('positions', [])
+            positions = data.get('positions', []) or data.get('playerPositions', [])
+            direction = data.get('direction')
+            
+            # Update direction if specified
+            if direction:
+                print(f"[Save] Updating direction to {direction}")
+                lineup.direction = direction
+                lineup.save(update_fields=['direction'])
             
             print(f"[Save] Received {len(positions)} player positions to save")
             
