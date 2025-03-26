@@ -2,6 +2,8 @@ import os
 import io
 import sys
 import shutil
+import glob
+import re
 from datetime import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command
@@ -10,7 +12,7 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = 'Creates a database backup that persists across redeployments'
+    help = 'Creates a database backup that persists across redeployments, keeping only the two latest backups of each type'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -18,6 +20,38 @@ class Command(BaseCommand):
             type=str,
             help='Optional custom name for the backup',
         )
+
+    def clean_old_backups(self, backup_dir, prefix, keep=2):
+        """
+        Clean old backups, keeping only the specified number of most recent ones for a given prefix
+        """
+        # List all backup files of this type
+        json_pattern = os.path.join(backup_dir, f'backup_{prefix}_*.json')
+        sqlite_pattern = os.path.join(backup_dir, f'backup_{prefix}_*.sqlite3')
+        
+        # Get list of files for each type
+        json_files = glob.glob(json_pattern)
+        sqlite_files = glob.glob(sqlite_pattern)
+        
+        # Sort files by modification time (newest first)
+        json_files.sort(key=os.path.getmtime, reverse=True)
+        sqlite_files.sort(key=os.path.getmtime, reverse=True)
+        
+        # Remove excess JSON files (keeping the newest 'keep' files)
+        for file_path in json_files[keep:]:
+            try:
+                os.remove(file_path)
+                self.stdout.write(f"Removed old JSON backup: {os.path.basename(file_path)}")
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Could not remove {file_path}: {str(e)}"))
+        
+        # Remove excess SQLite files
+        for file_path in sqlite_files[keep:]:
+            try:
+                os.remove(file_path)
+                self.stdout.write(f"Removed old SQLite backup: {os.path.basename(file_path)}")
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Could not remove {file_path}: {str(e)}"))
 
     def handle(self, *args, **options):
         # Create standard backup directory
@@ -74,6 +108,10 @@ class Command(BaseCommand):
                     shutil.copy2(db_path, persistent_sqlite_filepath)
                     
                     self.stdout.write(self.style.SUCCESS(f"SQLite database backup created: {sqlite_filename}"))
+            
+            # Clean up old backups if this is an auto backup
+            if custom_name and (custom_name == 'auto_startup' or custom_name == 'auto_shutdown'):
+                self.clean_old_backups(persistent_backup_dir, custom_name, keep=2)
         
         except Exception as e:
             raise CommandError(f"Error creating backup: {str(e)}")

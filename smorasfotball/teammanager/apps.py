@@ -17,6 +17,16 @@ class TeammanagerConfig(AppConfig):
             from django.core.exceptions import ImproperlyConfigured
             from teammanager.models import Team, Player
             
+            # First, clean up any excess backups (run only once per server start)
+            if not os.environ.get('BACKUP_CLEANUP_RUN'):
+                try:
+                    print("Cleaning up excess backups...")
+                    call_command('cleanup_backups', keep=2)
+                    os.environ['BACKUP_CLEANUP_RUN'] = '1'
+                    print("Backup cleanup completed")
+                except Exception as e:
+                    print(f"Error cleaning up backups: {str(e)}")
+            
             # Check if there's data worth backing up
             try:
                 team_count = Team.objects.count()
