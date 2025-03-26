@@ -13,9 +13,12 @@
                 <a href="{% url 'position-add' %}" class="btn btn-success">
                     <i class="fas fa-plus"></i> New Position
                 </a>
-                <a href="{% url 'position-create-defaults' %}" class="btn btn-outline-primary">
-                    <i class="fas fa-list-ol"></i> Create Default Positions
-                </a>
+                <form method="post" action="{% url 'position-create-defaults' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-list-ol"></i> Create Default Positions
+                    </button>
+                </form>
                 <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Lineups
                 </a>
@@ -79,9 +82,12 @@
                     {% if is_admin %}
                     <hr>
                     <p class="mb-0">
-                        <a href="{% url 'position-create-defaults' %}" class="btn btn-primary me-2">
-                            <i class="fas fa-list-ol"></i> Create Default Set
-                        </a>
+                        <form method="post" action="{% url 'position-create-defaults' %}" style="display: inline-block; margin-right: 0.5rem;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-list-ol"></i> Create Default Set
+                            </button>
+                        </form>
                         <a href="{% url 'position-add' %}" class="btn btn-outline-primary">
                             <i class="fas fa-plus"></i> Create Custom Position
                         </a>
