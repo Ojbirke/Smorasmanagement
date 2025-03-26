@@ -1,0 +1,581 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "!kISLHFrLQTc4y892mBY1OQAtfz1axF4yHo5AhzhJ",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "admin@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-03-22T21:35:53.778Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$uy2qAb7S7BL6kj7aHEaD3v$lG+/BQVEx+LYzQpQmzHHlrGSFCla9fFH4J/xXhODKO4=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "testuser",
+    "first_name": "",
+    "last_name": "",
+    "email": "test@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-03-22T23:38:00.154Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$QygZEU14ugcrNcMfiiBEGN$JNg1hkL9gWksq8KxiuFkhqpjF4KZ6gWdq5Ou1tyUiUA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "coach",
+    "first_name": "Coach",
+    "last_name": "",
+    "email": "coach@smoras.no",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-03-24T20:41:48.515Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 4,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$8UqeYQxNzFavURO91Mq8w1$yBiUK5fPksXOtNVkmNnZSsJNIMnqrgJfZlVTkQhGiVU=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "admin_django",
+    "first_name": "",
+    "last_name": "",
+    "email": "admin@django.example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-03-24T20:51:13.264Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 5,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$q2dJEa243rFVtZ7TdRp98d$Z+Ns7LjtfXp01GgUmDPdwSI8O7c82l3r5AYP3oMQxAs=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "testadmin",
+    "first_name": "Admin",
+    "last_name": "",
+    "email": "testadmin@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-03-24T21:14:30.313Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 6,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$22JxxsILTfEH3Evr8JYHG8$N6sU8CYFicnQL8Mz95OdM0ycOOmIAnU7NDhou45oYMo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "pendinguser",
+    "first_name": "Pending",
+    "last_name": "User",
+    "email": "pending@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-03-24T21:33:49.191Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 7,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$0jPWSldKR2GJZGldT1f4bN$Jhz8M8n6leVVnpZ5eaLhYu6XapXw4zF9r2kj056j7WM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "adminuser",
+    "first_name": "Admin",
+    "last_name": "User",
+    "email": "admin@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-03-24T21:49:13.645Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 8,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$9JLjRbasnY7ZwbIWC8XBQV$slsX4NZxRJkka7ZsXZkxkawNbWCbTRPjexP34XXODIQ=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "superadmin",
+    "first_name": "Super",
+    "last_name": "Admin",
+    "email": "admin@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-03-24T22:08:34.961Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 9,
+  "fields": {
+    "password": "pbkdf2_sha256$870000$rXhkLK0jvKPx1ECeYu6Gnd$lCBkDe3etZhXym1T7KhwO5f3rqt53eLArvkWd+Yr2no=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "djadmin",
+    "first_name": "",
+    "last_name": "",
+    "email": "djadmin@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-03-26T06:09:32.192Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 1,
+  "fields": {
+    "user": 3,
+    "role": "admin",
+    "status": "approved",
+    "player": null,
+    "created_at": "2025-03-24T20:41:48.801Z"
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 2,
+  "fields": {
+    "user": 4,
+    "role": "player",
+    "status": "pending",
+    "player": null,
+    "created_at": "2025-03-24T20:51:13.297Z"
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 3,
+  "fields": {
+    "user": 5,
+    "role": "admin",
+    "status": "approved",
+    "player": null,
+    "created_at": "2025-03-24T21:14:30.671Z"
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 4,
+  "fields": {
+    "user": 6,
+    "role": "player",
+    "status": "pending",
+    "player": null,
+    "created_at": "2025-03-24T21:33:49.565Z"
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 5,
+  "fields": {
+    "user": 7,
+    "role": "player",
+    "status": "pending",
+    "player": null,
+    "created_at": "2025-03-24T21:49:13.968Z"
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 6,
+  "fields": {
+    "user": 8,
+    "role": "admin",
+    "status": "approved",
+    "player": null,
+    "created_at": "2025-03-24T22:08:35.281Z"
+  }
+},
+{
+  "model": "teammanager.userprofile",
+  "pk": 7,
+  "fields": {
+    "user": 9,
+    "role": "admin",
+    "status": "approved",
+    "player": null,
+    "created_at": "2025-03-26T06:09:32.225Z"
+  }
+},
+{
+  "model": "teammanager.team",
+  "pk": 5,
+  "fields": {
+    "name": "Smørås G15",
+    "description": "Smørås G15 team",
+    "created_at": "2025-03-23T00:41:10.567Z"
+  }
+},
+{
+  "model": "teammanager.team",
+  "pk": 6,
+  "fields": {
+    "name": "Smørås G16",
+    "description": "Smørås G16 team",
+    "created_at": "2025-03-23T00:41:10.580Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 47,
+  "fields": {
+    "first_name": "Aksel",
+    "last_name": "Tørvik-Pedersen",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.592Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 48,
+  "fields": {
+    "first_name": "Anton",
+    "last_name": "Ringwald von Mehren",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.602Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 49,
+  "fields": {
+    "first_name": "Aron",
+    "last_name": "Sølberg",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.614Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 50,
+  "fields": {
+    "first_name": "Bastian",
+    "last_name": "Hetland",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.628Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 51,
+  "fields": {
+    "first_name": "Brage",
+    "last_name": "Kalsvik Wiig",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.641Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 52,
+  "fields": {
+    "first_name": "Eirik",
+    "last_name": "Helgesen",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.654Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 53,
+  "fields": {
+    "first_name": "Eldar",
+    "last_name": "Broms",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.667Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 54,
+  "fields": {
+    "first_name": "Filip",
+    "last_name": "August Havre",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.679Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 55,
+  "fields": {
+    "first_name": "Ishak",
+    "last_name": "Bozkurt",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.691Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 56,
+  "fields": {
+    "first_name": "Jonas",
+    "last_name": "Sværen Langnes",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.704Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 57,
+  "fields": {
+    "first_name": "Julijan",
+    "last_name": "Laastad",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.719Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 58,
+  "fields": {
+    "first_name": "Lars",
+    "last_name": "Underdal Vik",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.732Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 59,
+  "fields": {
+    "first_name": "Lukas",
+    "last_name": "Stordal",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.745Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 60,
+  "fields": {
+    "first_name": "Magnus",
+    "last_name": "Lunde Dietz",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.759Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 61,
+  "fields": {
+    "first_name": "Marcus",
+    "last_name": "H Leknes",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.774Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 62,
+  "fields": {
+    "first_name": "Markus",
+    "last_name": "Birkeland",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.787Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 63,
+  "fields": {
+    "first_name": "Martin",
+    "last_name": "Remøy Øvsthus",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.799Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 64,
+  "fields": {
+    "first_name": "Matheo",
+    "last_name": "Brekke Nøttveit",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.812Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 65,
+  "fields": {
+    "first_name": "Nikolai",
+    "last_name": "Vikebø Gjerde",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.827Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 66,
+  "fields": {
+    "first_name": "Noah",
+    "last_name": "Selvik Nødtvedt",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.846Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 67,
+  "fields": {
+    "first_name": "Oscar",
+    "last_name": "Spence",
+    "position": "Defender",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.859Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 68,
+  "fields": {
+    "first_name": "Sverre",
+    "last_name": "Oshaug Ingvaldsen",
+    "position": "Midfielder",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.872Z"
+  }
+},
+{
+  "model": "teammanager.player",
+  "pk": 69,
+  "fields": {
+    "first_name": "Ulrik",
+    "last_name": "Gurvin Rekeland",
+    "position": "Forward",
+    "date_of_birth": null,
+    "email": null,
+    "phone": null,
+    "active": true,
+    "created_at": "2025-03-23T00:41:10.889Z"
+  }
+}
+]

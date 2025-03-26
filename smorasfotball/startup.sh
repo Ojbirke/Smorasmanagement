@@ -2,9 +2,14 @@
 # Startup script for smorasfotball application
 # This script checks for persistent backups and restores them if needed
 
+# Get the directory of this script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$DIR"  # Change to the script directory
+
 PERSISTENT_BACKUP_DIR="../persistent_backups"
 LATEST_BACKUP=""
 
+echo "Current directory: $(pwd)"
 echo "Checking for persistent backups..."
 
 # Create persistent backup directory if it doesn't exist
@@ -62,6 +67,16 @@ fi
 
 # Run migrations regardless
 python manage.py migrate
+
+# Check if recreate_superuser.py exists in parent directory and run it
+SUPERUSER_SCRIPT="../recreate_superuser.py"
+if [ -f "$SUPERUSER_SCRIPT" ]; then
+    echo "Running superuser recreation script..."
+    # Run the superuser script in the current Django environment
+    cd .. && python recreate_superuser.py && cd "$DIR"
+else
+    echo "Superuser recreation script not found at $SUPERUSER_SCRIPT"
+fi
 
 # Output success message
 echo "Startup script completed."
