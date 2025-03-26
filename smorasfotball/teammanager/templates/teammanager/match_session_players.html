@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}Select Players for {{ match_session.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h4 mb-0">Select Players for {{ match_session.name }}</h1>
+                </div>
+                <div class="card-body">
+                    <!-- Import options -->
+                    {% if has_appearances %}
+                    <div class="alert alert-info mb-4">
+                        <form method="post" action="">
+                            {% csrf_token %}
+                            <input type="hidden" name="import_from_match" value="true">
+                            <p><strong>Quick Import:</strong> This match already has player appearances recorded.</p>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-download"></i> Import Players from Match
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Manual selection form -->
+                    <form method="post" class="player-selection-form">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h3 class="h5">Select Players for this Match</h3>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">Select All</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">Deselect All</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            {% for player in form.players.field.queryset %}
+                                                <div class="col-md-4 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input player-checkbox" type="checkbox" 
+                                                               name="{{ form.players.name }}" 
+                                                               value="{{ player.id }}" 
+                                                               id="player_{{ player.id }}"
+                                                               {% if player.id in form.fields.players.initial %}checked{% endif %}>
+                                                        <label class="form-check-label" for="player_{{ player.id }}">
+                                                            {{ player.first_name }} {{ player.last_name }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h3 class="h5">Select Starting Players ({{ match_session.periods }} vs {{ match_session.periods }} format)</h3>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="selectStartersBtn">
+                                            Select First 7
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle"></i> Select the players who will start the match on the pitch.
+                                            Players not selected as starters will begin on the bench.
+                                        </div>
+                                        
+                                        <div class="row">
+                                            {% for player in form.starting_players.field.queryset %}
+                                                <div class="col-md-4 mb-2 starter-checkbox-container" data-player-id="{{ player.id }}">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input starter-checkbox" type="checkbox" 
+                                                               name="{{ form.starting_players.name }}" 
+                                                               value="{{ player.id }}" 
+                                                               id="starter_{{ player.id }}"
+                                                               {% if player.id in form.fields.starting_players.initial %}checked{% endif %}>
+                                                        <label class="form-check-label" for="starter_{{ player.id }}">
+                                                            {{ player.first_name }} {{ player.last_name }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 d-flex justify-content-between">
+                            <a href="{% url 'match-session-detail' match_session.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Session
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Player Selection
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const playerCheckboxes = document.querySelectorAll('.player-checkbox');
+        const starterCheckboxes = document.querySelectorAll('.starter-checkbox');
+        const starterContainers = document.querySelectorAll('.starter-checkbox-container');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+        const selectStartersBtn = document.getElementById('selectStartersBtn');
+        
+        // Update starter containers based on player selection
+        function updateStarterContainers() {
+            playerCheckboxes.forEach(checkbox => {
+                const playerId = checkbox.value;
+                const starterContainer = document.querySelector(`.starter-checkbox-container[data-player-id="${playerId}"]`);
+                
+                if (starterContainer) {
+                    if (checkbox.checked) {
+                        starterContainer.style.display = 'block';
+                    } else {
+                        starterContainer.style.display = 'none';
+                        // Uncheck the starter checkbox if the player is deselected
+                        const starterCheckbox = document.getElementById(`starter_${playerId}`);
+                        if (starterCheckbox) {
+                            starterCheckbox.checked = false;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize the starter container visibility
+        updateStarterContainers();
+        
+        // Event listeners
+        playerCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateStarterContainers);
+        });
+        
+        // Select all button
+        selectAllBtn.addEventListener('click', function() {
+            playerCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateStarterContainers();
+        });
+        
+        // Deselect all button
+        deselectAllBtn.addEventListener('click', function() {
+            playerCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateStarterContainers();
+        });
+        
+        // Select first 7 as starters (or appropriate number for formation)
+        selectStartersBtn.addEventListener('click', function() {
+            // First uncheck all starter checkboxes
+            starterCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Get all selected players
+            const selectedPlayers = Array.from(playerCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            // Default to 7 players for 7-a-side format
+            let starterCount = 7;
+            
+            // Adjust based on player count
+            if (selectedPlayers.length >= 11) {
+                starterCount = 11;  // 11-a-side
+            } else if (selectedPlayers.length >= 9) {
+                starterCount = 9;   // 9-a-side
+            } else if (selectedPlayers.length >= 7) {
+                starterCount = 7;   // 7-a-side
+            } else if (selectedPlayers.length >= 5) {
+                starterCount = 5;   // 5-a-side
+            } else {
+                starterCount = selectedPlayers.length;  // Less than 5 players
+            }
+            
+            // Select the first n players as starters
+            for (let i = 0; i < Math.min(starterCount, selectedPlayers.length); i++) {
+                const playerId = selectedPlayers[i];
+                const starterCheckbox = document.getElementById(`starter_${playerId}`);
+                if (starterCheckbox) {
+                    starterCheckbox.checked = true;
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

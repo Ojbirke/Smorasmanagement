@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ match_session.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ match_session.name }}</h1>
+        <div>
+            <a href="{% url 'match-session-pitch' match_session.id %}" class="btn btn-success me-2">
+                <i class="bi bi-phone"></i> Mobile View
+            </a>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if can_edit %}
+                        {% if match_session.is_active %}
+                            <li><a class="dropdown-item" href="{% url 'match-session-stop' match_session.id %}">
+                                <i class="bi bi-stop-circle"></i> Stop Match
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'substitution-create' match_session.id %}">
+                                <i class="bi bi-arrow-left-right"></i> Make Substitution
+                            </a></li>
+                        {% else %}
+                            <li><a class="dropdown-item" href="{% url 'match-session-start' match_session.id %}">
+                                <i class="bi bi-play-circle"></i> Start Match
+                            </a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{% url 'match-session-players' match_session.id %}">
+                            <i class="bi bi-people"></i> Manage Players
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'match-session-update' match_session.id %}">
+                            <i class="bi bi-pencil"></i> Edit Session
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'match-session-delete' match_session.id %}">
+                            <i class="bi bi-trash"></i> Delete Session
+                        </a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Session Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Match Details</h2>
+                </div>
+                <div class="card-body">
+                    <p><strong>Match:</strong> {{ match_session.match }}</p>
+                    <p><strong>Date:</strong> {{ match_session.match.date|date:"F j, Y - g:i A" }}</p>
+                    <p><strong>Location:</strong> {{ match_session.match.location_type }} - {{ match_session.match.location }}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge {% if match_session.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if match_session.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </p>
+                    {% if match_session.is_active and match_session.start_time %}
+                        <p><strong>Started:</strong> {{ match_session.start_time|timesince }} ago</p>
+                        {% if current_game_time is not None %}
+                            <p><strong>Game time:</strong> {{ current_game_time }} minutes</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Session Configuration</h2>
+                </div>
+                <div class="card-body">
+                    <p><strong>Periods:</strong> {{ match_session.periods }}</p>
+                    <p><strong>Period Length:</strong> {{ match_session.period_length }} minutes</p>
+                    <p><strong>Substitution Interval:</strong> {{ match_session.substitution_interval }} minutes</p>
+                    <p><strong>Total Match Time:</strong> {{ match_session.total_match_time }} minutes</p>
+                    <p><strong>Expected Substitutions:</strong> {{ match_session.expected_substitutions }}</p>
+                    
+                    {% if match_session.is_active and next_sub_time is not None %}
+                        <div class="alert alert-info">
+                            <strong>Next substitution in:</strong> {{ next_sub_time }} minutes
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Players on Pitch -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h5 mb-0">Players on Pitch ({{ players_on_pitch.count }})</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for pt in players_on_pitch %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold">{{ pt.player.first_name }} {{ pt.player.last_name }}</span>
+                                    <small class="d-block text-muted">{{ pt.minutes_played }} minutes played</small>
+                                </div>
+                                {% if match_session.is_active and can_edit %}
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            Sub Out
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            {% for bench_pt in players_on_bench %}
+                                                <li>
+                                                    <a class="dropdown-item quick-sub-link" 
+                                                       href="#" 
+                                                       data-player-in="{{ bench_pt.player.id }}" 
+                                                       data-player-out="{{ pt.player.id }}"
+                                                       data-session="{{ match_session.id }}">
+                                                        Sub in {{ bench_pt.player.first_name }}
+                                                    </a>
+                                                </li>
+                                            {% empty %}
+                                                <li><span class="dropdown-item disabled">No players on bench</span></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-center">No players on pitch</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Players on Bench -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h2 class="h5 mb-0">Players on Bench ({{ players_on_bench.count }})</h2>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for pt in players_on_bench %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold">{{ pt.player.first_name }} {{ pt.player.last_name }}</span>
+                                    <small class="d-block text-muted">{{ pt.minutes_played }} minutes played</small>
+                                </div>
+                                {% if match_session.is_active and can_edit %}
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            Sub In
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            {% for pitch_pt in players_on_pitch %}
+                                                <li>
+                                                    <a class="dropdown-item quick-sub-link" 
+                                                       href="#" 
+                                                       data-player-in="{{ pt.player.id }}" 
+                                                       data-player-out="{{ pitch_pt.player.id }}"
+                                                       data-session="{{ match_session.id }}">
+                                                        Replace {{ pitch_pt.player.first_name }}
+                                                    </a>
+                                                </li>
+                                            {% empty %}
+                                                <li><span class="dropdown-item disabled">No players on pitch</span></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-center">No players on bench</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Substitution History -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Substitution History</h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Period</th>
+                            <th>Player In</th>
+                            <th>Player Out</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in substitutions %}
+                            <tr>
+                                <td>{{ sub.minute }}'</td>
+                                <td>{{ sub.period }}</td>
+                                <td>{{ sub.player_in.first_name }}</td>
+                                <td>{{ sub.player_out.first_name }}</td>
+                                <td>{{ sub.notes|default:"-" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No substitutions recorded yet</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Substitution Result Modal -->
+<div class="modal fade" id="quickSubModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Substitution Made</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="quickSubMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle quick substitution links
+        const quickSubLinks = document.querySelectorAll('.quick-sub-link');
+        const quickSubModal = document.getElementById('quickSubModal');
+        const quickSubMessage = document.getElementById('quickSubMessage');
+        const bsModal = new bootstrap.Modal(quickSubModal);
+        
+        quickSubLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const playerIn = this.dataset.playerIn;
+                const playerOut = this.dataset.playerOut;
+                const sessionId = this.dataset.session;
+                
+                // Send AJAX request to make the substitution
+                fetch(`/team/match-sessions/${sessionId}/quick-sub/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        player_in: playerIn,
+                        player_out: playerOut
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        quickSubMessage.textContent = `Substitution made at ${data.minute}': ${data.player_in} replaces ${data.player_out}`;
+                        bsModal.show();
+                        // Reload the page after the modal is dismissed
+                        quickSubModal.addEventListener('hidden.bs.modal', function () {
+                            window.location.reload();
+                        }, { once: true });
+                    } else {
+                        quickSubMessage.textContent = `Error: ${data.error}`;
+                        bsModal.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    quickSubMessage.textContent = 'An error occurred while making the substitution.';
+                    bsModal.show();
+                });
+            });
+        });
+        
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

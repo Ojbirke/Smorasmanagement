@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import views_db_admin
 from . import views_lineup
+from . import views_match_management
 
 urlpatterns = [
     # Authentication
@@ -81,4 +82,17 @@ urlpatterns = [
     path('positions/<int:pk>/edit/', views_lineup.LineupPositionUpdateView.as_view(), name='position-edit'),
     path('positions/<int:pk>/delete/', views_lineup.LineupPositionDeleteView.as_view(), name='position-delete'),
     path('positions/create-defaults/', views_lineup.create_default_positions, name='position-create-defaults'),
+    
+    # Match Sessions
+    path('match-sessions/', views_match_management.match_session_list, name='match-session-list'),
+    path('match-sessions/add/', views_match_management.MatchSessionCreateView.as_view(), name='match-session-create'),
+    path('match-sessions/<int:pk>/', views_match_management.match_session_detail, name='match-session-detail'),
+    path('match-sessions/<int:pk>/edit/', views_match_management.MatchSessionUpdateView.as_view(), name='match-session-update'),
+    path('match-sessions/<int:pk>/delete/', views_match_management.MatchSessionDeleteView.as_view(), name='match-session-delete'),
+    path('match-sessions/<int:pk>/players/', views_match_management.match_session_players, name='match-session-players'),
+    path('match-sessions/<int:pk>/start/', views_match_management.match_session_start, name='match-session-start'),
+    path('match-sessions/<int:pk>/stop/', views_match_management.match_session_stop, name='match-session-stop'),
+    path('match-sessions/<int:pk>/substitute/', views_match_management.substitution_create, name='substitution-create'),
+    path('match-sessions/<int:pk>/pitch/', views_match_management.match_session_pitch_view, name='match-session-pitch'),
+    path('match-sessions/<int:session_pk>/quick-sub/', views_match_management.ajax_quick_sub, name='match-session-quick-sub'),
 ]

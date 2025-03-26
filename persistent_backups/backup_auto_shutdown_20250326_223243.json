@@ -1121,10 +1121,10 @@
     "lineup": 2,
     "player": 47,
     "position": null,
-    "x_coordinate": "8.00",
-    "y_coordinate": "50.00",
+    "x_coordinate": "15.65",
+    "y_coordinate": "6.91",
     "jersey_number": 1,
-    "is_starter": true,
+    "is_starter": false,
     "notes": ""
   }
 },
@@ -1135,8 +1135,8 @@
     "lineup": 2,
     "player": 48,
     "position": null,
-    "x_coordinate": "25.00",
-    "y_coordinate": "25.00",
+    "x_coordinate": "33.13",
+    "y_coordinate": "19.91",
     "jersey_number": 2,
     "is_starter": true,
     "notes": ""
@@ -1163,8 +1163,8 @@
     "lineup": 2,
     "player": 53,
     "position": null,
-    "x_coordinate": "25.00",
-    "y_coordinate": "75.00",
+    "x_coordinate": "35.16",
+    "y_coordinate": "78.33",
     "jersey_number": 4,
     "is_starter": true,
     "notes": ""
@@ -1177,8 +1177,8 @@
     "lineup": 2,
     "player": 55,
     "position": null,
-    "x_coordinate": "45.00",
-    "y_coordinate": "33.33",
+    "x_coordinate": "53.46",
+    "y_coordinate": "22.05",
     "jersey_number": 5,
     "is_starter": true,
     "notes": ""
@@ -1191,8 +1191,8 @@
     "lineup": 2,
     "player": 58,
     "position": null,
-    "x_coordinate": "45.00",
-    "y_coordinate": "66.67",
+    "x_coordinate": "52.44",
+    "y_coordinate": "71.20",
     "jersey_number": 6,
     "is_starter": true,
     "notes": ""
@@ -1205,8 +1205,8 @@
     "lineup": 2,
     "player": 59,
     "position": null,
-    "x_coordinate": "65.00",
-    "y_coordinate": "50.00",
+    "x_coordinate": "8.94",
+    "y_coordinate": "46.27",
     "jersey_number": 7,
     "is_starter": true,
     "notes": ""
@@ -1219,10 +1219,10 @@
     "lineup": 2,
     "player": 62,
     "position": null,
-    "x_coordinate": "1.00",
-    "y_coordinate": "5.00",
+    "x_coordinate": "65.24",
+    "y_coordinate": "51.61",
     "jersey_number": 8,
-    "is_starter": false,
+    "is_starter": true,
     "notes": ""
   }
 },
@@ -1233,8 +1233,8 @@
     "lineup": 2,
     "player": 69,
     "position": null,
-    "x_coordinate": "1.00",
-    "y_coordinate": "15.00",
+    "x_coordinate": "4.07",
+    "y_coordinate": "7.62",
     "jersey_number": 9,
     "is_starter": false,
     "notes": ""

@@ -3,7 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import (
     Team, Player, Match, MatchAppearance,
-    FormationTemplate, LineupPosition, Lineup, LineupPlayerPosition
+    FormationTemplate, LineupPosition, Lineup, LineupPlayerPosition,
+    MatchSession, PlayerSubstitution, PlayingTime
 )
 
 
@@ -264,3 +265,125 @@ class LineupPlayerPositionForm(forms.ModelForm):
             # Exclude them from the available options if this is a new position
             if not self.instance.pk:
                 self.fields['player'].queryset = self.fields['player'].queryset.exclude(id__in=existing_players)
+
+
+class MatchSessionForm(forms.ModelForm):
+    """
+    Form for creating and updating match sessions
+    """
+    class Meta:
+        model = MatchSession
+        fields = [
+            'name', 'match', 'periods', 'period_length', 'substitution_interval'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'match': forms.Select(attrs={'class': 'form-select'}),
+            'periods': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '4'}),
+            'period_length': forms.NumberInput(attrs={'class': 'form-control', 'min': '5', 'max': '45'}),
+            'substitution_interval': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '15'}),
+        }
+        help_texts = {
+            'name': 'Give this match session a name for easy reference',
+            'periods': 'Number of periods in the match (typically 1 or 2)',
+            'period_length': 'Length of each period in minutes',
+            'substitution_interval': 'How often to make substitutions (in minutes)',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Only show recent/upcoming matches
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        two_weeks_ago = timezone.now() - timedelta(days=14)
+        one_month_ahead = timezone.now() + timedelta(days=30)
+        
+        self.fields['match'].queryset = Match.objects.filter(
+            date__gte=two_weeks_ago,
+            date__lte=one_month_ahead
+        ).order_by('date')
+        
+        # Customize match display
+        self.fields['match'].label_from_instance = lambda obj: f"{obj.date.strftime('%Y-%m-%d')}: {obj.smoras_team} vs {obj.opponent_name}"
+
+
+class PlayerSelectionSessionForm(forms.Form):
+    """
+    Form for selecting players for a match session
+    """
+    
+    def __init__(self, match_session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.match_session = match_session
+        
+        # Get the match for this session
+        match = match_session.match
+        
+        # Get all active players
+        available_players = Player.objects.filter(active=True).order_by('first_name', 'last_name')
+        
+        # Create a multiple selection field for players
+        self.fields['players'] = forms.ModelMultipleChoiceField(
+            queryset=available_players,
+            widget=forms.CheckboxSelectMultiple(attrs={'class': 'player-checkbox'}),
+            required=False,
+            label="Select players for this match"
+        )
+        
+        # Create fields for specifying which players start the match
+        self.fields['starting_players'] = forms.ModelMultipleChoiceField(
+            queryset=available_players,
+            widget=forms.CheckboxSelectMultiple(attrs={'class': 'starter-checkbox'}),
+            required=False,
+            label="Select players to start on the pitch"
+        )
+        
+        # Set initial values if we're editing an existing session
+        if kwargs.get('initial'):
+            # Add code here to pre-select players in an existing session
+            pass
+
+
+class SubstitutionForm(forms.ModelForm):
+    """
+    Form for recording player substitutions during a match
+    """
+    class Meta:
+        model = PlayerSubstitution
+        fields = ['player_in', 'player_out', 'minute', 'period', 'notes']
+        widgets = {
+            'player_in': forms.Select(attrs={'class': 'form-select'}),
+            'player_out': forms.Select(attrs={'class': 'form-select'}),
+            'minute': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '90'}),
+            'period': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '4'}),
+            'notes': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        match_session = kwargs.pop('match_session', None)
+        super().__init__(*args, **kwargs)
+        
+        if match_session:
+            # Filter the player lists to only include players for this match session
+            players_on_pitch = PlayingTime.objects.filter(
+                match_session=match_session, 
+                is_on_pitch=True
+            ).values_list('player_id', flat=True)
+            
+            players_on_bench = PlayingTime.objects.filter(
+                match_session=match_session, 
+                is_on_pitch=False
+            ).values_list('player_id', flat=True)
+            
+            # Players who can come off are those on the pitch
+            self.fields['player_out'].queryset = Player.objects.filter(
+                id__in=players_on_pitch
+            ).order_by('first_name', 'last_name')
+            
+            # Players who can come on are those on the bench
+            self.fields['player_in'].queryset = Player.objects.filter(
+                id__in=players_on_bench
+            ).order_by('first_name', 'last_name')

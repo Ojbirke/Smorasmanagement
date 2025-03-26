@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Match Sessions{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Match Sessions</h1>
+        {% if can_create %}
+        <a href="{% url 'match-session-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Match Session
+        </a>
+        {% endif %}
+    </div>
+
+    {% if upcoming_sessions %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Upcoming/Recent Match Sessions</h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for session in upcoming_sessions %}
+                <a href="{% url 'match-session-detail' session.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">{{ session.name }}</h5>
+                            <p class="mb-1 text-muted">{{ session.match }}</p>
+                            <small>
+                                {{ session.periods }} period{{ session.periods|pluralize }} | 
+                                {{ session.period_length }} min/period | 
+                                Sub interval: {{ session.substitution_interval }} min
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {% if session.is_active %}bg-success{% else %}bg-secondary{% endif %} rounded-pill">
+                                {% if session.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                            <div><small class="text-muted">{{ session.match.date|date:"M d, Y" }}</small></div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No upcoming or recent match sessions found.
+        {% if can_create %}
+        <a href="{% url 'match-session-create' %}">Create one now</a>.
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if past_sessions %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h2 class="h5 mb-0">Past Match Sessions</h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for session in past_sessions %}
+                <a href="{% url 'match-session-detail' session.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">{{ session.name }}</h5>
+                            <p class="mb-1 text-muted">{{ session.match }}</p>
+                            <small>
+                                {{ session.periods }} period{{ session.periods|pluralize }} | 
+                                {{ session.period_length }} min/period
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">{{ session.match.date|date:"M d, Y" }}</small>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

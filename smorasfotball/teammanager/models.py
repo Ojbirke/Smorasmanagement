@@ -319,3 +319,74 @@ class LineupPlayerPosition(models.Model):
     def __str__(self):
         position_str = f" ({self.position})" if self.position else ""
         return f"{self.player}{position_str} in {self.lineup}"
+
+
+class MatchSession(models.Model):
+    """
+    Manages a match session with substitution tracking and configuration
+    """
+    match = models.ForeignKey(Match, related_name='sessions', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, help_text="Name for this match session (e.g., 'Game Day 1')")
+    created_by = models.ForeignKey(User, related_name='match_sessions', on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Match configuration
+    periods = models.PositiveSmallIntegerField(default=2, help_text="Number of periods in the match")
+    period_length = models.PositiveSmallIntegerField(default=25, help_text="Length of each period in minutes")
+    substitution_interval = models.PositiveSmallIntegerField(default=5, help_text="Time between substitutions in minutes")
+    
+    # Match status
+    is_active = models.BooleanField(default=False, help_text="Whether this session is currently active")
+    start_time = models.DateTimeField(null=True, blank=True, help_text="When the match actually started")
+    
+    def __str__(self):
+        return f"{self.name} - {self.match}"
+    
+    def get_absolute_url(self):
+        return reverse('match-session-detail', args=[str(self.id)])
+    
+    def total_match_time(self):
+        """Return the total match time in minutes"""
+        return self.periods * self.period_length
+    
+    def expected_substitutions(self):
+        """Return the expected number of substitutions"""
+        if self.substitution_interval <= 0:
+            return 0
+        return (self.total_match_time() // self.substitution_interval) - 1
+
+
+class PlayerSubstitution(models.Model):
+    """
+    Records player substitutions during a match session
+    """
+    match_session = models.ForeignKey(MatchSession, related_name='substitutions', on_delete=models.CASCADE)
+    player_in = models.ForeignKey(Player, related_name='substitutions_in', on_delete=models.CASCADE)
+    player_out = models.ForeignKey(Player, related_name='substitutions_out', on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="When the substitution was made")
+    minute = models.PositiveSmallIntegerField(help_text="Match minute when substitution occurred")
+    period = models.PositiveSmallIntegerField(default=1, help_text="Match period when substitution occurred")
+    notes = models.CharField(max_length=200, blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.minute}' {self.player_in} for {self.player_out}"
+
+
+class PlayingTime(models.Model):
+    """
+    Tracks actual playing time for each player in a match session
+    """
+    match_session = models.ForeignKey(MatchSession, related_name='playing_times', on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, related_name='match_playing_times', on_delete=models.CASCADE)
+    minutes_played = models.PositiveSmallIntegerField(default=0, help_text="Total minutes played in this match")
+    last_substitution_time = models.DateTimeField(null=True, blank=True, 
+                                                help_text="Last time this player was involved in a substitution")
+    is_on_pitch = models.BooleanField(default=False, help_text="Whether the player is currently on the pitch")
+    
+    class Meta:
+        unique_together = ('match_session', 'player')
+    
+    def __str__(self):
+        status = "playing" if self.is_on_pitch else "on bench"
+        return f"{self.player} - {self.minutes_played} mins ({status})"
