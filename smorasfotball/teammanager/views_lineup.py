@@ -605,7 +605,8 @@ def export_lineup_pdf(request, pk):
     # Draw each positioned player
     for player in players_info:
         # Convert percentage coordinates to absolute PDF coordinates
-        player_x = pitch_x + (player['x'] / 100) * pitch_width
+        # Invert the x coordinate (100 - x) to fix the mirroring issue
+        player_x = pitch_x + ((100 - player['x']) / 100) * pitch_width
         player_y = pitch_y + (player['y'] / 100) * pitch_height
         
         print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y})")
