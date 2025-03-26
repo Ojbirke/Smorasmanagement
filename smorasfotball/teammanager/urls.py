@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_db_admin
 
 urlpatterns = [
     # Authentication
@@ -39,6 +40,13 @@ urlpatterns = [
     path('users/<int:pk>/approve/', views.approve_user, name='approve-user'),
     path('users/<int:pk>/reject/', views.reject_user, name='reject-user'),
     path('users/<int:pk>/delete/', views.delete_user, name='delete-user'),
+    
+    # Database Management
+    path('database/', views_db_admin.database_overview, name='database-overview'),
+    path('database/backup/create/', views_db_admin.create_backup, name='create-backup'),
+    path('database/backup/<str:filename>/restore/', views_db_admin.restore_backup, name='restore-backup'),
+    path('database/backup/<str:filename>/delete/', views_db_admin.delete_backup, name='delete-backup'),
+    path('database/backup/<str:filename>/download/', views_db_admin.download_backup, name='download-backup'),
     
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),
