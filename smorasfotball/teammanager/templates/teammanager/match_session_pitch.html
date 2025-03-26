@@ -800,6 +800,25 @@
                 matchInfoEl.textContent = `${elapsedMinutes}:${elapsedSecondsInMinute.toString().padStart(2, '0')}`;
             }
             
+            // Real-time update for player times (on pitch)
+            const playersOnPitch = document.querySelectorAll('.player-on-pitch');
+            playersOnPitch.forEach(player => {
+                const playerId = player.id.replace('player-', '');
+                const minutesEl = player.querySelector('.player-minutes');
+                if (minutesEl) {
+                    const currentMinutes = parseInt(minutesEl.textContent);
+                    // If player is on pitch, increment their time based on realtime
+                    const lastUpdate = window.lastPlayerUpdate || 0;
+                    const currentMinute = Math.floor(elapsedSeconds / 60);
+                    // Update display if it's a new minute
+                    if (currentMinute > lastUpdate) {
+                        window.lastPlayerUpdate = currentMinute;
+                        // Update all player times
+                        updatePlayerTimes();
+                    }
+                }
+            });
+            
             // Update period if needed (only when a full minute passes)
             if (elapsedMinutes !== currentGameTime) {
                 currentGameTime = elapsedMinutes;
@@ -815,7 +834,8 @@
             }
         }
         
-        function updatePlayingTimes() {
+        // Separate function to update player times that can be called by both functions
+        function updatePlayerTimes() {
             fetch(`/team/match-sessions/{{ match_session.id }}/update-times/`, {
                 method: 'GET',
                 headers: {
@@ -826,16 +846,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update match data if needed (don't update the clock - that's handled by the second timer)
-                    matchStartTime = data.match_info.start_time ? new Date(data.match_info.start_time) : matchStartTime;
-                    
-                    // Update period info
-                    const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
-                    if (periodInfoEl) {
-                        periodInfoEl.innerHTML = `Period ${data.match_info.period}/{{ total_periods }}`;
-                        currentPeriod = data.match_info.period;
-                    }
-                    
                     // Update player times on cards and bubbles
                     for (const playerId in data.playing_times) {
                         const playerData = data.playing_times[playerId];
@@ -846,19 +856,6 @@
                             const minutesEl = playerOnPitch.querySelector('.player-minutes');
                             if (minutesEl) {
                                 minutesEl.textContent = `${playerData.minutes}m`;
-                            }
-                            
-                            // Show/hide substitution recommendation
-                            const subRecommendEl = playerOnPitch.querySelector('.sub-recommend');
-                            if (playerData.minutes < 10) {
-                                if (!subRecommendEl) {
-                                    const newSubRecommend = document.createElement('span');
-                                    newSubRecommend.className = 'sub-recommend';
-                                    newSubRecommend.textContent = '!';
-                                    playerOnPitch.appendChild(newSubRecommend);
-                                }
-                            } else if (subRecommendEl) {
-                                subRecommendEl.remove();
                             }
                         }
                         
@@ -877,7 +874,38 @@
                 }
             })
             .catch(error => {
-                console.error('Error updating playing times:', error);
+                console.error('Error updating player times:', error);
+            });
+        }
+        
+        function updatePlayingTimes() {
+            // Use the updatePlayerTimes function to update player times
+            updatePlayerTimes();
+            
+            // Additionally, update the match info
+            fetch(`/team/match-sessions/{{ match_session.id }}/update-times/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update match data if needed 
+                    matchStartTime = data.match_info.start_time ? new Date(data.match_info.start_time) : matchStartTime;
+                    
+                    // Update period info
+                    const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
+                    if (periodInfoEl) {
+                        periodInfoEl.innerHTML = `Period ${data.match_info.period}/{{ total_periods }}`;
+                        currentPeriod = data.match_info.period;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating match time info:', error);
             });
         }
         
@@ -888,6 +916,9 @@
         window.addEventListener('beforeunload', function() {
             if (updateTimerInterval) {
                 clearInterval(updateTimerInterval);
+            }
+            if (clockInterval) {
+                clearInterval(clockInterval);
             }
         });
         {% endif %}
