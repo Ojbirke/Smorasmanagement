@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get CSRF token from our hidden form
         const csrfToken = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]').value;
         
-        fetch(`/lineups/${lineupId}/save-positions/`, {
+        fetch(`{% url 'save-lineup-positions' lineup.id %}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
