@@ -369,6 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentY = 0;
     let xOffset = 0;
     let yOffset = 0;
+    let positionsChanged = false; // Track if positions have changed
     
     const playerItems = document.querySelectorAll('.player-item');
     const playerBank = document.getElementById('player-bank');
@@ -574,6 +575,9 @@ document.addEventListener('DOMContentLoaded', function() {
             activeDragElement.style.top = `${finalY}%`;
             
             console.log(`Drag ended at: (${finalX}%, ${finalY}%), Player ID: ${activeDragElement.getAttribute('data-player-id')}`);
+            
+            // Mark positions as changed
+            positionsChanged = true;
         }
         
         // Ensure the element is properly within the pitch
@@ -986,6 +990,60 @@ document.addEventListener('DOMContentLoaded', function() {
             playerCircle.classList.add('substitute');
         }
     }
+    
+    // Add beforeunload event to save positions when leaving the page
+    window.addEventListener('beforeunload', function(e) {
+        // Only prompt and save if positions have been changed
+        if (positionsChanged) {
+            // Save the positions automatically
+            saveLineupPositions();
+            
+            // Classic way to show a confirmation dialog when leaving
+            const confirmationMessage = 'You have unsaved changes. Your positions will be saved automatically, but do you want to leave now?';
+            (e || window.event).returnValue = confirmationMessage;
+            return confirmationMessage;
+        }
+    });
+    
+    // Also mark positions as changed when a player is added to the field or when edits are applied
+    const originalClonePlayerToField = clonePlayerToField;
+    clonePlayerToField = function(playerElement) {
+        positionsChanged = true;
+        return originalClonePlayerToField(playerElement);
+    };
+    
+    const originalApplyPlayerEdits = applyPlayerEdits;
+    applyPlayerEdits = function() {
+        positionsChanged = true;
+        return originalApplyPlayerEdits();
+    };
+    
+    const originalRemovePlayerFromLineup = removePlayerFromLineup;
+    removePlayerFromLineup = function(playerElement) {
+        positionsChanged = true;
+        return originalRemovePlayerFromLineup(playerElement);
+    };
+    
+    // Modify the original saveLineupPositions function to handle the positionsChanged flag
+    const originalSaveLineupPositions = saveLineupPositions;
+    saveLineupPositions = function() {
+        // Call the original function
+        originalSaveLineupPositions();
+        
+        // Intercept the fetch success handler
+        const originalThen = window.fetch.prototype.then;
+        window.fetch.prototype.then = function(callback) {
+            const newCallback = function(response) {
+                const result = callback(response);
+                if (response && response.status === 'success') {
+                    // Reset the changed flag on successful save
+                    positionsChanged = false;
+                }
+                return result;
+            };
+            return originalThen.call(this, newCallback);
+        };
+    };
 });
 </script>
 {% endblock %}
