@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Send AJAX request to update the lineup direction in the database
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
-            fetch(`/teammanager/lineup/${lineupId}/save-positions/`, {
+            fetch(`{% url 'save-lineup-positions' lineup.id %}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -524,11 +524,11 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data.status === 'success') {
                     // Reload the page to reflect the new direction
                     window.location.reload();
                 } else {
-                    alert('Error saving direction: ' + data.error);
+                    alert('Error saving direction: ' + data.message);
                 }
             })
             .catch(error => {
