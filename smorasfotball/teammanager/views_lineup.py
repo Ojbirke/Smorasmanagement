@@ -725,10 +725,24 @@ def export_lineup_pdf(request, pk):
         notes = lineup.notes[:100] + ('...' if len(lineup.notes) > 100 else '')
         p.drawString(pitch_x + 250, 30, f"Notes: {notes}")
     
-    # Add text to indicate this is the first period direction
-    p.setFont("Helvetica-Bold", 16)
+    # Add text to indicate this is the first period direction - moved to clear position
+    p.setFont("Helvetica-Bold", 14)
     p.setFillColor(colors.black)
-    p.drawString(pitch_x, pitch_y + pitch_height + 40, "First Period Direction - Goalkeeper on Left")
+    # Draw with a background box for better visibility
+    period_text = "First Period Direction - Goalkeeper on Left"
+    text_width = p.stringWidth(period_text, "Helvetica-Bold", 14)
+    text_height = 16
+    margin = 5
+    # Draw white background box
+    p.setFillColor(colors.white)
+    p.rect(pitch_x + (pitch_width/2) - (text_width/2) - margin, 
+           pitch_y + pitch_height + 15, 
+           text_width + (margin*2), 
+           text_height + (margin*2), 
+           fill=1, stroke=0)
+    # Draw text centered above pitch
+    p.setFillColor(colors.black)
+    p.drawCentredString(pitch_x + (pitch_width/2), pitch_y + pitch_height + 30, period_text)
     
     # End first page
     p.showPage()
@@ -757,10 +771,24 @@ def export_lineup_pdf(request, pk):
     if lineup.formation:
         p.drawString(30, height - 90, f"Formation: {lineup.formation.formation_structure}")
     
-    # Add text to indicate this is the second period direction
-    p.setFont("Helvetica-Bold", 16)
+    # Add text to indicate this is the second period direction - moved to clear position
+    p.setFont("Helvetica-Bold", 14)
     p.setFillColor(colors.black)
-    p.drawString(pitch_x, pitch_y + pitch_height + 40, "Second Period Direction - Goalkeeper on Right")
+    # Draw with a background box for better visibility
+    period_text = "Second Period Direction - Goalkeeper on Right"
+    text_width = p.stringWidth(period_text, "Helvetica-Bold", 14)
+    text_height = 16
+    margin = 5
+    # Draw white background box
+    p.setFillColor(colors.white)
+    p.rect(pitch_x + (pitch_width/2) - (text_width/2) - margin, 
+           pitch_y + pitch_height + 15, 
+           text_width + (margin*2), 
+           text_height + (margin*2), 
+           fill=1, stroke=0)
+    # Draw text centered above pitch
+    p.setFillColor(colors.black)
+    p.drawCentredString(pitch_x + (pitch_width/2), pitch_y + pitch_height + 30, period_text)
     
     # Draw the pitch with clear dimensions and coordinates
     # Pitch orientation for second period: Left = Striker side, Right = Goalkeeper side
