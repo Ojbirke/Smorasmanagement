@@ -677,7 +677,7 @@
                     listItem.className = 'list-group-item list-group-item-action';
                     listItem.dataset.playerIn = rec.playerIn.playerInId;
                     listItem.dataset.playerOut = rec.playerOut.playerOutId;
-                    listItem.dataset.session = currentSubData?.sessionId;
+                    listItem.dataset.session = {{ match_session.id }};
                     
                     listItem.innerHTML = `
                         <div class="d-flex justify-content-between align-items-center">
