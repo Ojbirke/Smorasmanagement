@@ -537,53 +537,65 @@ def update_playing_times(request, session_pk):
     AJAX endpoint to update playing times for all active players
     Called periodically to keep the displayed playing times accurate
     """
-    match_session = get_object_or_404(MatchSession, pk=session_pk)
-    
-    if not is_approved_user(request.user):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
-    if not match_session.is_active:
-        return JsonResponse({'error': 'Match session is not active'}, status=400)
-    
-    # Calculate current playing times without saving to database
-    now = timezone.now()
-    playing_times = PlayingTime.objects.filter(match_session=match_session)
-    
-    # Match statistics
-    if match_session.start_time:
-        match_elapsed = (now - match_session.start_time).total_seconds() / 60
-        current_period = min((int(match_elapsed) // match_session.period_length) + 1, match_session.periods)
-        minute_in_match = int(match_elapsed)
-        minute_in_period = int(match_elapsed) % match_session.period_length
-    else:
-        match_elapsed = 0
-        current_period = 1
-        minute_in_match = 0
-        minute_in_period = 0
-    
-    # Calculate current real-time playing minutes for each player
-    playing_time_data = {}
-    for pt in playing_times:
-        real_time_minutes = pt.minutes_played
+    try:
+        match_session = get_object_or_404(MatchSession, pk=session_pk)
         
-        # Add current session time for players on the pitch
-        if pt.is_on_pitch and pt.last_substitution_time:
-            elapsed = now - pt.last_substitution_time
-            real_time_minutes += math.floor(elapsed.total_seconds() / 60)
+        if not is_approved_user(request.user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
         
-        playing_time_data[str(pt.player.id)] = {
-            'minutes': real_time_minutes,
-            'on_pitch': pt.is_on_pitch,
-            'name': str(pt.player)
-        }
-    
-    return JsonResponse({
-        'success': True,
-        'playing_times': playing_time_data,
-        'match_info': {
-            'elapsed': int(match_elapsed),
-            'period': current_period,
-            'minute_in_match': minute_in_match,
-            'minute_in_period': minute_in_period
-        }
-    })
+        if not match_session.is_active:
+            return JsonResponse({'error': 'Match session is not active'}, status=400)
+        
+        # Calculate current playing times without saving to database
+        now = timezone.now()
+        playing_times = PlayingTime.objects.filter(match_session=match_session)
+        
+        # Match statistics
+        if match_session.start_time:
+            match_elapsed = (now - match_session.start_time).total_seconds() / 60
+            current_period = min((int(match_elapsed) // match_session.period_length) + 1, match_session.periods)
+            minute_in_match = int(match_elapsed)
+            minute_in_period = int(match_elapsed) % match_session.period_length
+        else:
+            match_elapsed = 0
+            current_period = 1
+            minute_in_match = 0
+            minute_in_period = 0
+        
+        # Calculate current real-time playing minutes for each player
+        playing_time_data = {}
+        for pt in playing_times:
+            real_time_minutes = pt.minutes_played
+            
+            # Add current session time for players on the pitch
+            if pt.is_on_pitch and pt.last_substitution_time:
+                elapsed = now - pt.last_substitution_time
+                real_time_minutes += math.floor(elapsed.total_seconds() / 60)
+            
+            playing_time_data[str(pt.player.id)] = {
+                'minutes': real_time_minutes,
+                'on_pitch': pt.is_on_pitch,
+                'name': str(pt.player)
+            }
+        
+        # Print debug info to server console
+        print(f"Update times for session {session_pk}: {len(playing_time_data)} players, match elapsed: {match_elapsed:.1f} min")
+        
+        return JsonResponse({
+            'success': True,
+            'playing_times': playing_time_data,
+            'match_info': {
+                'elapsed': int(match_elapsed),
+                'period': current_period,
+                'minute_in_match': minute_in_match,
+                'minute_in_period': minute_in_period
+            }
+        })
+    except Exception as e:
+        import traceback
+        print(f"Error in update_playing_times: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

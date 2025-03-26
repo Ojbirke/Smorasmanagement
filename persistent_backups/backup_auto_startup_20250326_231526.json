@@ -1264,11 +1264,11 @@
     "name": "Treningskamp Fana Uslmåg",
     "created_by": 8,
     "created_at": "2025-03-26T22:48:01.227Z",
-    "updated_at": "2025-03-26T22:49:10.509Z",
+    "updated_at": "2025-03-26T23:15:04.929Z",
     "periods": 2,
     "period_length": 30,
     "substitution_interval": 4,
-    "is_active": true,
+    "is_active": false,
     "start_time": "2025-03-26T22:49:10.509Z"
   }
 },
@@ -1286,14 +1286,40 @@
   }
 },
 {
+  "model": "teammanager.playersubstitution",
+  "pk": 2,
+  "fields": {
+    "match_session": 1,
+    "player_in": 54,
+    "player_out": 47,
+    "timestamp": "2025-03-26T23:13:24.615Z",
+    "minute": 24,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 3,
+  "fields": {
+    "match_session": 1,
+    "player_in": 59,
+    "player_out": 54,
+    "timestamp": "2025-03-26T23:14:46.196Z",
+    "minute": 25,
+    "period": 1,
+    "notes": null
+  }
+},
+{
   "model": "teammanager.playingtime",
   "pk": 1,
   "fields": {
     "match_session": 1,
     "player": 47,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:10.614Z",
-    "is_on_pitch": true
+    "minutes_played": 24,
+    "last_substitution_time": null,
+    "is_on_pitch": false
   }
 },
 {
@@ -1302,8 +1328,8 @@
   "fields": {
     "match_session": 1,
     "player": 50,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:35.914Z",
+    "minutes_played": 25,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1313,7 +1339,7 @@
   "fields": {
     "match_session": 1,
     "player": 54,
-    "minutes_played": 0,
+    "minutes_played": 1,
     "last_substitution_time": null,
     "is_on_pitch": false
   }
@@ -1324,8 +1350,8 @@
   "fields": {
     "match_session": 1,
     "player": 55,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "minutes_played": 25,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1335,8 +1361,8 @@
   "fields": {
     "match_session": 1,
     "player": 57,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "minutes_played": 25,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1346,8 +1372,8 @@
   "fields": {
     "match_session": 1,
     "player": 58,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "minutes_played": 25,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1359,7 +1385,7 @@
     "player": 59,
     "minutes_played": 0,
     "last_substitution_time": null,
-    "is_on_pitch": false
+    "is_on_pitch": true
   }
 },
 {
@@ -1368,8 +1394,8 @@
   "fields": {
     "match_session": 1,
     "player": 62,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "minutes_played": 25,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1379,8 +1405,8 @@
   "fields": {
     "match_session": 1,
     "player": 63,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-26T22:49:10.614Z",
+    "minutes_played": 25,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 }
