@@ -82,11 +82,9 @@
                     <p><strong>Total Match Time:</strong> {{ match_session.total_match_time }} minutes</p>
                     <p><strong>Expected Substitutions:</strong> {{ match_session.expected_substitutions }}</p>
                     
-                    {% if match_session.is_active and next_sub_time is not None %}
-                        <div class="alert alert-info">
-                            <strong>Next substitution in:</strong> {{ next_sub_time }} minutes
-                        </div>
-                    {% endif %}
+                    <div class="alert alert-info">
+                        <strong>Substitution mode:</strong> Manual substitutions only
+                    </div>
                 </div>
             </div>
         </div>

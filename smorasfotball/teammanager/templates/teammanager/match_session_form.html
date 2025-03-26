@@ -110,7 +110,7 @@
                                     </label>
                                     {{ form.substitution_interval }}
                                     {% if form.substitution_interval.help_text %}
-                                        <div class="form-text">{{ form.substitution_interval.help_text }}</div>
+                                        <div class="form-text">{{ form.substitution_interval.help_text }} <span class="text-muted">(Note: Auto-substitutions are disabled, this is for planning purposes only)</span></div>
                                     {% endif %}
                                     {% if form.substitution_interval.errors %}
                                         <div class="invalid-feedback d-block">

@@ -75,10 +75,8 @@ def match_session_detail(request, pk):
         elapsed = timezone.now() - match_session.start_time
         current_game_time = math.floor(elapsed.total_seconds() / 60)
         
-        # Calculate next substitution time
-        if match_session.substitution_interval > 0:
-            next_sub_minute = (math.floor(current_game_time / match_session.substitution_interval) + 1) * match_session.substitution_interval
-            next_sub_time = next_sub_minute - current_game_time
+        # No random substitutions as requested by user
+        next_sub_time = None  # Disable substitution timer
     
     context = {
         'match_session': match_session,
@@ -125,21 +123,21 @@ class MatchSessionCreateView(LoginRequiredMixin, CreateView):
                 match_appearances__match=match
             ).distinct()
             
-            # Use exactly 7 players as starters as requested (7-a-side format)
-            formation_count = 7
-            
-            # Determine starters and bench - randomly select 7 players as starters
+            # Always use 7 players as starters (7-a-side format) as requested
+            # We're already getting the correct players from match appearances
             all_players = list(players_from_match)
-            random.shuffle(all_players)  # Randomize the player order
+            random.shuffle(all_players)  # Randomize the player order for random selection
             
-            # If we have more than 7 players, use 7 as starters
+            # If we have more than 7 players, use exactly 7 as starters
             if len(all_players) >= 7:
-                starters = all_players[:7]
-                bench = all_players[7:]
+                starters = all_players[:7]  # First 7 players after shuffle
+                bench = all_players[7:]     # Remaining players to bench
             else:
                 # If we have fewer than 7 players, use all available as starters
                 starters = all_players
                 bench = []
+                
+            print(f"Auto-imported {len(all_players)} players from match: {len(starters)} as starters, {len(bench)} on bench.")
             
             # Create playing time records
             for player in starters:
@@ -233,21 +231,21 @@ def match_session_players(request, pk):
                 match_appearances__match=match_session.match
             ).distinct()
             
-            # Use exactly 7 players as starters as requested (7-a-side format)
-            formation_count = 7
-            
-            # Determine starters and bench - randomly select 7 players as starters
+            # Always use 7 players as starters (7-a-side format) as requested
+            # We're already getting the correct players from match appearances
             all_players = list(players_from_match)
-            random.shuffle(all_players)  # Randomize the player order
+            random.shuffle(all_players)  # Randomize the player order for random selection
             
-            # If we have more than 7 players, use 7 as starters
+            # If we have more than 7 players, use exactly 7 as starters
             if len(all_players) >= 7:
-                starters = all_players[:7]
-                bench = all_players[7:]
+                starters = all_players[:7]  # First 7 players after shuffle
+                bench = all_players[7:]     # Remaining players to bench
             else:
                 # If we have fewer than 7 players, use all available as starters
                 starters = all_players
                 bench = []
+                
+            print(f"AJAX: Auto-imported {len(all_players)} players from match: {len(starters)} as starters, {len(bench)} on bench.")
             
             # Create playing time records
             for player in starters:
@@ -352,13 +350,9 @@ def match_session_start(request, pk):
         last_substitution_time=timezone.now()
     )
     
-    # If we have players on the bench, schedule random substitutions
-    if players_on_bench > 0 and players_on_pitch >= 7:
-        # Perform initial random shuffle of starters
-        players_on_field = list(playing_times.filter(is_on_pitch=True))
-        players_on_sideline = list(playing_times.filter(is_on_pitch=False))
-        
-        messages.success(request, f"Match session started with automatic random substitutions enabled. {players_on_pitch} players on field, {players_on_bench} on bench.")
+    # Show message about players, but don't enable random substitutions
+    if players_on_bench > 0:
+        messages.success(request, f"Match session started. {players_on_pitch} players on field, {players_on_bench} on bench.")
     else:
         messages.success(request, "Match session started. Substitution tracking is now active.")
     
@@ -564,10 +558,8 @@ def match_session_pitch_view(request, pk):
         time_since_start = elapsed
         current_game_time = math.floor(elapsed.total_seconds() / 60)
         
-        # Calculate next substitution time
-        if match_session.substitution_interval > 0:
-            next_sub_minute = (math.floor(current_game_time / match_session.substitution_interval) + 1) * match_session.substitution_interval
-            next_sub_time = next_sub_minute - current_game_time
+        # No random substitutions as requested by user
+        next_sub_time = None  # Disable substitution timer
     
     # Calculate period
     current_period = 1

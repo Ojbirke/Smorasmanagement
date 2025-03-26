@@ -289,13 +289,8 @@
             </div>
             
             <div class="col-6 text-end">
-                {% if next_sub_time is not None %}
-                    <div class="fw-bold text-success">
-                        Next Sub: {{ next_sub_time }} min
-                    </div>
-                {% endif %}
                 <div class="small text-muted">
-                    Interval: {{ substitution_interval }} min
+                    Manual substitutions only
                 </div>
             </div>
         </div>
@@ -326,14 +321,8 @@
     
     <!-- Controls for player rotation -->
     <div class="card shadow-sm mb-3">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-primary text-white">
             <h2 class="h5 mb-0">On Pitch ({{ on_pitch.count }})</h2>
-            
-            {% if match_session.is_active and on_bench.count > 0 %}
-                <button class="btn btn-sm btn-light" id="autoSubBtn">
-                    <i class="bi bi-shuffle"></i> Auto-Sub
-                </button>
-            {% endif %}
         </div>
         <div class="card-body p-0">
             <div class="list-group list-group-flush">
@@ -622,123 +611,9 @@
             });
         });
         
-        // Auto-sub button
-        if (autoSubBtn) {
-            autoSubBtn.addEventListener('click', function() {
-                // Get players on pitch and bench
-                const playersOnPitch = Array.from(document.querySelectorAll('.list-group-item')).filter(item => {
-                    return item.querySelector('.fw-bold') && 
-                           item.querySelector('.text-muted') &&
-                           item.querySelector('.btn-outline-primary');
-                }).map(item => {
-                    const name = item.querySelector('.fw-bold').textContent.trim();
-                    const minutesText = item.querySelector('.text-muted').textContent.trim();
-                    const minutes = parseInt(minutesText.match(/\d+/)[0], 10);
-                    const playerOutId = item.querySelector('.quick-sub-link')?.dataset.playerOut;
-                    return { name, minutes, playerOutId };
-                });
-                
-                const playersOnBench = Array.from(document.querySelectorAll('.list-group-item')).filter(item => {
-                    return item.querySelector('.fw-bold') && 
-                           item.querySelector('.text-muted') &&
-                           item.querySelector('.btn-outline-success');
-                }).map(item => {
-                    const name = item.querySelector('.fw-bold').textContent.trim();
-                    const minutesText = item.querySelector('.text-muted').textContent.trim();
-                    const minutes = parseInt(minutesText.match(/\d+/)[0], 10);
-                    const playerInId = item.querySelector('.quick-sub-link')?.dataset.playerIn;
-                    return { name, minutes, playerInId };
-                });
-                
-                // Sort players by playing time
-                playersOnPitch.sort((a, b) => b.minutes - a.minutes);
-                playersOnBench.sort((a, b) => a.minutes - b.minutes);
-                
-                // Prepare recommended subs
-                const recommendedSubs = [];
-                
-                // Match players with highest time on pitch with those with lowest time on bench
-                const maxRecommendations = Math.min(3, Math.min(playersOnPitch.length, playersOnBench.length));
-                
-                for (let i = 0; i < maxRecommendations; i++) {
-                    recommendedSubs.push({
-                        playerOut: playersOnPitch[i],
-                        playerIn: playersOnBench[i],
-                        difference: playersOnPitch[i].minutes - playersOnBench[i].minutes
-                    });
-                }
-                
-                // Display recommendations
-                autoSubSuggestions.innerHTML = '';
-                
-                recommendedSubs.forEach(rec => {
-                    const listItem = document.createElement('a');
-                    listItem.href = '#';
-                    listItem.className = 'list-group-item list-group-item-action';
-                    listItem.dataset.playerIn = rec.playerIn.playerInId;
-                    listItem.dataset.playerOut = rec.playerOut.playerOutId;
-                    listItem.dataset.session = {{ match_session.id }};
-                    
-                    listItem.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div>
-                                    <span class="badge bg-success me-1">IN</span> 
-                                    ${rec.playerIn.name}
-                                    <small class="text-muted">(${rec.playerIn.minutes}m)</small>
-                                </div>
-                                <div>
-                                    <span class="badge bg-secondary me-1">OUT</span> 
-                                    ${rec.playerOut.name}
-                                    <small class="text-muted">(${rec.playerOut.minutes}m)</small>
-                                </div>
-                            </div>
-                            <div>
-                                <span class="badge bg-primary">${rec.difference}m diff</span>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Add click handler
-                    listItem.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        
-                        // Set up sub data
-                        currentSubData = {
-                            playerIn: this.dataset.playerIn,
-                            playerOut: this.dataset.playerOut,
-                            sessionId: this.dataset.session
-                        };
-                        
-                        // Set confirmation message
-                        subConfirmBody.innerHTML = `
-                            <p>Are you sure you want to make this substitution?</p>
-                            <div class="d-flex align-items-center justify-content-center my-3">
-                                <div class="text-center me-3">
-                                    <div class="badge bg-secondary p-2 mb-2">${rec.playerOut.name}</div>
-                                    <div><i class="bi bi-arrow-right fs-3"></i></div>
-                                    <div class="small">OUT</div>
-                                </div>
-                                <div class="fs-3 mx-3"><i class="bi bi-arrow-left-right"></i></div>
-                                <div class="text-center ms-3">
-                                    <div class="badge bg-success p-2 mb-2">${rec.playerIn.name}</div>
-                                    <div><i class="bi bi-arrow-left fs-3"></i></div>
-                                    <div class="small">IN</div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Hide auto-sub modal and show confirmation modal
-                        bsAutoSubModal.hide();
-                        bsSubConfirmModal.show();
-                    });
-                    
-                    autoSubSuggestions.appendChild(listItem);
-                });
-                
-                bsAutoSubModal.show();
-            });
-        }
+        // Auto-substitution functionality has been disabled as requested by the user
+        // The auto-sub button has been removed from the UI and the automatic substitution
+        // logic has been commented out. All substitutions are now manual only.
         
         // Function to get CSRF token from cookies
         function getCookie(name) {
