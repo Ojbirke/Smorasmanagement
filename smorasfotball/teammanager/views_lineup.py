@@ -833,7 +833,7 @@ def export_lineup_pdf(request, pk):
         notes = lineup.notes[:100] + ('...' if len(lineup.notes) > 100 else '')
         p.drawString(pitch_x + 250, 30, f"Notes: {notes}")
     
-    # Add text to indicate this is the playing from left direction - moved to clear position
+    # Add text to indicate this is the playing from left direction - placed below pitch
     p.setFont("Helvetica-Bold", 14)
     p.setFillColor(colors.black)
     # Draw with a background box for better visibility
@@ -844,13 +844,13 @@ def export_lineup_pdf(request, pk):
     # Draw white background box
     p.setFillColor(colors.white)
     p.rect(pitch_x + (pitch_width/2) - (text_width/2) - margin, 
-           pitch_y + pitch_height + 15, 
+           pitch_y - 20 - text_height, 
            text_width + (margin*2), 
            text_height + (margin*2), 
            fill=1, stroke=0)
-    # Draw text centered above pitch
+    # Draw text centered below pitch
     p.setFillColor(colors.black)
-    p.drawCentredString(pitch_x + (pitch_width/2), pitch_y + pitch_height + 30, direction_text)
+    p.drawCentredString(pitch_x + (pitch_width/2), pitch_y - 20, direction_text)
     
     # End first page
     p.showPage()
@@ -879,7 +879,7 @@ def export_lineup_pdf(request, pk):
     if lineup.formation:
         p.drawString(30, height - 90, f"Formation: {lineup.formation.formation_structure}")
     
-    # Add text to indicate this is the playing from right direction - moved to clear position
+    # Add text to indicate this is the playing from right direction - placed below pitch
     p.setFont("Helvetica-Bold", 14)
     p.setFillColor(colors.black)
     # Draw with a background box for better visibility
@@ -890,13 +890,13 @@ def export_lineup_pdf(request, pk):
     # Draw white background box
     p.setFillColor(colors.white)
     p.rect(pitch_x + (pitch_width/2) - (text_width/2) - margin, 
-           pitch_y + pitch_height + 15, 
+           pitch_y - 20 - text_height, 
            text_width + (margin*2), 
            text_height + (margin*2), 
            fill=1, stroke=0)
-    # Draw text centered above pitch
+    # Draw text centered below pitch
     p.setFillColor(colors.black)
-    p.drawCentredString(pitch_x + (pitch_width/2), pitch_y + pitch_height + 30, direction_text)
+    p.drawCentredString(pitch_x + (pitch_width/2), pitch_y - 20, direction_text)
     
     # Draw the pitch with clear dimensions and coordinates
     # Pitch orientation for second period: Left = Striker side, Right = Goalkeeper side
