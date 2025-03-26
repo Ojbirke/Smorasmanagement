@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if editing %}Edit{% else %}Create{% endif %} Position | Smørås G2015 Fotball
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">
+                        {% if editing %}
+                            Edit Position: {{ form.instance.name }}
+                        {% else %}
+                            Create New Position
+                        {% endif %}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                            {{ form.name.errors }}
+                            <input type="text" name="{{ form.name.name }}" 
+                                   value="{{ form.name.value|default:'' }}" 
+                                   class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.name.id_for_label }}" 
+                                   required>
+                            {% if form.name.help_text %}
+                                <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.short_name.id_for_label }}" class="form-label">{{ form.short_name.label }}</label>
+                            {{ form.short_name.errors }}
+                            <input type="text" name="{{ form.short_name.name }}" 
+                                   value="{{ form.short_name.value|default:'' }}" 
+                                   class="form-control {% if form.short_name.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.short_name.id_for_label }}" 
+                                   maxlength="10"
+                                   required>
+                            {% if form.short_name.help_text %}
+                                <small class="form-text text-muted">{{ form.short_name.help_text }}</small>
+                            {% else %}
+                                <small class="form-text text-muted">Short abbreviation (e.g., GK, CB, LB, ST)</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.position_type.id_for_label }}" class="form-label">{{ form.position_type.label }}</label>
+                            {{ form.position_type.errors }}
+                            <select name="{{ form.position_type.name }}" 
+                                    class="form-select {% if form.position_type.errors %}is-invalid{% endif %}" 
+                                    id="{{ form.position_type.id_for_label }}" 
+                                    required>
+                                {% for value, text in form.fields.position_type.choices %}
+                                    <option value="{{ value }}" 
+                                            {% if form.position_type.value == value %}selected{% endif %}>
+                                        {{ text }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.position_type.help_text %}
+                                <small class="form-text text-muted">{{ form.position_type.help_text }}</small>
+                            {% else %}
+                                <small class="form-text text-muted">The general category this position belongs to</small>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Position Preview -->
+                        <div class="mb-3">
+                            <label class="form-label">Position Preview</label>
+                            <div class="p-3 text-center bg-light rounded">
+                                <span class="badge position-badge p-2" style="font-size: 1.5rem; background-color: #999999;" id="position-preview">{{ form.short_name.value|default:'???' }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'position-list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {% if editing %}Update{% else %}Create{% endif %} Position
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const positionTypeSelect = document.getElementById('{{ form.position_type.id_for_label }}');
+    const shortNameInput = document.getElementById('{{ form.short_name.id_for_label }}');
+    const previewBadge = document.getElementById('position-preview');
+    
+    // Update preview on load
+    updatePreview();
+    
+    // Update preview when inputs change
+    positionTypeSelect.addEventListener('change', updatePreview);
+    shortNameInput.addEventListener('input', updatePreview);
+    
+    function updatePreview() {
+        // Update the badge text
+        previewBadge.textContent = shortNameInput.value || '???';
+        
+        // Update the badge color based on position type
+        const positionType = positionTypeSelect.value;
+        let badgeColor = '#999999'; // Default color
+        
+        switch (positionType) {
+            case 'GK':
+                badgeColor = '#ff9900';
+                break;
+            case 'DEF':
+                badgeColor = '#ff3333';
+                break;
+            case 'MID':
+                badgeColor = '#33cc33';
+                break;
+            case 'FWD':
+                badgeColor = '#3399ff';
+                break;
+        }
+        
+        previewBadge.style.backgroundColor = badgeColor;
+    }
+});
+</script>
+{% endblock %}

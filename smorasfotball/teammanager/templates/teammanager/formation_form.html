@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if editing %}Edit{% else %}Create{% endif %} Formation Template | Smørås G2015 Fotball
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">
+                        {% if editing %}
+                            Edit Formation: {{ form.instance.name }}
+                        {% else %}
+                            Create New Formation Template
+                        {% endif %}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                            {{ form.name.errors }}
+                            <input type="text" name="{{ form.name.name }}" 
+                                   value="{{ form.name.value|default:'' }}" 
+                                   class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.name.id_for_label }}" 
+                                   required>
+                            {% if form.name.help_text %}
+                                <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.formation_structure.id_for_label }}" class="form-label">{{ form.formation_structure.label }}</label>
+                            {{ form.formation_structure.errors }}
+                            <div class="input-group">
+                                <input type="text" name="{{ form.formation_structure.name }}" 
+                                       value="{{ form.formation_structure.value|default:'' }}" 
+                                       class="form-control {% if form.formation_structure.errors %}is-invalid{% endif %}" 
+                                       id="{{ form.formation_structure.id_for_label }}" 
+                                       placeholder="e.g. 4-4-2" 
+                                       required>
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Presets
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item formation-preset" href="#" data-formation="4-4-2">4-4-2 (Classic)</a></li>
+                                    <li><a class="dropdown-item formation-preset" href="#" data-formation="4-3-3">4-3-3 (Attacking)</a></li>
+                                    <li><a class="dropdown-item formation-preset" href="#" data-formation="4-2-3-1">4-2-3-1 (Modern)</a></li>
+                                    <li><a class="dropdown-item formation-preset" href="#" data-formation="3-5-2">3-5-2 (Wing-backs)</a></li>
+                                    <li><a class="dropdown-item formation-preset" href="#" data-formation="5-3-2">5-3-2 (Defensive)</a></li>
+                                    <li><a class="dropdown-item formation-preset" href="#" data-formation="4-1-4-1">4-1-4-1 (Holding Mid)</a></li>
+                                </ul>
+                            </div>
+                            {% if form.formation_structure.help_text %}
+                                <small class="form-text text-muted">{{ form.formation_structure.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
+                            {{ form.description.errors }}
+                            <textarea name="{{ form.description.name }}" 
+                                      class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                      id="{{ form.description.id_for_label }}" 
+                                      rows="3">{{ form.description.value|default:'' }}</textarea>
+                            {% if form.description.help_text %}
+                                <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Formation Preview -->
+                        <div class="mb-3">
+                            <label class="form-label">Formation Preview</label>
+                            <div style="position: relative; width: 100%; height: 200px; background-color: #4CAF50; border-radius: 5px; overflow: hidden;">
+                                <div id="formation-preview" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'formation-list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {% if editing %}Update{% else %}Create{% endif %} Formation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formation structure input and preview elements
+    const formationInput = document.getElementById('{{ form.formation_structure.id_for_label }}');
+    const formationPreview = document.getElementById('formation-preview');
+    const formationPresets = document.querySelectorAll('.formation-preset');
+    
+    // Initialize the preview with the current value
+    updateFormationPreview(formationInput.value);
+    
+    // Update preview when the input changes
+    formationInput.addEventListener('input', function() {
+        updateFormationPreview(this.value);
+    });
+    
+    // Handle formation presets
+    formationPresets.forEach(preset => {
+        preset.addEventListener('click', function(e) {
+            e.preventDefault();
+            const formation = this.getAttribute('data-formation');
+            formationInput.value = formation;
+            updateFormationPreview(formation);
+        });
+    });
+    
+    // Function to update the formation preview
+    function updateFormationPreview(formationString) {
+        // Clear the preview
+        formationPreview.innerHTML = '';
+        
+        if (!formationString) return;
+        
+        // Parse the formation string (e.g., "4-4-2")
+        const layers = formationString.split('-').map(num => parseInt(num));
+        if (layers.some(isNaN)) return;
+        
+        // Create SVG element for the preview
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        
+        // Draw pitch markings
+        const pitchMarkings = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        // Outer boundary
+        const boundary = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        boundary.setAttribute('x', '5');
+        boundary.setAttribute('y', '5');
+        boundary.setAttribute('width', '90');
+        boundary.setAttribute('height', '90');
+        boundary.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
+        boundary.setAttribute('stroke-width', '1');
+        boundary.setAttribute('fill', 'none');
+        pitchMarkings.appendChild(boundary);
+        
+        // Center line
+        const centerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        centerLine.setAttribute('x1', '50');
+        centerLine.setAttribute('y1', '5');
+        centerLine.setAttribute('x2', '50');
+        centerLine.setAttribute('y2', '95');
+        centerLine.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
+        centerLine.setAttribute('stroke-width', '1');
+        pitchMarkings.appendChild(centerLine);
+        
+        // Center circle
+        const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        centerCircle.setAttribute('cx', '50');
+        centerCircle.setAttribute('cy', '50');
+        centerCircle.setAttribute('r', '9.15');
+        centerCircle.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
+        centerCircle.setAttribute('stroke-width', '1');
+        centerCircle.setAttribute('fill', 'none');
+        pitchMarkings.appendChild(centerCircle);
+        
+        svg.appendChild(pitchMarkings);
+        
+        // Create goalkeeper
+        const goalkeeper = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        goalkeeper.setAttribute('cx', '8');
+        goalkeeper.setAttribute('cy', '50');
+        goalkeeper.setAttribute('r', '3');
+        goalkeeper.setAttribute('fill', '#ff9900');
+        svg.appendChild(goalkeeper);
+        
+        // Draw players for each layer
+        let totalPlayers = layers.reduce((a, b) => a + b, 0);
+        let startX = 25; // Start position for the first layer (defenders)
+        
+        for (let i = 0; i < layers.length; i++) {
+            const numPlayers = layers[i];
+            const xPosition = startX + (i * 20); // Distribute along x-axis
+            
+            for (let j = 0; j < numPlayers; j++) {
+                const yGap = 100 / (numPlayers + 1);
+                const yPosition = yGap * (j + 1);
+                
+                const player = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                player.setAttribute('cx', xPosition);
+                player.setAttribute('cy', yPosition);
+                player.setAttribute('r', '3');
+                player.setAttribute('fill', '#0066cc');
+                svg.appendChild(player);
+            }
+        }
+        
+        formationPreview.appendChild(svg);
+    }
+});
+</script>
+{% endblock %}

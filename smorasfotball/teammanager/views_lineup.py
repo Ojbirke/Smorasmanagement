@@ -775,3 +775,51 @@ class LineupPositionDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Position deleted successfully.")
         return super().delete(request, *args, **kwargs)
+
+
+@login_required
+def create_default_positions(request):
+    """Create a set of default football positions"""
+    if not is_coach_or_admin(request.user):
+        messages.error(request, "You don't have permission to create positions.")
+        return redirect('position-list')
+    
+    if request.method != 'POST':
+        return redirect('position-list')
+    
+    # Define default positions
+    default_positions = [
+        {'name': 'Goalkeeper', 'short_name': 'GK', 'position_type': 'GK'},
+        {'name': 'Left Back', 'short_name': 'LB', 'position_type': 'DEF'},
+        {'name': 'Center Back', 'short_name': 'CB', 'position_type': 'DEF'},
+        {'name': 'Right Back', 'short_name': 'RB', 'position_type': 'DEF'},
+        {'name': 'Defensive Midfielder', 'short_name': 'DM', 'position_type': 'MID'},
+        {'name': 'Central Midfielder', 'short_name': 'CM', 'position_type': 'MID'},
+        {'name': 'Left Midfielder', 'short_name': 'LM', 'position_type': 'MID'},
+        {'name': 'Right Midfielder', 'short_name': 'RM', 'position_type': 'MID'},
+        {'name': 'Attacking Midfielder', 'short_name': 'AM', 'position_type': 'MID'},
+        {'name': 'Left Winger', 'short_name': 'LW', 'position_type': 'FWD'},
+        {'name': 'Right Winger', 'short_name': 'RW', 'position_type': 'FWD'},
+        {'name': 'Striker', 'short_name': 'ST', 'position_type': 'FWD'},
+    ]
+    
+    # Count how many positions were created
+    created_count = 0
+    
+    # Create positions if they don't already exist
+    for pos in default_positions:
+        # Check if position with this short_name already exists
+        if not LineupPosition.objects.filter(short_name=pos['short_name']).exists():
+            LineupPosition.objects.create(
+                name=pos['name'],
+                short_name=pos['short_name'],
+                position_type=pos['position_type']
+            )
+            created_count += 1
+    
+    if created_count > 0:
+        messages.success(request, f"Successfully created {created_count} default positions.")
+    else:
+        messages.info(request, "No new positions were created. All default positions already exist.")
+    
+    return redirect('position-list')

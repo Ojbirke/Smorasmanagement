@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Position Definitions | Smørås G2015 Fotball{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Position Definitions</h1>
+        
+        <div class="btn-group">
+            <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Lineups
+            </a>
+            {% if is_admin %}
+                <a href="{% url 'position-add' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> New Position
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Short Name</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for position in positions %}
+                            <tr>
+                                <td>{{ position.name }}</td>
+                                <td>
+                                    <span class="badge" style="background-color: 
+                                        {% if position.position_type == 'GK' %}#ff9900
+                                        {% elif position.position_type == 'DEF' %}#ff3333
+                                        {% elif position.position_type == 'MID' %}#33cc33
+                                        {% elif position.position_type == 'FWD' %}#3399ff
+                                        {% else %}#999999{% endif %}">
+                                        {{ position.short_name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if position.position_type == 'GK' %}
+                                        Goalkeeper
+                                    {% elif position.position_type == 'DEF' %}
+                                        Defender
+                                    {% elif position.position_type == 'MID' %}
+                                        Midfielder
+                                    {% elif position.position_type == 'FWD' %}
+                                        Forward
+                                    {% else %}
+                                        {{ position.position_type }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if is_admin %}
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'position-edit' position.id %}" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <a href="{% url 'position-delete' position.id %}" class="btn btn-outline-danger">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">No actions available</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <h5>No positions defined yet</h5>
+                                        <p>Create position definitions to use in lineup formation.</p>
+                                        
+                                        {% if is_admin %}
+                                            <a href="{% url 'position-add' %}" class="btn btn-primary mt-2">
+                                                <i class="fas fa-plus"></i> Create First Position
+                                            </a>
+                                            
+                                            <a href="#" class="btn btn-outline-secondary mt-2" id="createDefaultPositions">
+                                                <i class="fas fa-list"></i> Create Default Set
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Position Type Legend -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Position Types</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <span class="badge" style="background-color: #ff9900;">GK</span>
+                    Goalkeeper
+                </div>
+                <div class="col-md-3 mb-2">
+                    <span class="badge" style="background-color: #ff3333;">DEF</span>
+                    Defender
+                </div>
+                <div class="col-md-3 mb-2">
+                    <span class="badge" style="background-color: #33cc33;">MID</span>
+                    Midfielder
+                </div>
+                <div class="col-md-3 mb-2">
+                    <span class="badge" style="background-color: #3399ff;">FWD</span>
+                    Forward
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Default Positions -->
+<div class="modal fade" id="defaultPositionsModal" tabindex="-1" aria-labelledby="defaultPositionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="defaultPositionsModalLabel">Create Default Positions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will create a set of common football positions. The following positions will be created:</p>
+                
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Short Name</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Goalkeeper</td>
+                            <td>GK</td>
+                            <td>GK</td>
+                        </tr>
+                        <tr>
+                            <td>Left Back</td>
+                            <td>LB</td>
+                            <td>DEF</td>
+                        </tr>
+                        <tr>
+                            <td>Center Back</td>
+                            <td>CB</td>
+                            <td>DEF</td>
+                        </tr>
+                        <tr>
+                            <td>Right Back</td>
+                            <td>RB</td>
+                            <td>DEF</td>
+                        </tr>
+                        <tr>
+                            <td>Defensive Midfielder</td>
+                            <td>DM</td>
+                            <td>MID</td>
+                        </tr>
+                        <tr>
+                            <td>Central Midfielder</td>
+                            <td>CM</td>
+                            <td>MID</td>
+                        </tr>
+                        <tr>
+                            <td>Left Midfielder</td>
+                            <td>LM</td>
+                            <td>MID</td>
+                        </tr>
+                        <tr>
+                            <td>Right Midfielder</td>
+                            <td>RM</td>
+                            <td>MID</td>
+                        </tr>
+                        <tr>
+                            <td>Attacking Midfielder</td>
+                            <td>AM</td>
+                            <td>MID</td>
+                        </tr>
+                        <tr>
+                            <td>Left Winger</td>
+                            <td>LW</td>
+                            <td>FWD</td>
+                        </tr>
+                        <tr>
+                            <td>Right Winger</td>
+                            <td>RW</td>
+                            <td>FWD</td>
+                        </tr>
+                        <tr>
+                            <td>Striker</td>
+                            <td>ST</td>
+                            <td>FWD</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> This action will not create duplicate positions if they already exist.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="createDefaultPositionsForm" method="post" action="{% url 'position-create-defaults' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Create Default Positions</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const createDefaultPositionsButton = document.getElementById('createDefaultPositions');
+    
+    if (createDefaultPositionsButton) {
+        createDefaultPositionsButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            const defaultPositionsModal = new bootstrap.Modal(document.getElementById('defaultPositionsModal'));
+            defaultPositionsModal.show();
+        });
+    }
+});
+</script>
+{% endblock %}

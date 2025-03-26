@@ -79,4 +79,5 @@ urlpatterns = [
     path('positions/add/', views_lineup.LineupPositionCreateView.as_view(), name='position-add'), 
     path('positions/<int:pk>/edit/', views_lineup.LineupPositionUpdateView.as_view(), name='position-edit'),
     path('positions/<int:pk>/delete/', views_lineup.LineupPositionDeleteView.as_view(), name='position-delete'),
+    path('positions/create-defaults/', views_lineup.create_default_positions, name='position-create-defaults'),
 ]

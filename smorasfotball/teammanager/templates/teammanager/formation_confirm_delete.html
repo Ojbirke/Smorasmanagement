@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Formation | Smørås G2015 Fotball{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="mb-0">Delete Formation Template</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading">Warning!</h4>
+                        <p>You are about to delete the formation template <strong>{{ formationtemplate.name }}</strong>.</p>
+                        <p>This action cannot be undone. Any lineups referencing this formation will keep their current layout but will no longer be associated with a formation template.</p>
+                    </div>
+                    
+                    <dl class="row">
+                        <dt class="col-sm-3">Name</dt>
+                        <dd class="col-sm-9">{{ formationtemplate.name }}</dd>
+                        
+                        <dt class="col-sm-3">Structure</dt>
+                        <dd class="col-sm-9">{{ formationtemplate.formation_structure }}</dd>
+                        
+                        {% if formationtemplate.description %}
+                            <dt class="col-sm-3">Description</dt>
+                            <dd class="col-sm-9">{{ formationtemplate.description }}</dd>
+                        {% endif %}
+                        
+                        <dt class="col-sm-3">Created</dt>
+                        <dd class="col-sm-9">{{ formationtemplate.created_at|date:"M d, Y" }}</dd>
+                    </dl>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'formation-list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Confirm Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
