@@ -531,26 +531,26 @@ def export_lineup_pdf(request, pk):
     # Goal areas (6-yard boxes)
     goal_width = 40
     goal_height = 120
-    # Left goal area
+    # Goalkeeper side (left) goal area
     p.rect(pitch_x, pitch_y + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
-    # Right goal area
+    # Striker side (right) goal area
     p.rect(pitch_x + pitch_width - goal_width, pitch_y + (pitch_height - goal_height)/2, goal_width, goal_height, fill=0)
     
     # Penalty areas (18-yard boxes)
     penalty_width = 80
     penalty_height = 220
-    # Left penalty area
+    # Goalkeeper side (left) penalty area
     p.rect(pitch_x, pitch_y + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
-    # Right penalty area
+    # Striker side (right) penalty area
     p.rect(pitch_x + pitch_width - penalty_width, pitch_y + (pitch_height - penalty_height)/2, penalty_width, penalty_height, fill=0)
     
     # Draw goals
     p.setFillColor(colors.white)
     goal_post_width = 5
     goal_post_depth = 8
-    # Left goal
+    # Goalkeeper side (left) goal
     p.rect(pitch_x - goal_post_depth, pitch_y + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
-    # Right goal
+    # Striker side (right) goal
     p.rect(pitch_x + pitch_width, pitch_y + (pitch_height - 80)/2, goal_post_depth, 80, fill=1, stroke=0)
     
     # Get player positions from database, including related data
@@ -605,8 +605,8 @@ def export_lineup_pdf(request, pk):
     # Draw each positioned player
     for player in players_info:
         # Convert percentage coordinates to absolute PDF coordinates
-        # Invert the x coordinate (100 - x) to fix the mirroring issue
-        player_x = pitch_x + ((100 - player['x']) / 100) * pitch_width
+        # Using the original x coordinate to match the lineup builder orientation
+        player_x = pitch_x + (player['x'] / 100) * pitch_width
         player_y = pitch_y + (player['y'] / 100) * pitch_height
         
         print(f"[PDF Export] Drawing player at coordinates: ({player_x}, {player_y})")
