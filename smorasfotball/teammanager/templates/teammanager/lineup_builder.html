@@ -149,13 +149,13 @@
         {% csrf_token %}
     </form>
     
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>
-            Lineup Builder: {{ lineup.name }}
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="mb-0">Lineup Builder: {{ lineup.name }}</h1>
             {% if lineup.match %}
-                <small class="text-muted d-block fs-5">{{ lineup.match }} ({{ lineup.match.date|date:"M d, Y" }})</small>
+                <p class="text-muted mt-2 mb-3">{{ lineup.match }} ({{ lineup.match.date|date:"M d, Y" }})</p>
             {% endif %}
-        </h1>
+        </div>
         
         <div class="btn-group">
             <a href="{% url 'lineup-list' %}" class="btn btn-outline-secondary">
@@ -276,6 +276,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         
         <div class="col-lg-4">
             <div class="controls-container">
