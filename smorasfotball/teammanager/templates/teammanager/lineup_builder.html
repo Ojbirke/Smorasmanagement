@@ -996,65 +996,130 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to auto-save the positions
     function autoSavePositions() {
-        if (!positionsChanged) {
-            return; // No need to save if nothing changed
-        }
-        
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
-        const positions = [];
-        
-        // Process player positions
-        playersOnPitch.forEach(player => {
-            positionWithinPitch(player);
-            
-            const playerId = player.getAttribute('data-player-id');
-            const positionId = player.getAttribute('data-position-id') || null;
-            const x = parseFloat(player.getAttribute('data-x'));
-            const y = parseFloat(player.getAttribute('data-y'));
-            
-            const playerCircle = player.querySelector('.player-circle');
-            const isStarter = playerCircle.classList.contains('starter');
-            const jerseyNumber = player.querySelector('.player-jersey').textContent;
-            const notes = player.getAttribute('data-notes') || '';
-            
-            positions.push({
-                player_id: playerId,
-                position_id: positionId,
-                x: x,
-                y: y,
-                is_starter: isStarter,
-                jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
-                notes: notes
-            });
-        });
-        
-        console.log(`Auto-saving ${positions.length} player positions...`);
-        
-        // Use fetch for auto-save
-        fetch(`/lineups/${lineupId}/save-positions/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                positions: positions
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                console.log('Auto-save successful!');
-                positionsChanged = false; // Reset changed flag
-            } else {
-                console.error('Auto-save failed:', data.message);
+        try {
+            // Check if we should save
+            if (!positionsChanged) {
+                console.log('No changes to save');
+                return; // No need to save if nothing changed
             }
-        })
-        .catch(error => {
-            console.error('Auto-save error:', error);
-        });
+            
+            // Check if we're still on the lineup builder page
+            if (!pitchContainer || !document.body.contains(pitchContainer)) {
+                console.log('Pitch container not found, cancelling auto-save');
+                return;
+            }
+            
+            // Find the CSRF token
+            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfTokenElement) {
+                console.error('CSRF token not found, cannot save positions');
+                return;
+            }
+            
+            const csrfToken = csrfTokenElement.value;
+            const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+            
+            if (!playersOnPitch || playersOnPitch.length === 0) {
+                console.log('No players on pitch to save');
+                return;
+            }
+            
+            const positions = [];
+            
+            // Process player positions
+            playersOnPitch.forEach(player => {
+                try {
+                    // Make sure player stays within bounds
+                    positionWithinPitch(player);
+                    
+                    const playerId = player.getAttribute('data-player-id');
+                    if (!playerId) {
+                        console.warn('Player without ID found, skipping');
+                        return;
+                    }
+                    
+                    const positionId = player.getAttribute('data-position-id') || null;
+                    
+                    // Get coordinates with fallbacks
+                    let x = parseFloat(player.getAttribute('data-x'));
+                    let y = parseFloat(player.getAttribute('data-y'));
+                    
+                    // Fallback to style values if data attributes aren't set
+                    if (isNaN(x) || isNaN(y)) {
+                        const styleLeft = player.style.left;
+                        const styleTop = player.style.top;
+                        
+                        x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 50;
+                        y = styleTop ? parseFloat(styleTop.replace('%', '')) : 50;
+                        
+                        // Update the data attributes for future use
+                        player.setAttribute('data-x', x);
+                        player.setAttribute('data-y', y);
+                    }
+                    
+                    // Ensure valid values
+                    x = Math.max(0, Math.min(100, x));
+                    y = Math.max(0, Math.min(100, y));
+                    
+                    const playerCircle = player.querySelector('.player-circle');
+                    if (!playerCircle) {
+                        console.warn(`Player circle not found for player ${playerId}, assuming starter`);
+                    }
+                    
+                    const isStarter = playerCircle ? playerCircle.classList.contains('starter') : true;
+                    
+                    const jerseyElement = player.querySelector('.player-jersey');
+                    const jerseyNumber = jerseyElement ? jerseyElement.textContent : '';
+                    const notes = player.getAttribute('data-notes') || '';
+                    
+                    positions.push({
+                        player_id: playerId,
+                        position_id: positionId,
+                        x: x,
+                        y: y,
+                        is_starter: isStarter,
+                        jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                        notes: notes
+                    });
+                } catch (playerError) {
+                    console.error('Error processing player for auto-save:', playerError);
+                }
+            });
+            
+            if (positions.length === 0) {
+                console.log('No valid positions to save');
+                return;
+            }
+            
+            console.log(`Auto-saving ${positions.length} player positions...`);
+            
+            // Use fetch for auto-save
+            fetch(`/lineups/${lineupId}/save-positions/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    positions: positions
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Auto-save successful!');
+                    positionsChanged = false; // Reset changed flag
+                } else {
+                    console.error('Auto-save failed:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Auto-save error:', error);
+            });
+        } catch (e) {
+            console.error('Auto-save function error:', e);
+        }
     }
     
     // Set up auto-save every 30 seconds if changes are made
@@ -1079,37 +1144,93 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Page unloading, attempting final save...');
             
             try {
+                // Check if the necessary elements exist
+                if (!pitchContainer || !document.body.contains(pitchContainer)) {
+                    console.log('Cannot perform final save: pitch container not found');
+                    return;
+                }
+                
+                // Find the CSRF token
+                const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (!csrfTokenElement) {
+                    console.error('Cannot perform final save: CSRF token not found');
+                    return;
+                }
+                
                 // Use synchronous XMLHttpRequest (deprecated but necessary for beforeunload)
                 const xhr = new XMLHttpRequest();
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const csrfToken = csrfTokenElement.value;
                 const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
+                
+                if (!playersOnPitch || playersOnPitch.length === 0) {
+                    console.log('No players to save on unload');
+                    return;
+                }
+                
                 const positions = [];
                 
-                // Process player positions synchronously
+                // Process player positions synchronously (safely)
                 playersOnPitch.forEach(player => {
-                    positionWithinPitch(player);
-                    
-                    const playerId = player.getAttribute('data-player-id');
-                    const positionId = player.getAttribute('data-position-id') || null;
-                    const x = parseFloat(player.getAttribute('data-x'));
-                    const y = parseFloat(player.getAttribute('data-y'));
-                    
-                    const playerCircle = player.querySelector('.player-circle');
-                    const isStarter = playerCircle.classList.contains('starter');
-                    const jerseyNumber = player.querySelector('.player-jersey').textContent;
-                    const notes = player.getAttribute('data-notes') || '';
-                    
-                    positions.push({
-                        player_id: playerId,
-                        position_id: positionId,
-                        x: x,
-                        y: y,
-                        is_starter: isStarter,
-                        jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
-                        notes: notes
-                    });
+                    try {
+                        // Ensure player stays within pitch bounds
+                        positionWithinPitch(player);
+                        
+                        // Get player attributes with safety checks
+                        const playerId = player.getAttribute('data-player-id');
+                        if (!playerId) {
+                            console.warn('Player without ID found during final save, skipping');
+                            return;
+                        }
+                        
+                        const positionId = player.getAttribute('data-position-id') || null;
+                        
+                        // Get coordinates with fallbacks
+                        let x = parseFloat(player.getAttribute('data-x'));
+                        let y = parseFloat(player.getAttribute('data-y'));
+                        
+                        // Fallback to style values if data attributes aren't set
+                        if (isNaN(x) || isNaN(y)) {
+                            const styleLeft = player.style.left;
+                            const styleTop = player.style.top;
+                            
+                            x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 50;
+                            y = styleTop ? parseFloat(styleTop.replace('%', '')) : 50;
+                        }
+                        
+                        // Ensure valid values
+                        x = Math.max(0, Math.min(100, x));
+                        y = Math.max(0, Math.min(100, y));
+                        
+                        // Get player status
+                        const playerCircle = player.querySelector('.player-circle');
+                        const isStarter = playerCircle ? playerCircle.classList.contains('starter') : true;
+                        
+                        const jerseyElement = player.querySelector('.player-jersey');
+                        const jerseyNumber = jerseyElement ? jerseyElement.textContent : '';
+                        const notes = player.getAttribute('data-notes') || '';
+                        
+                        positions.push({
+                            player_id: playerId,
+                            position_id: positionId,
+                            x: x,
+                            y: y,
+                            is_starter: isStarter,
+                            jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                            notes: notes
+                        });
+                    } catch (playerError) {
+                        console.error('Error processing player during final save:', playerError);
+                    }
                 });
                 
+                if (positions.length === 0) {
+                    console.log('No valid positions for final save');
+                    return;
+                }
+                
+                console.log(`Final save with ${positions.length} player positions`);
+                
+                // Send the data synchronously
                 xhr.open('POST', `/lineups/${lineupId}/save-positions/`, false); // false = synchronous
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.setRequestHeader('X-CSRFToken', csrfToken);
@@ -1117,6 +1238,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 xhr.send(JSON.stringify({ positions: positions }));
                 
                 console.log('Final save status:', xhr.status);
+                
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    console.log('Final save successful!');
+                } else {
+                    console.error('Final save failed with status:', xhr.status);
+                }
             } catch (e) {
                 console.error('Final save error:', e);
             }
@@ -1150,91 +1277,158 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update the original saveLineupPositions function to reset the positionsChanged flag
     const originalSaveLineupPositions = saveLineupPositions;
     saveLineupPositions = function() {
-        // Collect all player positions from the pitch (same as original)
-        const positions = [];
-        const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
-        
-        console.log(`Saving positions for ${playersOnPitch.length} players on the pitch`);
-        
-        // First, ensure all players' positions are within pitch bounds
-        playersOnPitch.forEach(player => {
-            positionWithinPitch(player);
-        });
-        
-        // Now collect the data
-        playersOnPitch.forEach(player => {
-            const playerId = player.getAttribute('data-player-id');
-            const positionId = player.getAttribute('data-position-id') || null;
-            
-            // Try to get coordinates from data attributes first (should be most reliable now)
-            let x = parseFloat(player.getAttribute('data-x'));
-            let y = parseFloat(player.getAttribute('data-y'));
-            
-            // If data attributes aren't set for some reason, fall back to style
-            if (isNaN(x) || isNaN(y)) {
-                const styleLeft = player.style.left;
-                const styleTop = player.style.top;
-                
-                x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 0;
-                y = styleTop ? parseFloat(styleTop.replace('%', '')) : 0;
-                
-                // Update the data attributes to maintain consistency
-                player.setAttribute('data-x', x);
-                player.setAttribute('data-y', y);
-                
-                console.log(`Updated from style: ${x}, ${y} for player ${playerId}`);
+        try {
+            // Check if we're still on the lineup builder page
+            if (!pitchContainer || !document.body.contains(pitchContainer)) {
+                console.error('Pitch container not found, cannot save positions');
+                alert('Error: Unable to locate the pitch. Please refresh the page and try again.');
+                return;
             }
             
-            // Ensure coordinates are within valid range
-            x = Math.max(0, Math.min(100, x));
-            y = Math.max(0, Math.min(100, y));
+            // Collect all player positions from the pitch
+            const positions = [];
+            const playersOnPitch = pitchContainer.querySelectorAll('.player-item');
             
-            const playerCircle = player.querySelector('.player-circle');
-            const isStarter = playerCircle.classList.contains('starter');
-            const jerseyNumber = player.querySelector('.player-jersey').textContent;
-            const notes = player.getAttribute('data-notes') || '';
+            if (!playersOnPitch || playersOnPitch.length === 0) {
+                alert('No players have been placed on the pitch. Please add players before saving.');
+                return;
+            }
             
-            positions.push({
-                player_id: playerId,
-                position_id: positionId,
-                x: x,
-                y: y,
-                is_starter: isStarter,
-                jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
-                notes: notes
+            console.log(`Saving positions for ${playersOnPitch.length} players on the pitch`);
+            
+            // First, ensure all players' positions are within pitch bounds
+            playersOnPitch.forEach(player => {
+                positionWithinPitch(player);
             });
-        });
-        
-        // Send the data to the server
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        
-        fetch(`/lineups/${lineupId}/save-positions/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                positions: positions
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Show success message
-                alert('Lineup positions saved successfully!');
-                // Reset the changed flag after successful save
-                positionsChanged = false;
-            } else {
-                // Show error message
-                alert('Error saving lineup: ' + data.message);
+            
+            // Now collect the data with better error handling
+            playersOnPitch.forEach(player => {
+                try {
+                    const playerId = player.getAttribute('data-player-id');
+                    if (!playerId) {
+                        console.warn('Player without ID found during manual save, skipping');
+                        return;
+                    }
+                    
+                    const positionId = player.getAttribute('data-position-id') || null;
+                    
+                    // Try to get coordinates from data attributes first
+                    let x = parseFloat(player.getAttribute('data-x'));
+                    let y = parseFloat(player.getAttribute('data-y'));
+                    
+                    // If data attributes aren't set for some reason, fall back to style
+                    if (isNaN(x) || isNaN(y)) {
+                        const styleLeft = player.style.left;
+                        const styleTop = player.style.top;
+                        
+                        x = styleLeft ? parseFloat(styleLeft.replace('%', '')) : 50;
+                        y = styleTop ? parseFloat(styleTop.replace('%', '')) : 50;
+                        
+                        // Update the data attributes to maintain consistency
+                        player.setAttribute('data-x', x);
+                        player.setAttribute('data-y', y);
+                        
+                        console.log(`Updated coordinates from style: ${x}, ${y} for player ${playerId}`);
+                    }
+                    
+                    // Ensure coordinates are within valid range
+                    x = Math.max(0, Math.min(100, x));
+                    y = Math.max(0, Math.min(100, y));
+                    
+                    const playerCircle = player.querySelector('.player-circle');
+                    if (!playerCircle) {
+                        console.warn(`Player circle not found for player ${playerId}, assuming starter`);
+                    }
+                    
+                    const isStarter = playerCircle ? playerCircle.classList.contains('starter') : true;
+                    
+                    const jerseyElement = player.querySelector('.player-jersey');
+                    const jerseyNumber = jerseyElement ? jerseyElement.textContent : '';
+                    const notes = player.getAttribute('data-notes') || '';
+                    
+                    positions.push({
+                        player_id: playerId,
+                        position_id: positionId,
+                        x: x,
+                        y: y,
+                        is_starter: isStarter,
+                        jersey_number: jerseyNumber !== '' ? parseInt(jerseyNumber) : null,
+                        notes: notes
+                    });
+                } catch (playerError) {
+                    console.error('Error processing player for manual save:', playerError);
+                }
+            });
+            
+            if (positions.length === 0) {
+                alert('No valid positions to save. Please add players to the pitch first.');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error saving lineup:', error);
-            alert('Error saving lineup. Please try again.');
-        });
+            
+            // Find the CSRF token
+            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfTokenElement) {
+                console.error('CSRF token not found, cannot save positions');
+                alert('Error: CSRF token not found. Please refresh the page and try again.');
+                return;
+            }
+            
+            const csrfToken = csrfTokenElement.value;
+            
+            // Show saving indicator to user
+            const saveButton = document.querySelector('#save-button');
+            const originalButtonText = saveButton ? saveButton.textContent : 'Save';
+            if (saveButton) {
+                saveButton.textContent = 'Saving...';
+                saveButton.disabled = true;
+            }
+            
+            // Send the data to the server
+            fetch(`/lineups/${lineupId}/save-positions/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    positions: positions
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned status ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show success message
+                    alert('Lineup positions saved successfully!');
+                    // Reset the changed flag after successful save
+                    positionsChanged = false;
+                    console.log('Manual save successful:', data);
+                } else {
+                    // Show error message
+                    alert('Error saving lineup: ' + (data.message || 'Unknown error'));
+                    console.error('Manual save failed:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving lineup:', error);
+                alert('Error saving lineup. Please try again.');
+            })
+            .finally(() => {
+                // Restore button state
+                if (saveButton) {
+                    saveButton.textContent = originalButtonText;
+                    saveButton.disabled = false;
+                }
+            });
+        } catch (e) {
+            console.error('Error in save function:', e);
+            alert('An unexpected error occurred while saving. Please try again.');
+        }
     };
 });
 </script>
