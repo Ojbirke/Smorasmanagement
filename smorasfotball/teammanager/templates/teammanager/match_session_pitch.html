@@ -759,6 +759,10 @@
         // Auto-update playing times
         {% if match_session.is_active %}
         let updateTimerInterval;
+        let clockInterval;
+        let currentGameTime = {{ current_game_time|default:0 }};
+        let matchStartTime = {% if match_session.start_time %}new Date("{{ match_session.start_time|date:'c' }}"){% else %}null{% endif %};
+        let currentPeriod = {{ current_period|default:1 }};
         
         function startAutoRefresh() {
             // First immediate update
@@ -766,6 +770,49 @@
             
             // Then set interval for periodic updates (every 30 seconds)
             updateTimerInterval = setInterval(updatePlayingTimes, 30000);
+            
+            // Start the clock that updates every second
+            startClock();
+        }
+        
+        function startClock() {
+            // Clear existing interval if there is one
+            if (clockInterval) {
+                clearInterval(clockInterval);
+            }
+            
+            // Set up the clock to update every second
+            clockInterval = setInterval(updateClock, 1000);
+        }
+        
+        function updateClock() {
+            if (!matchStartTime) return;
+            
+            // Calculate current match time in seconds
+            const now = new Date();
+            const elapsedSeconds = Math.floor((now - matchStartTime) / 1000);
+            const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+            const elapsedSecondsInMinute = elapsedSeconds % 60;
+            
+            // Update the match clock
+            const matchInfoEl = document.querySelector('.fw-bold');
+            if (matchInfoEl) {
+                matchInfoEl.textContent = `${elapsedMinutes}:${elapsedSecondsInMinute.toString().padStart(2, '0')}`;
+            }
+            
+            // Update period if needed (only when a full minute passes)
+            if (elapsedMinutes !== currentGameTime) {
+                currentGameTime = elapsedMinutes;
+                const newPeriod = Math.min(Math.floor(elapsedMinutes / {{ period_length }}) + 1, {{ total_periods }});
+                
+                if (newPeriod !== currentPeriod) {
+                    currentPeriod = newPeriod;
+                    const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
+                    if (periodInfoEl) {
+                        periodInfoEl.innerHTML = `Period ${currentPeriod}/{{ total_periods }}`;
+                    }
+                }
+            }
         }
         
         function updatePlayingTimes() {
@@ -779,16 +826,14 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update match timer info
-                    const matchInfoEl = document.querySelector('.fw-bold');
-                    if (matchInfoEl) {
-                        matchInfoEl.textContent = `${data.match_info.minute_in_match}:00`;
-                    }
+                    // Update match data if needed (don't update the clock - that's handled by the second timer)
+                    matchStartTime = data.match_info.start_time ? new Date(data.match_info.start_time) : matchStartTime;
                     
                     // Update period info
                     const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
                     if (periodInfoEl) {
                         periodInfoEl.innerHTML = `Period ${data.match_info.period}/{{ total_periods }}`;
+                        currentPeriod = data.match_info.period;
                     }
                     
                     // Update player times on cards and bubbles

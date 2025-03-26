@@ -556,11 +556,13 @@ def update_playing_times(request, session_pk):
             current_period = min((int(match_elapsed) // match_session.period_length) + 1, match_session.periods)
             minute_in_match = int(match_elapsed)
             minute_in_period = int(match_elapsed) % match_session.period_length
+            start_time_iso = match_session.start_time.isoformat()
         else:
             match_elapsed = 0
             current_period = 1
             minute_in_match = 0
             minute_in_period = 0
+            start_time_iso = None
         
         # Calculate current real-time playing minutes for each player
         playing_time_data = {}
@@ -588,7 +590,8 @@ def update_playing_times(request, session_pk):
                 'elapsed': int(match_elapsed),
                 'period': current_period,
                 'minute_in_match': minute_in_match,
-                'minute_in_period': minute_in_period
+                'minute_in_period': minute_in_period,
+                'start_time': start_time_iso
             }
         })
     except Exception as e:
