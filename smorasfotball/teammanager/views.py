@@ -22,15 +22,15 @@ class SignUpView(CreateView):
     form_class = SignUpForm
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
-    
+
     def form_invalid(self, form):
         """If the form is invalid, render the invalid form with detailed error messages."""
         for field in form.errors:
             for error in form.errors[field]:
                 messages.error(self.request, f"Error in field '{field}': {error}")
-        
+
         return super().form_invalid(form)
-    
+
     def form_valid(self, form):
         try:
             # Save the user first - we need to explicitly handle the first_name requirement
@@ -39,27 +39,27 @@ class SignUpView(CreateView):
             if not user.first_name:
                 user.first_name = user.username
             user.save()
-            
+
             # Get the role and player from the form
             role = form.cleaned_data.get('role')
             player = form.cleaned_data.get('player')
-            
+
             # Update the user's profile
             profile = user.profile
             profile.role = role
             profile.player = player
             profile.save()
-            
+
             # Add a success message
             messages.success(
                 self.request, 
                 'Your account has been created and is pending approval. You will be notified when your account is approved.'
             )
-            
+
             # Complete the form actions
             form.save_m2m()  # Save many-to-many relationships
             self.object = user  # Set the object attribute for CreateView
-            
+
             return redirect(self.get_success_url())
         except Exception as e:
             # Log any error that occurs
@@ -81,10 +81,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Basic data for all roles
         context['total_teams'] = Team.objects.count()
-        
+
         # Add user role information for the template
         context['is_admin'] = self.request.user.profile.is_admin()
         context['is_coach'] = self.request.user.profile.is_coach()
@@ -93,21 +93,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['total_players'] = Player.objects.count()
         context['total_matches'] = Match.objects.count()
         context['recent_matches'] = Match.objects.order_by('-date')[:5]
-        
+
         # User role specific data
         context['user_role'] = self.request.user.profile.role
         context['is_pending'] = self.request.user.profile.is_pending()
-        
+
         # For admin users, add pending approval counts
         if self.request.user.profile.is_admin():
             context['pending_approvals'] = UserProfile.objects.filter(status='pending').count()
-        
+
         # For player users, add their own match history
         if self.request.user.profile.is_player() and self.request.user.profile.player:
             context['player_matches'] = MatchAppearance.objects.filter(
                 player=self.request.user.profile.player
             ).select_related('match', 'team').order_by('-match__date')[:5]
-        
+
         return context
 
 
@@ -124,7 +124,7 @@ class PlayerMatrixView(LoginRequiredMixin, TemplateView):
 class TeamListView(LoginRequiredMixin, ListView):
     model = Team
     context_object_name = 'teams'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add user role information for the template
@@ -145,7 +145,7 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
         context['players'] = Player.objects.filter(match_appearances__team=self.object).distinct()
         # Get matches where this team is the Smørås team
         context['matches'] = self.object.matches.order_by('-date')
-        
+
         # Add user role information for the template
         context['is_admin'] = self.request.user.profile.is_admin()
         context['is_coach'] = self.request.user.profile.is_coach()
@@ -160,18 +160,18 @@ class TeamCreateView(LoginRequiredMixin, CreateView):
     model = Team
     form_class = TeamForm
     success_url = reverse_lazy('team-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can create teams.")
             return redirect('team-list')
-        
+
         # Only admin and coach can create teams
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to create teams.")
             return redirect('team-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -179,49 +179,49 @@ class TeamUpdateView(LoginRequiredMixin, UpdateView):
     model = Team
     form_class = TeamForm
     success_url = reverse_lazy('team-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can update teams.")
             return redirect('team-list')
-        
+
         # Only admin and coach can update teams
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to update teams.")
             return redirect('team-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
 class TeamDeleteView(LoginRequiredMixin, DeleteView):
     model = Team
     success_url = reverse_lazy('team-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has admin role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can delete teams.")
             return redirect('team-list')
-        
+
         # Only admin can delete teams (more restrictive than create/update)
         if not request.user.profile.is_admin():
             messages.warning(request, "You don't have permission to delete teams.")
             return redirect('team-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
-    
+
 
 # Player Views
 class PlayerListView(LoginRequiredMixin, ListView):
     model = Player
     context_object_name = 'players'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add Excel form for admin users
         context['excel_form'] = ExcelUploadForm()
-        
+
         # Add user role information for the template
         context['is_admin'] = self.request.user.profile.is_admin()
         context['is_coach'] = self.request.user.profile.is_coach()
@@ -236,55 +236,55 @@ class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
     template_name = 'teammanager/import_players_excel.html'
     form_class = ExcelUploadForm
     success_url = reverse_lazy('player-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has admin role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can import players.")
             return redirect('player-list')
-        
+
         # Only admin can import players from Excel
         if not request.user.profile.is_admin():
             messages.warning(request, "You don't have permission to import players from Excel.")
             return redirect('player-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         excel_file = self.request.FILES['excel_file']
-        
+
         # Check if file is an Excel file
         if not excel_file.name.endswith('.xlsx'):
             messages.error(self.request, 'Please upload a valid Excel file (.xlsx)')
             return super().form_invalid(form)
-        
+
         try:
             # Read Excel file
             df = pd.read_excel(excel_file)
-            
+
             # Expected columns
             required_columns = ['first_name']
             optional_columns = ['last_name', 'position', 'date_of_birth', 'email', 'phone', 'active']
-            
+
             # Validate required columns
             for col in required_columns:
                 if col not in df.columns:
                     messages.error(self.request, f"Required column '{col}' not found in the Excel file.")
                     return super().form_invalid(form)
-            
+
             # Process data and create players
             players_created = 0
             players_updated = 0
             errors = 0
-            
+
             for _, row in df.iterrows():
                 if pd.isna(row['first_name']):
                     continue  # Skip rows without a first name
-                
+
                 player_data = {
                     'first_name': row['first_name']
                 }
-                
+
                 # Add optional fields if they exist in the file
                 for field in optional_columns:
                     if field in df.columns and not pd.isna(row[field]):
@@ -309,7 +309,7 @@ class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
                                 player_data[field] = bool(row[field])
                         else:
                             player_data[field] = row[field]
-                
+
                 try:
                     # Check if player already exists (by first and last name)
                     if 'last_name' in player_data:
@@ -319,7 +319,7 @@ class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
                         ).first()
                     else:
                         existing_player = None
-                    
+
                     if existing_player:
                         # Update existing player
                         for key, value in player_data.items():
@@ -333,7 +333,7 @@ class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
                 except Exception as e:
                     errors += 1
                     continue
-            
+
             # Display results
             if players_created > 0:
                 messages.success(self.request, f"Successfully created {players_created} new players.")
@@ -341,15 +341,15 @@ class ImportPlayersFromExcelView(LoginRequiredMixin, FormView):
                 messages.success(self.request, f"Successfully updated {players_updated} existing players.")
             if errors > 0:
                 messages.warning(self.request, f"Encountered {errors} errors while processing the data.")
-            
+
             if players_created == 0 and players_updated == 0:
                 messages.warning(self.request, "No players were imported. Please check your Excel file format.")
                 return super().form_invalid(form)
-                
+
         except Exception as e:
             messages.error(self.request, f"Error processing Excel file: {str(e)}")
             return super().form_invalid(form)
-        
+
         return super().form_valid(form)
 
 
@@ -359,7 +359,7 @@ class PlayerDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['appearances'] = self.object.match_appearances.select_related('match').order_by('-match__date')
-        
+
         # Add user role information for the template
         context['is_admin'] = self.request.user.profile.is_admin()
         context['is_coach'] = self.request.user.profile.is_coach()
@@ -374,18 +374,18 @@ class PlayerCreateView(LoginRequiredMixin, CreateView):
     model = Player
     form_class = PlayerForm
     success_url = reverse_lazy('player-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can create players.")
             return redirect('player-list')
-        
+
         # Only admin and coach can create players
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to create players.")
             return redirect('player-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -393,36 +393,36 @@ class PlayerUpdateView(LoginRequiredMixin, UpdateView):
     model = Player
     form_class = PlayerForm
     success_url = reverse_lazy('player-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can update players.")
             return redirect('player-list')
-        
+
         # Only admin and coach can update players
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to update players.")
             return redirect('player-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
 class PlayerDeleteView(LoginRequiredMixin, DeleteView):
     model = Player
     success_url = reverse_lazy('player-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has admin role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can delete players.")
             return redirect('player-list')
-        
+
         # Only admin can delete players
         if not request.user.profile.is_admin():
             messages.warning(request, "You don't have permission to delete players.")
             return redirect('player-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -431,7 +431,7 @@ class MatchListView(LoginRequiredMixin, ListView):
     model = Match
     context_object_name = 'matches'
     ordering = ['-date']
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add user role information for the template
@@ -453,7 +453,7 @@ class MatchDetailView(LoginRequiredMixin, DetailView):
         # Get appearances for any other teams (external players)
         context['away_appearances'] = self.object.appearances.exclude(team=self.object.smoras_team)
         context['is_home_match'] = self.object.location_type == 'Home'
-        
+
         # Add user role information for the template
         context['is_admin'] = self.request.user.profile.is_admin()
         context['is_coach'] = self.request.user.profile.is_coach()
@@ -467,20 +467,20 @@ class MatchCreateView(LoginRequiredMixin, CreateView):
     model = Match
     form_class = MatchForm
     success_url = reverse_lazy('match-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can create matches.")
             return redirect('match-list')
-        
+
         # Only admin and coach can create matches
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to create matches.")
             return redirect('match-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
-    
+
     def form_valid(self, form):
         """Process the form data when valid."""
         # No need to process template data here since the JavaScript 
@@ -497,36 +497,36 @@ class MatchUpdateView(LoginRequiredMixin, UpdateView):
     model = Match
     form_class = MatchForm
     success_url = reverse_lazy('match-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can update matches.")
             return redirect('match-list')
-        
+
         # Only admin and coach can update matches
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to update matches.")
             return redirect('match-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
 class MatchDeleteView(LoginRequiredMixin, DeleteView):
     model = Match
     success_url = reverse_lazy('match-list')
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has admin role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can delete matches.")
             return redirect('match-list')
-        
+
         # Only admin can delete matches
         if not request.user.profile.is_admin():
             messages.warning(request, "You don't have permission to delete matches.")
             return redirect('match-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -534,20 +534,20 @@ class MatchScoreUpdateView(LoginRequiredMixin, UpdateView):
     model = Match
     form_class = MatchScoreForm
     template_name = 'teammanager/match_score_form.html'
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has correct role
         if not request.user.profile.is_approved():
             messages.warning(request, "Your account needs to be approved before you can update match scores.")
             return redirect('match-list')
-        
+
         # Both coach and admin can update match scores
         if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
             messages.warning(request, "You don't have permission to update match scores.")
             return redirect('match-list')
-            
+
         return super().dispatch(request, *args, **kwargs)
-    
+
     def get_success_url(self):
         return reverse_lazy('match-detail', kwargs={'pk': self.object.pk})
 
@@ -558,25 +558,25 @@ def add_players_to_match(request, match_id, team_id):
     if not request.user.profile.is_approved():
         messages.warning(request, "Your account needs to be approved before you can add players to matches.")
         return redirect('match-list')
-    
+
     # Only admin and coach can add players to matches
     if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
         messages.warning(request, "You don't have permission to add players to matches.")
         return redirect('match-list')
-    
+
     match = get_object_or_404(Match, pk=match_id)
     team = get_object_or_404(Team, pk=team_id)
-    
+
     # Verify that the team is the Smørås team
     if match.smoras_team.id != team.id:
         return redirect('match-detail', pk=match_id)
-    
+
     if request.method == 'POST':
         form = PlayerSelectionForm(match, team, request.POST)
         if form.is_valid():
             # Remove existing appearances for this team in this match
             MatchAppearance.objects.filter(match=match, team=team).delete()
-            
+
             # Create new appearances
             selected_players = form.cleaned_data['players']
             for player in selected_players:
@@ -593,14 +593,14 @@ def add_players_to_match(request, match_id, team_id):
             match_appearances__team=team
         )
         form = PlayerSelectionForm(match, team, initial={'players': initial_players})
-    
+
     context = {
         'form': form,
         'match': match,
         'team': team,
         'opponent_name': match.opponent_name
     }
-    
+
     return render(request, 'teammanager/add_players_to_match.html', context)
 
 
@@ -610,15 +610,15 @@ def edit_appearance_stats(request, appearance_id):
     if not request.user.profile.is_approved():
         messages.warning(request, "Your account needs to be approved before you can update player statistics.")
         return redirect('match-list')
-    
+
     # Only admin and coach can edit player statistics
     if not (request.user.profile.is_admin() or request.user.profile.is_coach()):
         messages.warning(request, "You don't have permission to update player statistics.")
         return redirect('match-list')
-        
+
     appearance = get_object_or_404(MatchAppearance, pk=appearance_id)
     match = appearance.match
-    
+
     if request.method == 'POST':
         form = MatchAppearanceForm(request.POST, instance=appearance)
         if form.is_valid():
@@ -627,14 +627,14 @@ def edit_appearance_stats(request, appearance_id):
             return redirect('match-detail', pk=match.id)
     else:
         form = MatchAppearanceForm(instance=appearance)
-    
+
     context = {
         'form': form,
         'appearance': appearance,
         'match': match,
         'player': appearance.player
     }
-    
+
     return render(request, 'teammanager/edit_appearance_stats.html', context)
 
 
@@ -647,22 +647,22 @@ def player_stats(request):
         total_goals=Sum('match_appearances__goals'),
         total_assists=Sum('match_appearances__assists')
     ).values('id', 'first_name', 'last_name', 'matches_played', 'total_goals', 'total_assists')
-    
+
     # Create a list to store the enriched player data with team information
     enriched_players = []
-    
+
     for player in players:
         # For each player, get the teams they've played for and the number of matches with each team
         player_teams = MatchAppearance.objects.filter(player_id=player['id']) \
             .values('team__name') \
             .annotate(team_matches=Count('match')) \
             .order_by('-team_matches')
-        
+
         # Add team data to the player record
         player_with_teams = player.copy()
         player_with_teams['teams'] = list(player_teams)
         enriched_players.append(player_with_teams)
-    
+
     return JsonResponse(enriched_players, safe=False)
 
 
@@ -670,23 +670,23 @@ def player_stats(request):
 def match_stats(request):
     teams = Team.objects.all()
     stats = []
-    
+
     for team in teams:
         # Get all matches where this team is the Smørås team
         team_matches = team.matches.filter(smoras_score__isnull=False, opponent_score__isnull=False)
-        
+
         # Calculate wins, draws, and losses based on scores
         wins = team_matches.filter(smoras_score__gt=F('opponent_score')).count()
         draws = team_matches.filter(smoras_score=F('opponent_score')).count()
         losses = team_matches.filter(smoras_score__lt=F('opponent_score')).count()
-        
+
         stats.append({
             'team': team.name,
             'wins': wins,
             'draws': draws,
             'losses': losses
         })
-    
+
     return JsonResponse(stats, safe=False)
 
 
@@ -700,7 +700,7 @@ def player_matrix(request):
         # Get all active players
         players = Player.objects.filter(active=True)
         players_data = list(players.values('id', 'first_name', 'last_name'))
-        
+
         # If no players, return empty response
         if not players_data:
             return JsonResponse({
@@ -709,54 +709,54 @@ def player_matrix(request):
                 'max_value': 0,
                 'error': 'No active players found'
             })
-        
+
         # Initialize matrix with zeros
         player_count = len(players)
         matrix = [[0 for _ in range(player_count)] for _ in range(player_count)]
-        
+
         # Map player IDs to matrix indices
         player_indices = {player['id']: idx for idx, player in enumerate(players_data)}
-        
+
         # Populate matrix: For each match, find all pairs of players who played together
         matches = Match.objects.all()
         max_value = 0
-        
+
         for match in matches:
             # Get players who played in this match
             match_player_ids = list(match.players.values_list('id', flat=True))
-            
+
             # For each pair of players in this match, increment their count
             for i, player_id1 in enumerate(match_player_ids):
                 if player_id1 in player_indices:
                     idx1 = player_indices[player_id1]
-                    
+
                     # Diagonal counts (player with themselves) - total matches for this player
                     matrix[idx1][idx1] += 1
                     if matrix[idx1][idx1] > max_value:
                         max_value = matrix[idx1][idx1]
-                    
+
                     # Count pairs of players who played together
                     for player_id2 in match_player_ids[i+1:]:
                         if player_id2 in player_indices:
                             idx2 = player_indices[player_id2]
-                            
+
                             # Increment both positions (the matrix is symmetric)
                             matrix[idx1][idx2] += 1
                             matrix[idx2][idx1] += 1
-                            
+
                             # Update max value for color scaling
                             if matrix[idx1][idx2] > max_value:
                                 max_value = matrix[idx1][idx2]
-        
+
         # Prepare response
         response_data = {
             'players': players_data,
             'matrix': matrix,
             'max_value': max_value
         }
-        
+
         return JsonResponse(response_data)
-    
+
     except Exception as e:
         # Return error information for debugging
         import traceback
@@ -789,21 +789,21 @@ def custom_logout(request):
 class UserListView(LoginRequiredMixin, ListView):
     template_name = 'teammanager/user_list.html'
     context_object_name = 'users'
-    
+
     def get_queryset(self):
         # Only show users if the current user is an admin
         if self.request.user.profile.is_admin():
             return User.objects.all().select_related('profile').order_by('-profile__created_at')
         return User.objects.none()
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check if user's profile is approved and has admin role
         if not request.user.profile.is_admin():
             messages.warning(request, "You don't have permission to manage users.")
             return redirect('dashboard')
-            
+
         return super().dispatch(request, *args, **kwargs)
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['pending_users'] = User.objects.filter(profile__status='pending').select_related('profile')
@@ -820,7 +820,7 @@ def approve_user(request, pk):
     if not request.user.profile.is_admin():
         messages.error(request, "You don't have permission to approve users.")
         return redirect('dashboard')
-    
+
     try:
         user_to_approve = User.objects.get(pk=pk)
         user_to_approve.profile.status = 'approved'
@@ -828,7 +828,7 @@ def approve_user(request, pk):
         messages.success(request, f"User '{user_to_approve.username}' has been approved.")
     except User.DoesNotExist:
         messages.error(request, "User not found.")
-    
+
     return redirect('user-list')
 
 
@@ -838,7 +838,7 @@ def reject_user(request, pk):
     if not request.user.profile.is_admin():
         messages.error(request, "You don't have permission to reject users.")
         return redirect('dashboard')
-    
+
     try:
         user_to_reject = User.objects.get(pk=pk)
         user_to_reject.profile.status = 'rejected'
@@ -846,7 +846,7 @@ def reject_user(request, pk):
         messages.success(request, f"User '{user_to_reject.username}' has been rejected.")
     except User.DoesNotExist:
         messages.error(request, "User not found.")
-    
+
     return redirect('user-list')
 
 
@@ -856,21 +856,21 @@ def delete_user(request, pk):
     if not request.user.profile.is_admin():
         messages.error(request, "You don't have permission to delete users.")
         return redirect('dashboard')
-    
+
     # Prevent self-deletion
     if request.user.pk == pk:
         messages.error(request, "You cannot delete your own account.")
         return redirect('user-list')
-    
+
     try:
         user_to_delete = User.objects.get(pk=pk)
         username = user_to_delete.username
-        
+
         # Delete user profile and user
         user_to_delete.delete()
-        
+
         messages.success(request, f"User '{username}' has been permanently deleted.")
     except User.DoesNotExist:
         messages.error(request, "User not found.")
-    
+
     return redirect('user-list')
