@@ -24,10 +24,14 @@ mkdir -p deployment
 # Special pre-deployment database preparation:
 cd smorasfotball
 
-# Create a special pre-deployment backup that will be used for the deployment environment
-# using our custom management command which handles all the details
-python manage.py deployment_backup --name "predeploy"
-echo "Created deployment database backup for use in the deployed application"
+# Create special pre-deployment backups that will be used for the deployment environment
+# First create a JSON backup (for compatibility)
+python manage.py deployment_backup --name "predeploy" --format json
+echo "Created JSON deployment database backup for use in the deployed application"
+
+# Then create a SQLite backup (preferred for direct file replacement)
+python manage.py deployment_backup --name "predeploy" --format sqlite
+echo "Created SQLite deployment database backup for use in the deployed application"
 
 # Run migrations and collect static files
 python manage.py migrate

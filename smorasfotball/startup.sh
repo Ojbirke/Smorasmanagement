@@ -13,7 +13,7 @@ IS_DEPLOYMENT=false
 
 # Check if we are running in a deployment environment
 # Deployment environments will have a special marker file or environment variable
-if [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
+if [ -f "$DEPLOYMENT_DIR/deployment_db.sqlite" ] || [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
     IS_DEPLOYMENT=true
     echo "DEPLOYMENT ENVIRONMENT DETECTED!"
 fi
@@ -65,14 +65,24 @@ if [ -d "$PERSISTENT_BACKUP_DIR" ]; then
 fi
 
 # First check if we're in a deployment environment and a deployment-specific backup exists
-DEPLOYMENT_BACKUP="../deployment/deployment_db.json"
-if [ -f "$DEPLOYMENT_BACKUP" ]; then
-    echo "Found deployment-specific backup: $DEPLOYMENT_BACKUP"
+DEPLOYMENT_SQLITE="../deployment/deployment_db.sqlite"
+DEPLOYMENT_JSON="../deployment/deployment_db.json"
+
+if [ -f "$DEPLOYMENT_SQLITE" ] || [ -f "$DEPLOYMENT_JSON" ]; then
+    if [ -f "$DEPLOYMENT_SQLITE" ]; then
+        echo "Found SQLite deployment-specific backup: $DEPLOYMENT_SQLITE"
+    fi
+    
+    if [ -f "$DEPLOYMENT_JSON" ]; then
+        echo "Found JSON deployment-specific backup: $DEPLOYMENT_JSON"
+    fi
+    
     echo "This indicates we're running in a deployment environment"
     
-    # Check if database is empty
+    # Check if database is empty or if this is a fresh deployment
     TEAM_COUNT=$(python manage.py shell -c "from teammanager.models import Team; print(Team.objects.count())" 2>/dev/null)
     
+    # Always restore on first run or empty database
     if [ "$?" -ne "0" ] || [ "$TEAM_COUNT" -eq "0" ]; then
         echo "Database appears to be empty in deployment environment. Loading deployment backup..."
         
@@ -82,11 +92,15 @@ if [ -f "$DEPLOYMENT_BACKUP" ]; then
         
         echo "Restoring from deployment backup..."
         # Use our custom management command for deployment backup restore
+        # This will automatically choose between SQLite and JSON (preferring SQLite)
         python manage.py deployment_backup --restore
         echo "Deployment database restored from backup"
         
         # Exit early with successful status
         exit 0
+    else
+        echo "Database already contains data ($TEAM_COUNT teams). Skipping automatic deployment backup restoration."
+        echo "To force restoration, run: python manage.py deployment_backup --restore"
     fi
 fi
 
