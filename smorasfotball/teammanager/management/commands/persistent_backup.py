@@ -82,9 +82,13 @@ class Command(BaseCommand):
             output = io.StringIO()
             original_stdout = sys.stdout
             sys.stdout = output
+            # Make sure to include auth.user to backup user accounts, but exclude unnecessary data
             call_command('dumpdata', '--exclude', 'auth.permission', '--exclude', 'contenttypes', 
-                        '--exclude', 'admin.logentry', '--indent', '2', stdout=output)
+                        '--exclude', 'admin.logentry', '--exclude', 'sessions', '--indent', '2', stdout=output)
             sys.stdout = original_stdout
+            
+            # Log what models are being backed up for debugging
+            self.stdout.write("Backing up all models including user accounts (auth.user)")
             
             # Save to standard backup location
             with open(json_filepath, 'w') as f:

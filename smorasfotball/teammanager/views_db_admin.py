@@ -303,12 +303,38 @@ def download_backup(request, filename):
         messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
         return redirect('database-overview')
     
+    # Check backup contents for verification
+    backup_info = {}
+    if filename.endswith('.json'):
+        try:
+            with open(filepath, 'r') as f:
+                backup_data = json.load(f)
+                
+                # Count users and other important objects
+                user_count = len([item for item in backup_data if item['model'] == 'auth.user'])
+                player_count = len([item for item in backup_data if item['model'] == 'teammanager.player'])
+                team_count = len([item for item in backup_data if item['model'] == 'teammanager.team'])
+                match_count = len([item for item in backup_data if item['model'] == 'teammanager.match'])
+                profile_count = len([item for item in backup_data if item['model'] == 'teammanager.userprofile'])
+                
+                backup_info = {
+                    'user_count': user_count,
+                    'player_count': player_count,
+                    'team_count': team_count,
+                    'match_count': match_count,
+                    'profile_count': profile_count,
+                    'has_users': user_count > 0
+                }
+        except Exception as e:
+            backup_info = {'error': str(e)}
+    
     context = {
         'filename': filename,
         'filepath': filepath,
         'is_admin': True,
         'is_persistent': is_persistent,
-        'backup_location': 'Persistent' if is_persistent else 'Regular'
+        'backup_location': 'Persistent' if is_persistent else 'Regular',
+        'backup_info': backup_info
     }
     
     return render(request, 'teammanager/download_backup.html', context)

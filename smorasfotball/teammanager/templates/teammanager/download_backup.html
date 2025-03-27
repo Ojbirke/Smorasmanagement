@@ -40,6 +40,59 @@
                         </ul>
                     </ol>
                     
+                    {% if backup_info %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title mb-0">Backup Content Information</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if backup_info.error %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Error analyzing backup: {{ backup_info.error }}
+                                </div>
+                            {% else %}
+                                <table class="table table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Content Type</th>
+                                            <th>Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>User Accounts</td>
+                                            <td>
+                                                {{ backup_info.user_count }} 
+                                                {% if backup_info.has_users %}
+                                                    <span class="badge badge-success">✓</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">✗</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>User Profiles</td>
+                                            <td>{{ backup_info.profile_count }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Teams</td>
+                                            <td>{{ backup_info.team_count }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Players</td>
+                                            <td>{{ backup_info.player_count }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Matches</td>
+                                            <td>{{ backup_info.match_count }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> <strong>Note:</strong> In a production environment, we would implement direct download functionality, but for simplicity in this development version, we're providing the file location.
                     </div>
