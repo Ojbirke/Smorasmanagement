@@ -422,6 +422,9 @@
     
     <div>
         {% if match_session.is_active %}
+            <button id="recommendSubBtn" class="btn btn-success me-2">
+                <i class="bi bi-lightbulb"></i> Recommend Subs
+            </button>
             <a href="{% url 'substitution-create' match_session.id %}" class="btn btn-primary">
                 <i class="bi bi-arrow-left-right"></i> Manual Sub
             </a>
@@ -501,7 +504,7 @@
         const subConfirmModal = document.getElementById('subConfirmModal');
         const subConfirmBody = document.getElementById('subConfirmBody');
         const confirmSubBtn = document.getElementById('confirmSubBtn');
-        const autoSubBtn = document.getElementById('autoSubBtn');
+        const recommendSubBtn = document.getElementById('recommendSubBtn');
         const autoSubModal = document.getElementById('autoSubModal');
         const autoSubSuggestions = document.getElementById('autoSubSuggestions');
         const subResultModal = document.getElementById('subResultModal');
@@ -620,6 +623,123 @@
         // Auto-substitution functionality has been disabled as requested by the user
         // The auto-sub button has been removed from the UI and the automatic substitution
         // logic has been commented out. All substitutions are now manual only.
+        
+        // Handle recommendation button click
+        if (recommendSubBtn) {
+            recommendSubBtn.addEventListener('click', function() {
+                // Clear previous recommendations
+                autoSubSuggestions.innerHTML = '';
+                
+                // Show loading state
+                autoSubSuggestions.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading recommendations...</p></div>';
+                
+                // Show modal while loading
+                bsAutoSubModal.show();
+                
+                // Get recommendations
+                fetch(`/team/match-sessions/{{ match_session.id }}/recommendations/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear loading indicator
+                        autoSubSuggestions.innerHTML = '';
+                        
+                        if (data.recommendations.length === 0) {
+                            // No recommendations
+                            autoSubSuggestions.innerHTML = '<div class="alert alert-info">No recommendations available at this time. This could be because all players have similar playing times or there are not enough players on the bench.</div>';
+                        } else {
+                            // Build recommendations UI
+                            data.recommendations.forEach(rec => {
+                                const recItem = document.createElement('div');
+                                recItem.className = 'list-group-item';
+                                
+                                recItem.innerHTML = `
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="text-center me-3">
+                                                <div class="badge bg-secondary p-2 mb-2">${rec.player_out_name}</div>
+                                                <div class="small text-muted">${rec.player_out_minutes} mins played</div>
+                                            </div>
+                                            <div class="fs-4 mx-3"><i class="bi bi-arrow-left-right"></i></div>
+                                            <div class="text-center ms-3">
+                                                <div class="badge bg-success p-2 mb-2">${rec.player_in_name}</div>
+                                                <div class="small text-muted">${rec.player_in_minutes} mins played</div>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-primary apply-rec-btn" 
+                                            data-player-in="${rec.player_in_id}" 
+                                            data-player-out="${rec.player_out_id}"
+                                            data-session="{{ match_session.id }}">
+                                            Apply
+                                        </button>
+                                    </div>
+                                    <div class="small text-muted">${rec.reason}</div>
+                                `;
+                                
+                                autoSubSuggestions.appendChild(recItem);
+                            });
+                            
+                            // Add event listeners to the Apply buttons
+                            document.querySelectorAll('.apply-rec-btn').forEach(btn => {
+                                btn.addEventListener('click', function() {
+                                    const playerIn = this.dataset.playerIn;
+                                    const playerOut = this.dataset.playerOut;
+                                    const sessionId = this.dataset.session;
+                                    
+                                    // Close recommendation modal
+                                    bsAutoSubModal.hide();
+                                    
+                                    // Get player names from the surrounding elements
+                                    const playerInName = this.closest('.list-group-item').querySelector('.badge.bg-success').textContent.trim();
+                                    const playerOutName = this.closest('.list-group-item').querySelector('.badge.bg-secondary').textContent.trim();
+                                    
+                                    // Set up confirmation modal
+                                    subConfirmBody.innerHTML = `
+                                        <p>Are you sure you want to make this substitution?</p>
+                                        <div class="d-flex align-items-center justify-content-center my-3">
+                                            <div class="text-center me-3">
+                                                <div class="badge bg-secondary p-2 mb-2">${playerOutName}</div>
+                                                <div><i class="bi bi-arrow-right fs-3"></i></div>
+                                                <div class="small">OUT</div>
+                                            </div>
+                                            <div class="fs-3 mx-3"><i class="bi bi-arrow-left-right"></i></div>
+                                            <div class="text-center ms-3">
+                                                <div class="badge bg-success p-2 mb-2">${playerInName}</div>
+                                                <div><i class="bi bi-arrow-left fs-3"></i></div>
+                                                <div class="small">IN</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                    
+                                    // Store data for confirmation
+                                    currentSubData = {
+                                        playerIn,
+                                        playerOut,
+                                        sessionId
+                                    };
+                                    
+                                    // Show confirmation modal
+                                    bsSubConfirmModal.show();
+                                });
+                            });
+                        }
+                    } else {
+                        // Error fetching recommendations
+                        autoSubSuggestions.innerHTML = `<div class="alert alert-danger">Error getting recommendations: ${data.error || 'Unknown error'}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting recommendations:', error);
+                    autoSubSuggestions.innerHTML = '<div class="alert alert-danger">Error communicating with the server. Please try again.</div>';
+                });
+            });
+        }
         
         // Function to get CSRF token from cookies
         function getCookie(name) {

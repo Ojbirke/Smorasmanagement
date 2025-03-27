@@ -609,6 +609,141 @@ def match_session_pitch_view(request, pk):
 
 
 @login_required
+def get_sub_recommendations(request, session_pk):
+    """
+    AJAX endpoint to get substitution recommendations
+    Analyzes playing times and recommends optimal substitutions
+    """
+    try:
+        match_session = get_object_or_404(MatchSession, pk=session_pk)
+        
+        if not is_approved_user(request.user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        if not match_session.is_active:
+            return JsonResponse({'error': 'Match session is not active'}, status=400)
+        
+        # Calculate current playing times
+        now = timezone.now()
+        playing_times = PlayingTime.objects.filter(match_session=match_session)
+        
+        # Players currently on pitch
+        players_on_pitch = []
+        for pt in playing_times.filter(is_on_pitch=True):
+            # Calculate real-time minutes
+            real_time_minutes = pt.minutes_played
+            if pt.last_substitution_time:
+                elapsed = now - pt.last_substitution_time
+                real_time_minutes += math.floor(elapsed.total_seconds() / 60)
+            
+            players_on_pitch.append({
+                'id': pt.player.id,
+                'name': str(pt.player),
+                'minutes': real_time_minutes
+            })
+        
+        # Players on bench
+        players_on_bench = []
+        match_elapsed_minutes = 0
+        if match_session.start_time:
+            match_elapsed = (now - match_session.start_time).total_seconds() / 60
+            match_elapsed_minutes = math.floor(match_elapsed)
+        
+        for pt in playing_times.filter(is_on_pitch=False):
+            real_time_minutes = pt.minutes_played
+            bench_minutes = max(0, match_elapsed_minutes - real_time_minutes)
+            
+            players_on_bench.append({
+                'id': pt.player.id,
+                'name': str(pt.player),
+                'minutes': real_time_minutes,
+                'bench_minutes': bench_minutes
+            })
+        
+        # Calculate playing time disparities and bench time for better recommendations
+        if match_elapsed_minutes > 0:
+            # Add more context to players on bench
+            for player in players_on_bench:
+                player['time_on_bench_percent'] = (player['bench_minutes'] / match_elapsed_minutes) * 100
+                player['play_bench_ratio'] = player['minutes'] / max(1, player['bench_minutes'])
+                
+            # Add context for players on pitch
+            for player in players_on_pitch:
+                player['time_on_pitch_percent'] = (player['minutes'] / match_elapsed_minutes) * 100
+        
+        # Sort players - we want players with most minutes on pitch to come off
+        # and players with most bench time and least playing time to go on
+        players_on_pitch.sort(key=lambda p: p['minutes'], reverse=True)
+        
+        # For bench players, prioritize those who have both played less AND been on bench longer
+        if match_elapsed_minutes > 0:
+            players_on_bench.sort(key=lambda p: (p['minutes'], -p['bench_minutes']))
+        else:
+            players_on_bench.sort(key=lambda p: p['minutes'])
+        
+        # Generate recommendations (max of 3)
+        recommendations = []
+        
+        # Only make recommendations if we have both players on pitch and bench
+        if players_on_pitch and players_on_bench:
+            # Get top 3 players with most minutes on pitch
+            candidates_out = players_on_pitch[:3] if len(players_on_pitch) >= 3 else players_on_pitch
+            
+            # Get top 3 players with least minutes from bench (and most bench time)
+            candidates_in = players_on_bench[:3] if len(players_on_bench) >= 3 else players_on_bench
+            
+            # Create recommendations with meaningful reasons
+            for player_out in candidates_out:
+                for player_in in candidates_in:
+                    # Calculate play time difference
+                    play_time_diff = player_out['minutes'] - player_in['minutes']
+                    
+                    # Don't recommend if difference is too small
+                    if play_time_diff < 3:  # At least 3 minutes difference
+                        continue
+                    
+                    # Create reason text based on all factors
+                    reason = f"{player_out['name']} has played {player_out['minutes']} minutes"
+                    
+                    if match_elapsed_minutes > 0 and 'time_on_pitch_percent' in player_out:
+                        reason += f" ({player_out['time_on_pitch_percent']:.0f}% of match time)"
+                    
+                    reason += f", while {player_in['name']} has only played {player_in['minutes']} minutes"
+                    
+                    if 'bench_minutes' in player_in and player_in['bench_minutes'] > 5:
+                        reason += f" and has been waiting on the bench for {player_in['bench_minutes']} minutes"
+                    
+                    if match_elapsed_minutes > 0 and 'time_on_bench_percent' in player_in and player_in['time_on_bench_percent'] > 30:
+                        reason += f" ({player_in['time_on_bench_percent']:.0f}% of match time)"
+                    
+                    reason += "."
+                    
+                    recommendations.append({
+                        'player_out_id': player_out['id'],
+                        'player_out_name': player_out['name'],
+                        'player_out_minutes': player_out['minutes'],
+                        'player_in_id': player_in['id'],
+                        'player_in_name': player_in['name'],
+                        'player_in_minutes': player_in['minutes'],
+                        'reason': reason
+                    })
+        
+        return JsonResponse({
+            'success': True,
+            'recommendations': recommendations[:3],  # Limit to top 3
+            'players_on_pitch': players_on_pitch,
+            'players_on_bench': players_on_bench
+        })
+    except Exception as e:
+        import traceback
+        print(f"Error in get_sub_recommendations: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 def update_playing_times(request, session_pk):
     """
     AJAX endpoint to update playing times for all active players
