@@ -1,4 +1,4 @@
-modules = ["python-3.11"]
+modules = ["python-3.11:v20-20240207-3dd76e7"]
 
 [nix]
 channel = "stable-23_11"
@@ -33,6 +33,9 @@ waitForPort = 5000
 [deployment]
 run = ["sh", "-c", "cd smorasfotball && DATABASE_DIR=/home/runner/deployment gunicorn --bind 0.0.0.0:5000 smorasfotball.wsgi:application"]
 build = ["sh", "-c", "cd smorasfotball && python -m pip install django pandas openpyxl reportlab gunicorn && python manage.py migrate && python manage.py collectstatic --noinput"]
+
+[deployment.nix]
+enable = true
 
 [[ports]]
 localPort = 5000
