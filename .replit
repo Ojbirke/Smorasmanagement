@@ -35,7 +35,7 @@ run = ["sh", "-c", "cd smorasfotball && DATABASE_DIR=/home/runner/deployment gun
 build = ["sh", "-c", "cd smorasfotball && python -m pip install django pandas openpyxl reportlab gunicorn && python manage.py migrate && python manage.py collectstatic --noinput"]
 
 [deployment.nix]
-enable = true
+enable = false
 
 [[ports]]
 localPort = 5000
