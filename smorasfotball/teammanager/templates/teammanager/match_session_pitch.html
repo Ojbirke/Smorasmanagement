@@ -469,6 +469,14 @@
                 <div id="autoSubSuggestions" class="list-group">
                     <!-- Will be filled dynamically -->
                 </div>
+                <div class="d-none" id="bulkActionsContainer">
+                    <hr>
+                    <div class="d-flex justify-content-end mt-3">
+                        <button id="applySelectedSubsBtn" class="btn btn-success">
+                            <i class="bi bi-check2-all"></i> Apply Selected Substitutions
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -502,6 +510,146 @@
         // Elements
         const quickSubLinks = document.querySelectorAll('.quick-sub-link');
         const subConfirmModal = document.getElementById('subConfirmModal');
+        
+        // Function to handle multiple substitutions at once
+        function applyMultipleSubstitutions(substitutions) {
+            if (!substitutions || substitutions.length === 0) return;
+            
+            // Create a summary of what will be done
+            let confirmMessage = '<p>Are you sure you want to make these substitutions?</p><div class="mt-3">';
+            
+            substitutions.forEach((sub, index) => {
+                confirmMessage += `
+                    <div class="d-flex align-items-center mb-3 ${index < substitutions.length - 1 ? 'border-bottom pb-2' : ''}">
+                        <div class="text-center">
+                            <span class="fw-bold">${index + 1}.</span>
+                        </div>
+                        <div class="d-flex align-items-center flex-grow-1 mx-3">
+                            <div class="text-center me-2">
+                                <div class="badge bg-secondary p-2">${sub.playerOutName}</div>
+                                <div class="small">OUT</div>
+                            </div>
+                            <div class="mx-2"><i class="bi bi-arrow-left-right"></i></div>
+                            <div class="text-center ms-2">
+                                <div class="badge bg-success p-2">${sub.playerInName}</div>
+                                <div class="small">IN</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            confirmMessage += '</div>';
+            
+            // Show the confirmation modal
+            subConfirmBody.innerHTML = confirmMessage;
+            
+            // Set up the confirmation button to process all substitutions
+            const confirmHandler = function() {
+                // Remove the event listener to prevent multiple calls
+                confirmSubBtn.removeEventListener('click', confirmHandler);
+                
+                // Hide the modal
+                bsSubConfirmModal.hide();
+                
+                // Process each substitution sequentially with Promises
+                let promise = Promise.resolve();
+                let results = [];
+                
+                substitutions.forEach(sub => {
+                    promise = promise.then(() => {
+                        return fetch(`/team/match-sessions/${sub.sessionId}/quick-sub/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                player_in: sub.playerIn,
+                                player_out: sub.playerOut
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                results.push({
+                                    success: true,
+                                    playerIn: data.player_in,
+                                    playerOut: data.player_out,
+                                    minute: data.minute,
+                                    period: data.period
+                                });
+                            } else {
+                                results.push({
+                                    success: false,
+                                    error: data.error || 'Unknown error',
+                                    playerInName: sub.playerInName,
+                                    playerOutName: sub.playerOutName
+                                });
+                            }
+                            return results;
+                        });
+                    });
+                });
+                
+                // After all substitutions are processed
+                promise.then(allResults => {
+                    // Show results summary
+                    let resultMessage = '<div class="alert alert-success mb-3"><strong>Multiple substitutions completed</strong></div>';
+                    
+                    // Count successes and failures
+                    const successes = results.filter(r => r.success).length;
+                    
+                    resultMessage += `<p>${successes} of ${results.length} substitutions were successful.</p><div class="mt-3">`;
+                    
+                    // List all substitutions with success/failure status
+                    results.forEach((result, index) => {
+                        if (result.success) {
+                            resultMessage += `
+                                <div class="d-flex align-items-center mb-2 ${index < results.length - 1 ? 'border-bottom pb-2' : ''}">
+                                    <div class="text-success me-2"><i class="bi bi-check-circle-fill"></i></div>
+                                    <div>${result.playerIn} replaced ${result.playerOut} at ${result.minute}' in period ${result.period}</div>
+                                </div>
+                            `;
+                        } else {
+                            resultMessage += `
+                                <div class="d-flex align-items-center mb-2 ${index < results.length - 1 ? 'border-bottom pb-2' : ''}">
+                                    <div class="text-danger me-2"><i class="bi bi-x-circle-fill"></i></div>
+                                    <div>Failed to substitute ${result.playerInName} for ${result.playerOutName}: ${result.error}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    resultMessage += '</div>';
+                    
+                    // Display results in the result modal
+                    subResultBody.innerHTML = resultMessage;
+                    bsSubResultModal.show();
+                    
+                    // Reload the page after dismissing the result modal
+                    subResultModal.addEventListener('hidden.bs.modal', function () {
+                        window.location.reload();
+                    }, { once: true });
+                })
+                .catch(error => {
+                    console.error('Error processing substitutions:', error);
+                    subResultBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <p class="mb-0"><strong>Error:</strong> An error occurred while processing the substitutions.</p>
+                        </div>
+                    `;
+                    bsSubResultModal.show();
+                });
+            };
+            
+            // Add event listener for confirmation
+            confirmSubBtn.addEventListener('click', confirmHandler);
+            
+            // Show the confirmation modal
+            bsSubConfirmModal.show();
+        }
         const subConfirmBody = document.getElementById('subConfirmBody');
         const confirmSubBtn = document.getElementById('confirmSubBtn');
         const recommendSubBtn = document.getElementById('recommendSubBtn');
@@ -655,13 +803,23 @@
                             autoSubSuggestions.innerHTML = '<div class="alert alert-info">No recommendations available at this time. This could be because all players have similar playing times or there are not enough players on the bench.</div>';
                         } else {
                             // Build recommendations UI
-                            data.recommendations.forEach(rec => {
+                            data.recommendations.forEach((rec, index) => {
                                 const recItem = document.createElement('div');
                                 recItem.className = 'list-group-item';
                                 
+                                // Create recommendation list item with checkbox
                                 recItem.innerHTML = `
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div class="d-flex align-items-center">
+                                        <div class="form-check form-check-inline me-2">
+                                            <input class="form-check-input rec-checkbox" type="checkbox" 
+                                                id="rec-check-${index}" 
+                                                data-player-in="${rec.player_in_id}" 
+                                                data-player-out="${rec.player_out_id}"
+                                                data-player-in-name="${rec.player_in_name}"
+                                                data-player-out-name="${rec.player_out_name}"
+                                                data-session="{{ match_session.id }}">
+                                        </div>
+                                        <div class="d-flex align-items-center flex-grow-1">
                                             <div class="text-center me-3">
                                                 <div class="badge bg-secondary p-2 mb-2">${rec.player_out_name}</div>
                                                 <div class="small text-muted">${rec.player_out_minutes} mins played</div>
@@ -670,6 +828,7 @@
                                             <div class="text-center ms-3">
                                                 <div class="badge bg-success p-2 mb-2">${rec.player_in_name}</div>
                                                 <div class="small text-muted">${rec.player_in_minutes} mins played</div>
+                                                ${rec.bench_minutes ? `<div class="small text-info">${rec.bench_minutes} mins on bench</div>` : ''}
                                             </div>
                                         </div>
                                         <button class="btn btn-sm btn-primary apply-rec-btn" 
@@ -683,6 +842,40 @@
                                 `;
                                 
                                 autoSubSuggestions.appendChild(recItem);
+                            });
+                            
+                            // Show the bulk actions container
+                            document.getElementById('bulkActionsContainer').classList.remove('d-none');
+                            
+                            // Add event listeners to checkboxes
+                            document.querySelectorAll('.rec-checkbox').forEach(checkbox => {
+                                checkbox.addEventListener('change', function() {
+                                    // Check if any checkboxes are selected
+                                    const anyChecked = document.querySelectorAll('.rec-checkbox:checked').length > 0;
+                                    // Show/hide apply button based on selection
+                                    document.getElementById('applySelectedSubsBtn').classList.toggle('d-none', !anyChecked);
+                                });
+                            });
+                            
+                            // Add event listener to the apply selected button
+                            document.getElementById('applySelectedSubsBtn').addEventListener('click', function() {
+                                const checkedBoxes = document.querySelectorAll('.rec-checkbox:checked');
+                                if (checkedBoxes.length === 0) return;
+                                
+                                // Close recommendation modal
+                                bsAutoSubModal.hide();
+                                
+                                // Prepare substitutions data
+                                const substitutions = Array.from(checkedBoxes).map(checkbox => ({
+                                    playerIn: checkbox.dataset.playerIn,
+                                    playerOut: checkbox.dataset.playerOut,
+                                    playerInName: checkbox.dataset.playerInName,
+                                    playerOutName: checkbox.dataset.playerOutName,
+                                    sessionId: checkbox.dataset.session
+                                }));
+                                
+                                // Apply substitutions one by one
+                                applyMultipleSubstitutions(substitutions);
                             });
                             
                             // Add event listeners to the Apply buttons

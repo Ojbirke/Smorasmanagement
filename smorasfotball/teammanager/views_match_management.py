@@ -725,12 +725,13 @@ def get_sub_recommendations(request, session_pk):
                         'player_in_id': player_in['id'],
                         'player_in_name': player_in['name'],
                         'player_in_minutes': player_in['minutes'],
+                        'bench_minutes': player_in.get('bench_minutes', 0),
                         'reason': reason
                     })
         
         return JsonResponse({
             'success': True,
-            'recommendations': recommendations[:3],  # Limit to top 3
+            'recommendations': recommendations[:4],  # Limit to top 4
             'players_on_pitch': players_on_pitch,
             'players_on_bench': players_on_bench
         })
