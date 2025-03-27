@@ -681,13 +681,13 @@ def get_sub_recommendations(request, session_pk):
         else:
             players_on_bench.sort(key=lambda p: p['minutes'])
         
-        # Generate recommendations (max of 3)
+        # Generate recommendations for all on-pitch players
         recommendations = []
         
         # Only make recommendations if we have both players on pitch and bench
         if players_on_pitch and players_on_bench:
-            # Get top 4 players with most minutes on pitch
-            candidates_out = players_on_pitch[:4] if len(players_on_pitch) >= 4 else players_on_pitch
+            # Use all players on pitch, already sorted by most minutes played
+            candidates_out = players_on_pitch
             
             # For bench players, we'll include all of them in the response
             # and let the frontend handle the dropdown selection
@@ -736,7 +736,7 @@ def get_sub_recommendations(request, session_pk):
         
         return JsonResponse({
             'success': True,
-            'recommendations': recommendations[:4],  # Limit to top 4
+            'recommendations': recommendations,  # Return all recommendations (7 or however many on-pitch players)
             'players_on_pitch': players_on_pitch,
             'players_on_bench': players_on_bench
         })
