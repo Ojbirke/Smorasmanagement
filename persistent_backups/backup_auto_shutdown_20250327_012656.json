@@ -1395,5 +1395,174 @@
     "is_starter": false,
     "notes": ""
   }
+},
+{
+  "model": "teammanager.matchsession",
+  "pk": 13,
+  "fields": {
+    "match": 21,
+    "name": "test",
+    "created_by": 8,
+    "created_at": "2025-03-27T01:17:28.689Z",
+    "updated_at": "2025-03-27T01:17:35.701Z",
+    "periods": 2,
+    "period_length": 25,
+    "substitution_interval": 5,
+    "is_active": true,
+    "start_time": "2025-03-27T01:17:35.701Z",
+    "current_period": 1,
+    "elapsed_time": 0
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 45,
+  "fields": {
+    "match_session": 13,
+    "player_in": 58,
+    "player_out": 69,
+    "timestamp": "2025-03-27T01:20:45.576Z",
+    "minute": 3,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 46,
+  "fields": {
+    "match_session": 13,
+    "player_in": 55,
+    "player_out": 48,
+    "timestamp": "2025-03-27T01:20:45.898Z",
+    "minute": 3,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 47,
+  "fields": {
+    "match_session": 13,
+    "player_in": 69,
+    "player_out": 62,
+    "timestamp": "2025-03-27T01:26:01.927Z",
+    "minute": 8,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 48,
+  "fields": {
+    "match_session": 13,
+    "player_in": 48,
+    "player_out": 47,
+    "timestamp": "2025-03-27T01:26:02.201Z",
+    "minute": 8,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 103,
+  "fields": {
+    "match_session": 13,
+    "player": 69,
+    "minutes_played": 3,
+    "last_substitution_time": "2025-03-27T01:26:01.927Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 104,
+  "fields": {
+    "match_session": 13,
+    "player": 48,
+    "minutes_played": 3,
+    "last_substitution_time": "2025-03-27T01:26:02.201Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 105,
+  "fields": {
+    "match_session": 13,
+    "player": 62,
+    "minutes_played": 8,
+    "last_substitution_time": null,
+    "is_on_pitch": false
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 106,
+  "fields": {
+    "match_session": 13,
+    "player": 47,
+    "minutes_played": 8,
+    "last_substitution_time": null,
+    "is_on_pitch": false
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 107,
+  "fields": {
+    "match_session": 13,
+    "player": 59,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-27T01:17:35.714Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 108,
+  "fields": {
+    "match_session": 13,
+    "player": 50,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-27T01:17:35.714Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 109,
+  "fields": {
+    "match_session": 13,
+    "player": 53,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-27T01:17:35.714Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 110,
+  "fields": {
+    "match_session": 13,
+    "player": 58,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-27T01:20:45.576Z",
+    "is_on_pitch": true
+  }
+},
+{
+  "model": "teammanager.playingtime",
+  "pk": 111,
+  "fields": {
+    "match_session": 13,
+    "player": 55,
+    "minutes_played": 0,
+    "last_substitution_time": "2025-03-27T01:20:45.898Z",
+    "is_on_pitch": true
+  }
 }
 ]

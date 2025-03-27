@@ -1050,6 +1050,8 @@
         let clockInterval;
         let currentGameTime = {{ current_game_time|default:0 }};
         let matchStartTime = {% if match_session.start_time %}new Date("{{ match_session.start_time|date:'c' }}"){% else %}null{% endif %};
+        // Initialize elapsed seconds from previous periods
+        let clientSideClockRunning = matchStartTime !== null;
         let currentPeriod = {{ current_period|default:1 }};
         
         function startAutoRefresh() {
@@ -1078,9 +1080,16 @@
             
             // Calculate current match time in seconds
             const now = new Date();
-            const elapsedSeconds = Math.floor((now - matchStartTime) / 1000);
+            // Calculate elapsed seconds for the current period
+            const elapsedSecondsCurrentPeriod = Math.floor((now - matchStartTime) / 1000);
+            
+            // Add elapsed seconds from previous periods to get total match time
+            const elapsedSeconds = elapsedSecondsCurrentPeriod + (globalMatchInfo.elapsed_seconds || 0);
             const elapsedMinutes = Math.floor(elapsedSeconds / 60);
             const elapsedSecondsInMinute = elapsedSeconds % 60;
+            
+            // Store current calculated time for consistency
+            globalMatchInfo.client_elapsed_seconds = elapsedSeconds;
             
             // Update the match clock
             const matchInfoEl = document.querySelector('.fw-bold');
@@ -1182,10 +1191,13 @@
                         // Update global match info object
                         updateGlobalMatchInfo(data.match_info);
                         
-                        // Update time
-                        const timeDisplay = document.querySelector('.fs-5 .fw-bold');
-                        if (timeDisplay) {
-                            timeDisplay.textContent = `${data.match_info.elapsed}:00`;
+                        // Only update the time display if we don't have a client-side clock running
+                        // This prevents the server's elapsed time from overriding our client calculations
+                        if (!matchStartTime) {
+                            const timeDisplay = document.querySelector('.fs-5 .fw-bold');
+                            if (timeDisplay) {
+                                timeDisplay.textContent = `${data.match_info.elapsed}:00`;
+                            }
                         }
                         
                         // Update period badge
@@ -1233,8 +1245,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update match data if needed 
-                    matchStartTime = data.match_info.start_time ? new Date(data.match_info.start_time) : matchStartTime;
+                    // Only update match start time if it's not already set
+                    if (!matchStartTime && data.match_info.start_time) {
+                        matchStartTime = new Date(data.match_info.start_time);
+                        clientSideClockRunning = true;
+                        startClock(); // Ensure clock is running
+                    }
                     
                     // Update period info and badge
                     currentPeriod = data.match_info.period;
@@ -1297,7 +1313,8 @@
         let globalMatchInfo = {
             period: {{ current_period|default:1 }},
             total_periods: {{ total_periods|default:2 }},
-            period_length: {{ period_length|default:25 }}
+            period_length: {{ period_length|default:25 }},
+            elapsed_seconds: {{ elapsed_seconds_previous_periods|default:0 }} // From previous periods
         };
         
         // Function to update global match info from AJAX response

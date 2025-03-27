@@ -934,7 +934,8 @@ def update_playing_times(request, session_pk):
                 'start_time': start_time_iso,
                 'next_sub_countdown': next_sub_countdown,
                 'substitution_interval': match_session.substitution_interval,
-                'elapsed_minutes_previous_periods': int(match_session.elapsed_time / 60)
+                'elapsed_minutes_previous_periods': int(match_session.elapsed_time / 60),
+                'elapsed_seconds': int(match_session.elapsed_time) # Add seconds for client-side calculations
             }
         })
     except Exception as e:
