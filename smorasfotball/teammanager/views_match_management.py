@@ -702,8 +702,9 @@ def get_sub_recommendations(request, session_pk):
                     # Calculate play time difference
                     play_time_diff = player_out['minutes'] - player_in['minutes']
                     
-                    # Don't recommend if difference is too small
-                    if play_time_diff < 3:  # At least 3 minutes difference
+                    # Allow recommendations with minimal difference
+                    # Removing the 3-minute minimum requirement to provide more immediate recommendations
+                    if play_time_diff < 0:  # Still avoid negative differences (bench players with more time)
                         continue
                     
                     # Create reason text based on all factors
