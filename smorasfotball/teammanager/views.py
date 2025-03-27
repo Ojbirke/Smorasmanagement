@@ -71,8 +71,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'teammanager/dashboard.html'
 
     def dispatch(self, request, *args, **kwargs):
+        # Ensure LoginRequiredMixin redirects first before checking profile
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+            
         # Check if user's profile is approved
-        if not request.user.profile.is_approved():
+        if hasattr(request.user, 'profile') and not request.user.profile.is_approved():
             messages.warning(
                 request, 
                 "Your account is pending approval. Some features may be unavailable until your account is approved."
@@ -84,29 +88,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # Basic data for all roles
         context['total_teams'] = Team.objects.count()
-
-        # Add user role information for the template
-        context['is_admin'] = self.request.user.profile.is_admin()
-        context['is_coach'] = self.request.user.profile.is_coach()
-        context['is_player'] = self.request.user.profile.is_player()
-        context['is_approved'] = self.request.user.profile.is_approved()
         context['total_players'] = Player.objects.count()
         context['total_matches'] = Match.objects.count()
         context['recent_matches'] = Match.objects.order_by('-date')[:5]
 
-        # User role specific data
-        context['user_role'] = self.request.user.profile.role
-        context['is_pending'] = self.request.user.profile.is_pending()
+        # Default values for unauthenticated users
+        context['is_admin'] = False
+        context['is_coach'] = False
+        context['is_player'] = False
+        context['is_approved'] = False
+        context['user_role'] = None
+        context['is_pending'] = False
 
-        # For admin users, add pending approval counts
-        if self.request.user.profile.is_admin():
-            context['pending_approvals'] = UserProfile.objects.filter(status='pending').count()
+        # Add user role information for authenticated users with profiles
+        if hasattr(self.request.user, 'profile'):
+            context['is_admin'] = self.request.user.profile.is_admin()
+            context['is_coach'] = self.request.user.profile.is_coach()
+            context['is_player'] = self.request.user.profile.is_player()
+            context['is_approved'] = self.request.user.profile.is_approved()
+            context['user_role'] = self.request.user.profile.role
+            context['is_pending'] = self.request.user.profile.is_pending()
 
-        # For player users, add their own match history
-        if self.request.user.profile.is_player() and self.request.user.profile.player:
-            context['player_matches'] = MatchAppearance.objects.filter(
-                player=self.request.user.profile.player
-            ).select_related('match', 'team').order_by('-match__date')[:5]
+            # For admin users, add pending approval counts
+            if self.request.user.profile.is_admin():
+                context['pending_approvals'] = UserProfile.objects.filter(status='pending').count()
+
+            # For player users, add their own match history
+            if self.request.user.profile.is_player() and self.request.user.profile.player:
+                context['player_matches'] = MatchAppearance.objects.filter(
+                    player=self.request.user.profile.player
+                ).select_related('match', 'team').order_by('-match__date')[:5]
 
         return context
 
