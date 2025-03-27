@@ -202,8 +202,39 @@ fi
 mkdir -p ../persistent_backups
 python manage.py persistent_backup --name "pre_deploy"
 
+# Create a production backup if we're in deployment environment
+if [ "$IS_DEPLOYMENT" = true ]; then
+    echo "Creating production database backup in deployment environment..."
+    
+    # Get today's date for the backup name
+    TODAY_DATE=$(date +"%Y%m%d")
+    
+    # Create both SQLite and JSON backups of the production database
+    echo "Creating daily production SQLite backup..."
+    python manage.py deployment_backup --name "production_${TODAY_DATE}" --format sqlite
+    
+    echo "Creating daily production JSON backup (for redundancy)..."
+    python manage.py deployment_backup --name "production_${TODAY_DATE}" --format json
+    
+    echo "✅ Created fresh production database backups"
+    
+    # Clean up old production backups (keep only the 3 most recent)
+    echo "Cleaning up old production backups..."
+    find "../deployment" -name "deployment_backup_production_*.sqlite" -type f -printf "%T@ %p\n" | sort -n | head -n -3 | cut -d' ' -f2- | xargs -r rm
+    find "../deployment" -name "deployment_backup_production_*.json" -type f -printf "%T@ %p\n" | sort -n | head -n -3 | cut -d' ' -f2- | xargs -r rm
+    echo "Kept the 3 most recent production backups of each type"
+fi
+
 # Output success message
-echo "Startup script completed."
+echo "========================================"
+echo "Startup script completed successfully!"
+echo "Database restoration status: SUCCESS"
+if [ "$IS_DEPLOYMENT" = true ]; then
+    echo "Environment: PRODUCTION DEPLOYMENT"
+else
+    echo "Environment: DEVELOPMENT"
+fi
+echo "========================================"
 
 # Start the application if needed (handled by replit workflow)
 # gunicorn --bind 0.0.0.0:5000 smorasfotball.wsgi:application

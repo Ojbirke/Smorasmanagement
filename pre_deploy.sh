@@ -24,30 +24,52 @@ mkdir -p deployment
 # Special pre-deployment database preparation:
 cd smorasfotball
 
-# Create special pre-deployment backups that will be used for the deployment environment
-# First create a SQLite backup (preferred for direct file replacement)
-echo "Creating SQLite deployment backup (preferred method)..."
-python manage.py deployment_backup --name "predeploy" --format sqlite || {
-    echo "SQLite backup creation failed, trying without specific name..."
-    python manage.py deployment_backup --format sqlite || {
-        echo "SQLite backup format not supported, falling back to JSON..."
-        # Create JSON backup as fallback if SQLite fails
-        echo "Creating JSON deployment backup..."
-        python manage.py deployment_backup --name "predeploy" --format json || python manage.py deployment_backup --name "predeploy" || {
-            echo "WARNING: All backup attempts failed! Deployment may not have proper data."
+# Check if we're in a production environment with existing deployment backups
+# We do NOT want to overwrite production backups with development data
+if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ]; then
+    echo "⚠️ Detected existing deployment backups - PRESERVING PRODUCTION DATA"
+    echo "✅ Will use existing deployment backups during deployment startup"
+    echo "✅ Database integrity will be maintained across deployments"
+    
+    # Create a timestamp backup of the existing deployment backups (just for safety)
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    if [ -f "../deployment/deployment_db.sqlite" ]; then
+        cp "../deployment/deployment_db.sqlite" "../deployment/deployment_db.sqlite.${TIMESTAMP}.bak"
+        echo "Created safety backup: deployment_db.sqlite.${TIMESTAMP}.bak"
+    fi
+    
+    if [ -f "../deployment/deployment_db.json" ]; then
+        cp "../deployment/deployment_db.json" "../deployment/deployment_db.json.${TIMESTAMP}.bak"
+        echo "Created safety backup: deployment_db.json.${TIMESTAMP}.bak"
+    fi
+else
+    # Only create new deployment backups if none exist (first deployment)
+    echo "No existing deployment backups found - creating initial deployment backups..."
+    
+    # First create a SQLite backup (preferred for direct file replacement)
+    echo "Creating SQLite deployment backup (preferred method)..."
+    python manage.py deployment_backup --name "initial_deploy" --format sqlite || {
+        echo "SQLite backup creation failed, trying without specific name..."
+        python manage.py deployment_backup --format sqlite || {
+            echo "SQLite backup format not supported, falling back to JSON..."
+            # Create JSON backup as fallback if SQLite fails
+            echo "Creating JSON deployment backup..."
+            python manage.py deployment_backup --name "initial_deploy" --format json || python manage.py deployment_backup --name "initial_deploy" || {
+                echo "WARNING: All backup attempts failed! Deployment may not have proper data."
+            }
         }
     }
-}
-
-# Create a second backup in JSON format for redundancy
-echo "Creating JSON deployment backup for redundancy..."
-python manage.py deployment_backup --name "predeploy" --format json || python manage.py deployment_backup --name "predeploy" || echo "JSON backup failed, but we have the SQLite backup"
-
-# Verify that at least one backup file exists
-if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ]; then
-    echo "✅ Successfully created deployment backup(s)"
-else 
-    echo "❌ ERROR: No deployment backups were created! Deployment may not have proper data."
+    
+    # Create a second backup in JSON format for redundancy
+    echo "Creating JSON deployment backup for redundancy..."
+    python manage.py deployment_backup --name "initial_deploy" --format json || python manage.py deployment_backup --name "initial_deploy" || echo "JSON backup failed, but we have the SQLite backup"
+    
+    # Verify that at least one backup file exists
+    if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ]; then
+        echo "✅ Successfully created INITIAL deployment backup(s)"
+    else 
+        echo "❌ ERROR: No deployment backups were created! Deployment may not have proper data."
+    fi
 fi
 
 # Run migrations and collect static files
