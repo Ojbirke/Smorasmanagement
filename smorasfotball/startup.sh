@@ -2,14 +2,35 @@
 # Startup script for smorasfotball application
 # This script checks for persistent backups and restores them if needed
 
+echo "========================================"
+echo "STARTING SMORASFOTBALL APPLICATION"
+echo "========================================"
+echo "Current date: $(date)"
+echo "Current directory: $(pwd)"
+
 # Get the directory of this script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR"  # Change to the script directory
+echo "Changed to script directory: $DIR"
 
 PERSISTENT_BACKUP_DIR="../persistent_backups"
 DEPLOYMENT_DIR="../deployment"
 LATEST_BACKUP=""
 IS_DEPLOYMENT=false
+
+echo "Looking for deployment-specific backups..."
+# Check if deployment backups exist
+if [ -f "$DEPLOYMENT_DIR/deployment_db.sqlite" ]; then
+    echo "✅ Found SQLite deployment backup: $DEPLOYMENT_DIR/deployment_db.sqlite"
+    echo "   Last modified: $(stat -c %y $DEPLOYMENT_DIR/deployment_db.sqlite)"
+    echo "   Size: $(stat -c %s $DEPLOYMENT_DIR/deployment_db.sqlite) bytes"
+fi
+
+if [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
+    echo "✅ Found JSON deployment backup: $DEPLOYMENT_DIR/deployment_db.json"
+    echo "   Last modified: $(stat -c %y $DEPLOYMENT_DIR/deployment_db.json)"
+    echo "   Size: $(stat -c %s $DEPLOYMENT_DIR/deployment_db.json) bytes"
+fi
 
 # Check if we are running in a deployment environment
 # Deployment environments will have a special marker file or environment variable
@@ -79,47 +100,43 @@ if [ -f "$DEPLOYMENT_SQLITE" ] || [ -f "$DEPLOYMENT_JSON" ]; then
     
     echo "This indicates we're running in a deployment environment"
     
-    # Check if database is empty or if this is a fresh deployment
-    TEAM_COUNT=$(python manage.py shell -c "from teammanager.models import Team; print(Team.objects.count())" 2>/dev/null)
+    # We will restore the deployment backup regardless of existing data
+    # This ensures that redeployments always use the latest backup
+    echo "In deployment environment - restoring from deployment backup..."
     
-    # Always restore on first run or empty database
-    if [ "$?" -ne "0" ] || [ "$TEAM_COUNT" -eq "0" ]; then
-        echo "Database appears to be empty in deployment environment. Loading deployment backup..."
+    # If we need to run migrations first
+    echo "Applying migrations..."
+    python manage.py migrate
+    
+    echo "Restoring from deployment backup..."
+    # Use our custom management command for deployment backup restore
+    # This will automatically choose between SQLite and JSON (preferring SQLite)
+    # Use a fallback approach if the restore operation fails
+    python manage.py deployment_backup --restore || {
+        echo "Deployment backup restore failed with new command. Trying fallback methods..."
         
-        # If we need to run migrations first
-        echo "Applying migrations..."
-        python manage.py migrate
-        
-        echo "Restoring from deployment backup..."
-        # Use our custom management command for deployment backup restore
-        # This will automatically choose between SQLite and JSON (preferring SQLite)
-        # Use a fallback approach if the restore operation fails
-        python manage.py deployment_backup --restore || {
-            echo "Deployment backup restore failed with new command. Trying fallback methods..."
-            
-            # Check which format is available
-            if [ -f "$DEPLOYMENT_DIR/deployment_db.sqlite" ]; then
-                echo "Using SQLite backup directly..."
-                cp "$DEPLOYMENT_DIR/deployment_db.sqlite" db.sqlite3
-            elif [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
-                echo "Using JSON backup directly..."
-                python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json" || {
-                    echo "Direct JSON load failed. Trying final fallback approach..."
-                    python manage.py flush --no-input
-                    python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json"
-                }
-            else
-                echo "No deployment backup found."
-            fi
-        }
-        echo "Deployment database restore process completed"
-        
-        # Exit early with successful status
-        exit 0
-    else
-        echo "Database already contains data ($TEAM_COUNT teams). Skipping automatic deployment backup restoration."
-        echo "To force restoration, run: python manage.py deployment_backup --restore"
-    fi
+        # Check which format is available
+        if [ -f "$DEPLOYMENT_DIR/deployment_db.sqlite" ]; then
+            echo "Using SQLite backup directly..."
+            cp "$DEPLOYMENT_DIR/deployment_db.sqlite" db.sqlite3
+            echo "SQLite backup applied directly"
+        elif [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
+            echo "Using JSON backup directly..."
+            python manage.py flush --no-input
+            python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json" || {
+                echo "Direct JSON load failed. Trying final fallback approach..."
+                python manage.py flush --no-input
+                python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json"
+            }
+            echo "JSON backup applied directly"
+        else
+            echo "No deployment backup found."
+        fi
+    }
+    echo "Deployment database restore process completed"
+    
+    # Exit early with successful status
+    exit 0
 fi
 
 # If no deployment backup or we're not in deployment mode, continue with regular backup process

@@ -25,14 +25,30 @@ mkdir -p deployment
 cd smorasfotball
 
 # Create special pre-deployment backups that will be used for the deployment environment
-# First create a JSON backup (for compatibility)
-echo "Creating JSON deployment backup..."
-python manage.py deployment_backup --name "predeploy" --format json || python manage.py deployment_backup --name "predeploy"
-echo "Created JSON deployment database backup for use in the deployed application"
+# First create a SQLite backup (preferred for direct file replacement)
+echo "Creating SQLite deployment backup (preferred method)..."
+python manage.py deployment_backup --name "predeploy" --format sqlite || {
+    echo "SQLite backup creation failed, trying without specific name..."
+    python manage.py deployment_backup --format sqlite || {
+        echo "SQLite backup format not supported, falling back to JSON..."
+        # Create JSON backup as fallback if SQLite fails
+        echo "Creating JSON deployment backup..."
+        python manage.py deployment_backup --name "predeploy" --format json || python manage.py deployment_backup --name "predeploy" || {
+            echo "WARNING: All backup attempts failed! Deployment may not have proper data."
+        }
+    }
+}
 
-# Then create a SQLite backup (preferred for direct file replacement) if format option is supported
-echo "Creating SQLite deployment backup..."
-python manage.py deployment_backup --name "predeploy" --format sqlite || echo "SQLite backup format not supported, using JSON only"
+# Create a second backup in JSON format for redundancy
+echo "Creating JSON deployment backup for redundancy..."
+python manage.py deployment_backup --name "predeploy" --format json || python manage.py deployment_backup --name "predeploy" || echo "JSON backup failed, but we have the SQLite backup"
+
+# Verify that at least one backup file exists
+if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ]; then
+    echo "✅ Successfully created deployment backup(s)"
+else 
+    echo "❌ ERROR: No deployment backups were created! Deployment may not have proper data."
+fi
 
 # Run migrations and collect static files
 python manage.py migrate
