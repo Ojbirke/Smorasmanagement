@@ -339,6 +339,8 @@ class MatchSession(models.Model):
     # Match status
     is_active = models.BooleanField(default=False, help_text="Whether this session is currently active")
     start_time = models.DateTimeField(null=True, blank=True, help_text="When the match actually started")
+    current_period = models.PositiveSmallIntegerField(default=1, help_text="Current period of the match")
+    elapsed_time = models.PositiveIntegerField(default=0, help_text="Elapsed time in seconds from previous periods")
     
     def __str__(self):
         return f"{self.name} - {self.match}"

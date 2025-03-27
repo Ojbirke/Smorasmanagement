@@ -347,6 +347,21 @@ def match_session_start(request, pk):
             return redirect('match-session-pitch', pk=match_session.pk)
         return redirect('match-session-detail', pk=match_session.pk)
     
+    # Starting a previously stopped match - check if we're starting a new period
+    if not match_session.is_active and match_session.elapsed_time > 0:
+        # If we've already played some time and are now starting again,
+        # see if we should move to the next period
+        seconds_per_period = match_session.period_length * 60
+        total_seconds_possible = seconds_per_period * match_session.periods
+        
+        # If we've completed all the time for the current period, move to the next one
+        if (match_session.elapsed_time % seconds_per_period == 0 and 
+            match_session.elapsed_time < total_seconds_possible and
+            match_session.current_period < match_session.periods):
+            match_session.current_period += 1
+            message = f"Starting period {match_session.current_period} of {match_session.periods}."
+            messages.info(request, message)
+    
     # Start the match
     match_session.is_active = True
     match_session.start_time = timezone.now()
@@ -418,8 +433,32 @@ def match_session_stop(request, pk):
                 appearance.minutes_played = playing_time.minutes_played
                 appearance.save()
         
+        # Update the elapsed time in the match session
+        if match_session.start_time:
+            elapsed_seconds = int((now - match_session.start_time).total_seconds())
+            match_session.elapsed_time += elapsed_seconds
+            
+            # Check if we've completed a period
+            seconds_per_period = match_session.period_length * 60
+            periods_completed = match_session.elapsed_time // seconds_per_period
+            
+            if periods_completed >= match_session.periods:
+                # Match has ended completely
+                message = "Match complete! All periods have been played."
+                messages.success(request, message)
+            else:
+                # Period completed but match continues
+                current_period = min(periods_completed + 1, match_session.periods)
+                match_session.current_period = current_period
+                
+                if periods_completed > 0 and periods_completed < match_session.periods:
+                    next_period = periods_completed + 1
+                    message = f"Period {periods_completed} complete. Ready to start period {next_period}."
+                    messages.info(request, message)
+        
         # Stop the match
         match_session.is_active = False
+        match_session.start_time = None
         match_session.save()
         
         messages.success(request, "Match session stopped. Playing time has been recorded and saved to match statistics.")
@@ -805,22 +844,30 @@ def update_playing_times(request, session_pk):
         # Match statistics
         next_sub_countdown = None
         if match_session.start_time:
-            match_elapsed = (now - match_session.start_time).total_seconds() / 60
-            current_period = min((int(match_elapsed) // match_session.period_length) + 1, match_session.periods)
-            minute_in_match = int(match_elapsed)
-            minute_in_period = int(match_elapsed) % match_session.period_length
+            # Calculate current session elapsed time
+            current_seconds = (now - match_session.start_time).total_seconds()
+            match_elapsed = current_seconds / 60
+            
+            # Use the current_period from the match session model
+            current_period = match_session.current_period
+            
+            # Calculate overall match time (including previous periods)
+            total_seconds = current_seconds + match_session.elapsed_time
+            minute_in_match = int(total_seconds / 60)
+            
+            # Minutes in current period
+            minute_in_period = int(match_elapsed)
             start_time_iso = match_session.start_time.isoformat()
             
-            # Calculate next substitution time
+            # Calculate next substitution time - based only on current period
             if match_session.substitution_interval > 0:
-                current_seconds = (now - match_session.start_time).total_seconds()
-                intervals_passed = minute_in_match // match_session.substitution_interval
+                intervals_passed = minute_in_period // match_session.substitution_interval
                 next_sub_time = (intervals_passed + 1) * match_session.substitution_interval
                 seconds_until_sub = (next_sub_time * 60) - current_seconds
                 next_sub_countdown = math.ceil(seconds_until_sub / 60)  # Convert to minutes and round up
         else:
             match_elapsed = 0
-            current_period = 1
+            current_period = match_session.current_period
             minute_in_match = 0
             minute_in_period = 0
             start_time_iso = None
