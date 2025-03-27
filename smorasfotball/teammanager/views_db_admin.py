@@ -184,13 +184,19 @@ def create_backup(request):
         output = io.StringIO()
         call_command('persistent_backup', stdout=output)
         
+        # Strip ANSI color codes pattern
+        import re
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        
         # Extract messages from command output
         for line in output.getvalue().splitlines():
             if line.strip():
+                # Remove ANSI color codes
+                clean_line = ansi_escape.sub('', line)
                 if "success" in line.lower():
-                    messages.success(request, line)
+                    messages.success(request, clean_line)
                 else:
-                    messages.info(request, line)
+                    messages.info(request, clean_line)
         
         messages.success(request, "Backup created successfully and stored in both regular and persistent locations.")
         messages.info(request, "The persistent backup will be available even after redeployments.")
@@ -367,13 +373,19 @@ def cleanup_backups(request):
         output = io.StringIO()
         call_command('cleanup_backups', keep=keep, force_cleanup=True, stdout=output)
         
+        # Strip ANSI color codes pattern
+        import re
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        
         # Extract messages from command output
         for line in output.getvalue().splitlines():
             if line.strip():
+                # Remove ANSI color codes
+                clean_line = ansi_escape.sub('', line)
                 if "error" in line.lower():
-                    messages.error(request, line)
+                    messages.error(request, clean_line)
                 else:
-                    messages.info(request, line)
+                    messages.info(request, clean_line)
         
         messages.success(request, f"Backup cleanup completed. Kept the latest {keep} backup(s) of each type.")
     
