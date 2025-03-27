@@ -279,12 +279,19 @@
                         <span class="badge bg-secondary me-1">INACTIVE</span>
                         <span class="fw-bold">00:00</span>
                     {% endif %}
+                    <span class="badge {% if match_session.current_period > 1 %}bg-info{% else %}bg-primary{% endif %} ms-2">Period {{ current_period }}/{{ total_periods }}</span>
                 </div>
                 <div>
-                    Period {{ current_period }}/{{ total_periods }}
                     {% if minutes_remaining is not None %}
-                        <span class="text-muted">({{ minutes_remaining }} min left)</span>
+                        <span class="text-muted">{{ minutes_remaining }} min left in period</span>
                     {% endif %}
+                    <span class="badge {% if match_session.current_period > 1 %}bg-info{% else %}bg-secondary{% endif %} ms-2">
+                        {% if match_session.current_period > 1 %}
+                            Previous periods: {{ elapsed_minutes_previous_periods }} min
+                        {% else %}
+                            First period
+                        {% endif %}
+                    </span>
                 </div>
             </div>
             
@@ -1164,6 +1171,38 @@
                             }
                         }
                     }
+                    
+                    // Update the match information
+                    if (data.match_info) {
+                        // Update time
+                        const timeDisplay = document.querySelector('.fs-5 .fw-bold');
+                        if (timeDisplay) {
+                            timeDisplay.textContent = `${data.match_info.elapsed}:00`;
+                        }
+                        
+                        // Update period badge
+                        const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
+                        if (periodBadge) {
+                            periodBadge.textContent = `Period ${data.match_info.period}/${{{ total_periods }}}`;
+                        }
+                        
+                        // Update minutes remaining in period
+                        if (data.match_info.minute_in_period !== undefined) {
+                            const minutesRemaining = {{ period_length }} - data.match_info.minute_in_period;
+                            const minutesEl = document.querySelector('.text-muted:not(:has(.badge))');
+                            if (minutesEl && minutesRemaining >= 0) {
+                                minutesEl.textContent = `${minutesRemaining} min left in period`;
+                            }
+                        }
+                        
+                        // Update substitution timer
+                        if (data.match_info.next_sub_countdown !== null) {
+                            const countdownEl = document.querySelector('.col-6.text-end .small .badge');
+                            if (countdownEl) {
+                                countdownEl.innerHTML = `<i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown} min`;
+                            }
+                        }
+                    }
                 }
             })
             .catch(error => {
@@ -1189,11 +1228,35 @@
                     // Update match data if needed 
                     matchStartTime = data.match_info.start_time ? new Date(data.match_info.start_time) : matchStartTime;
                     
-                    // Update period info
-                    const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
-                    if (periodInfoEl) {
-                        periodInfoEl.innerHTML = `Period ${data.match_info.period}/{{ total_periods }}`;
-                        currentPeriod = data.match_info.period;
+                    // Update period info and badge
+                    currentPeriod = data.match_info.period;
+                    
+                    // Update period badge in the header
+                    const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
+                    if (periodBadge) {
+                        periodBadge.textContent = `Period ${data.match_info.period}/{{ total_periods }}`;
+                    }
+                    
+                    // Update minutes remaining in period
+                    if (data.match_info.minute_in_period !== undefined) {
+                        const minutesRemaining = {{ period_length }} - data.match_info.minute_in_period;
+                        const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
+                        if (periodInfoEl) {
+                            // Create the HTML with dynamic content
+                            let html = '';
+                            if (minutesRemaining >= 0) {
+                                html += `<span class="text-muted">${minutesRemaining} min left in period</span>`;
+                            }
+                            
+                            // Add information about previous periods if applicable
+                            if (data.match_info.period > 1) {
+                                html += `<span class="badge bg-info ms-2">Previous periods: ${data.match_info.elapsed_minutes_previous_periods} min</span>`;
+                            } else {
+                                html += `<span class="badge bg-secondary ms-2">First period</span>`;
+                            }
+                            
+                            periodInfoEl.innerHTML = html;
+                        }
                     }
                     
                     // Update substitution countdown

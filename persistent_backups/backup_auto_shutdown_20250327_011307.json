@@ -625,7 +625,7 @@
     "player": 47,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 32,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -639,7 +639,7 @@
     "player": 48,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 34,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -653,7 +653,7 @@
     "player": 50,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 33,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -667,7 +667,7 @@
     "player": 53,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 27,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -681,7 +681,7 @@
     "player": 55,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 36,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -695,7 +695,7 @@
     "player": 58,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 33,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -709,7 +709,7 @@
     "player": 59,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 34,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -723,7 +723,7 @@
     "player": 62,
     "match": 21,
     "team": 5,
-    "minutes_played": 21,
+    "minutes_played": 33,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -737,7 +737,7 @@
     "player": 69,
     "match": 21,
     "team": 5,
-    "minutes_played": 19,
+    "minutes_played": 26,
     "goals": 0,
     "assists": 0,
     "yellow_cards": 0,
@@ -1404,14 +1404,14 @@
     "name": "test",
     "created_by": 8,
     "created_at": "2025-03-27T00:25:17.684Z",
-    "updated_at": "2025-03-27T00:51:18.941Z",
+    "updated_at": "2025-03-27T01:09:10.117Z",
     "periods": 2,
     "period_length": 25,
     "substitution_interval": 5,
-    "is_active": true,
-    "start_time": "2025-03-27T00:51:18.941Z",
+    "is_active": false,
+    "start_time": null,
     "current_period": 1,
-    "elapsed_time": 0
+    "elapsed_time": 1061
   }
 },
 {
@@ -1675,13 +1675,39 @@
   }
 },
 {
+  "model": "teammanager.playersubstitution",
+  "pk": 43,
+  "fields": {
+    "match_session": 11,
+    "player_in": 69,
+    "player_out": 58,
+    "timestamp": "2025-03-27T01:05:56.816Z",
+    "minute": 14,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 44,
+  "fields": {
+    "match_session": 11,
+    "player_in": 53,
+    "player_out": 50,
+    "timestamp": "2025-03-27T01:05:57.136Z",
+    "minute": 14,
+    "period": 1,
+    "notes": null
+  }
+},
+{
   "model": "teammanager.playingtime",
   "pk": 85,
   "fields": {
     "match_session": 11,
     "player": 47,
-    "minutes_played": 20,
-    "last_substitution_time": "2025-03-27T00:56:32.062Z",
+    "minutes_played": 32,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1691,9 +1717,9 @@
   "fields": {
     "match_session": 11,
     "player": 69,
-    "minutes_played": 24,
+    "minutes_played": 26,
     "last_substitution_time": null,
-    "is_on_pitch": false
+    "is_on_pitch": true
   }
 },
 {
@@ -1702,8 +1728,8 @@
   "fields": {
     "match_session": 11,
     "player": 48,
-    "minutes_played": 19,
-    "last_substitution_time": "2025-03-27T00:52:57.302Z",
+    "minutes_played": 34,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1713,8 +1739,8 @@
   "fields": {
     "match_session": 11,
     "player": 59,
-    "minutes_played": 19,
-    "last_substitution_time": "2025-03-27T00:52:57.713Z",
+    "minutes_played": 34,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1724,9 +1750,9 @@
   "fields": {
     "match_session": 11,
     "player": 53,
-    "minutes_played": 25,
+    "minutes_played": 27,
     "last_substitution_time": null,
-    "is_on_pitch": false
+    "is_on_pitch": true
   }
 },
 {
@@ -1735,9 +1761,9 @@
   "fields": {
     "match_session": 11,
     "player": 58,
-    "minutes_played": 19,
-    "last_substitution_time": "2025-03-27T00:51:18.955Z",
-    "is_on_pitch": true
+    "minutes_played": 33,
+    "last_substitution_time": null,
+    "is_on_pitch": false
   }
 },
 {
@@ -1746,8 +1772,8 @@
   "fields": {
     "match_session": 11,
     "player": 62,
-    "minutes_played": 22,
-    "last_substitution_time": "2025-03-27T00:57:46.097Z",
+    "minutes_played": 33,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 },
@@ -1757,9 +1783,9 @@
   "fields": {
     "match_session": 11,
     "player": 50,
-    "minutes_played": 19,
-    "last_substitution_time": "2025-03-27T00:51:18.955Z",
-    "is_on_pitch": true
+    "minutes_played": 33,
+    "last_substitution_time": null,
+    "is_on_pitch": false
   }
 },
 {
@@ -1768,8 +1794,8 @@
   "fields": {
     "match_session": 11,
     "player": 55,
-    "minutes_played": 19,
-    "last_substitution_time": "2025-03-27T00:51:18.955Z",
+    "minutes_played": 36,
+    "last_substitution_time": null,
     "is_on_pitch": true
   }
 }

@@ -651,17 +651,27 @@ def match_session_pitch_view(request, pk):
             seconds_until_sub = (next_sub_time * 60) - current_seconds
             next_sub_countdown = math.ceil(seconds_until_sub / 60)  # Convert to minutes and round up
     
-    # Calculate period
-    current_period = 1
-    if current_game_time is not None and match_session.periods > 1:
-        current_period = min((current_game_time // match_session.period_length) + 1, match_session.periods)
+    # Get period from match_session model
+    current_period = match_session.current_period
     
     # Calculate minutes remaining in current period
     minutes_remaining = None
     if current_game_time is not None:
         total_minutes_in_period = match_session.period_length
-        minutes_elapsed_in_period = current_game_time % total_minutes_in_period
-        minutes_remaining = total_minutes_in_period - minutes_elapsed_in_period
+        
+        # Calculate minutes elapsed in current period only (not counting previous periods)
+        if time_since_start is not None:
+            # Get the elapsed time only for this period
+            minutes_elapsed_in_period = current_game_time % total_minutes_in_period
+            minutes_remaining = total_minutes_in_period - minutes_elapsed_in_period
+            
+            # Add period info to template context
+            elapsed_minutes_previous_periods = 0
+            if match_session.elapsed_time > 0:
+                elapsed_minutes_previous_periods = match_session.elapsed_time // 60
+    
+    # Calculate previous periods time - always available regardless of match state
+    elapsed_minutes_previous_periods = int(match_session.elapsed_time / 60) if match_session.elapsed_time > 0 else 0
     
     context = {
         'match_session': match_session,
@@ -677,6 +687,7 @@ def match_session_pitch_view(request, pk):
         'total_periods': match_session.periods,
         'period_length': match_session.period_length,
         'substitution_interval': match_session.substitution_interval,
+        'elapsed_minutes_previous_periods': elapsed_minutes_previous_periods,
     }
     return render(request, 'teammanager/match_session_pitch.html', context)
 
@@ -913,7 +924,8 @@ def update_playing_times(request, session_pk):
                 'minute_in_period': minute_in_period,
                 'start_time': start_time_iso,
                 'next_sub_countdown': next_sub_countdown,
-                'substitution_interval': match_session.substitution_interval
+                'substitution_interval': match_session.substitution_interval,
+                'elapsed_minutes_previous_periods': int(match_session.elapsed_time / 60)
             }
         })
     except Exception as e:
