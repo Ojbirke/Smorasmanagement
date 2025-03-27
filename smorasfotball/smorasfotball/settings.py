@@ -59,10 +59,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'smorasfotball.wsgi.application'
 
 # Database
+import os
+
+# Use persistent storage for database
+DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))
+os.makedirs(DB_DIR, exist_ok=True)
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/persistent/db.sqlite3',
+        'NAME': os.path.join(DB_DIR, 'db.sqlite3'),
     }
 }
 
