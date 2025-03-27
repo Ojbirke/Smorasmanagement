@@ -18,12 +18,13 @@ mkdir -p $PERSISTENT_BACKUP_DIR
 # Check if persistent backups exist
 if [ -d "$PERSISTENT_BACKUP_DIR" ]; then
     # Look for manual backups first (not containing auto_startup or auto_shutdown)
-    LATEST_MANUAL_SQLITE=$(ls -t $PERSISTENT_BACKUP_DIR/backup_*.sqlite3 2>/dev/null | grep -v "auto_startup\|auto_shutdown" | head -1)
-    LATEST_MANUAL_JSON=$(ls -t $PERSISTENT_BACKUP_DIR/backup_*.json 2>/dev/null | grep -v "auto_startup\|auto_shutdown" | head -1)
+    # Use more precise patterns with quotes to ensure proper matching
+    LATEST_MANUAL_SQLITE=$(find "$PERSISTENT_BACKUP_DIR" -name "backup_*.sqlite3" -type f -printf "%T@ %p\n" 2>/dev/null | sort -nr | awk '{print $2}' | grep -v "auto_startup\|auto_shutdown" | head -1)
+    LATEST_MANUAL_JSON=$(find "$PERSISTENT_BACKUP_DIR" -name "backup_*.json" -type f -printf "%T@ %p\n" 2>/dev/null | sort -nr | awk '{print $2}' | grep -v "auto_startup\|auto_shutdown" | head -1)
     
     # If no manual backups exist, fall back to any backup including auto backups
-    LATEST_AUTO_SQLITE=$(ls -t $PERSISTENT_BACKUP_DIR/*.sqlite3 2>/dev/null | head -1)
-    LATEST_AUTO_JSON=$(ls -t $PERSISTENT_BACKUP_DIR/*.json 2>/dev/null | head -1)
+    LATEST_AUTO_SQLITE=$(find "$PERSISTENT_BACKUP_DIR" -name "*.sqlite3" -type f -printf "%T@ %p\n" 2>/dev/null | sort -nr | awk '{print $2}' | head -1)
+    LATEST_AUTO_JSON=$(find "$PERSISTENT_BACKUP_DIR" -name "*.json" -type f -printf "%T@ %p\n" 2>/dev/null | sort -nr | awk '{print $2}' | head -1)
     
     # Prioritize manual backups over auto backups
     if [ -f "db.sqlite3" ] && [ ! -z "$LATEST_MANUAL_SQLITE" ]; then
