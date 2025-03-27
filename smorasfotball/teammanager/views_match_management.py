@@ -15,7 +15,7 @@ import random
 from datetime import timedelta
 
 from .models import (
-    Match, Player, Team, 
+    Match, Player, Team, MatchAppearance,
     MatchSession, PlayerSubstitution, PlayingTime
 )
 from .forms import (
@@ -387,6 +387,7 @@ def match_session_stop(request, pk):
         # Update playing time for all active players
         now = timezone.now()
         
+        # First update all players currently on the pitch
         for playing_time in PlayingTime.objects.filter(match_session=match_session, is_on_pitch=True):
             if playing_time.last_substitution_time:
                 elapsed = now - playing_time.last_substitution_time
@@ -394,11 +395,34 @@ def match_session_stop(request, pk):
                 playing_time.last_substitution_time = None
                 playing_time.save()
         
+        # Now update the MatchAppearance records with the final playing times
+        match = match_session.match
+        team = match.smoras_team
+        
+        # Get all players who participated in this match session
+        for playing_time in PlayingTime.objects.filter(match_session=match_session):
+            # Get or create a match appearance record
+            appearance, created = MatchAppearance.objects.get_or_create(
+                player=playing_time.player,
+                match=match,
+                team=team,
+                defaults={
+                    'minutes_played': playing_time.minutes_played,
+                    'goals': 0,
+                    'assists': 0
+                }
+            )
+            
+            # If the record already existed, update the minutes
+            if not created:
+                appearance.minutes_played = playing_time.minutes_played
+                appearance.save()
+        
         # Stop the match
         match_session.is_active = False
         match_session.save()
         
-        messages.success(request, "Match session stopped. Playing time has been recorded.")
+        messages.success(request, "Match session stopped. Playing time has been recorded and saved to match statistics.")
     else:
         messages.warning(request, "This match session is not currently active.")
     

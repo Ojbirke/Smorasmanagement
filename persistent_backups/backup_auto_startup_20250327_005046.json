@@ -1491,6 +1491,110 @@
   }
 },
 {
+  "model": "teammanager.playersubstitution",
+  "pk": 29,
+  "fields": {
+    "match_session": 11,
+    "player_in": 48,
+    "player_out": 53,
+    "timestamp": "2025-03-27T00:41:51.777Z",
+    "minute": 16,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 30,
+  "fields": {
+    "match_session": 11,
+    "player_in": 59,
+    "player_out": 62,
+    "timestamp": "2025-03-27T00:41:52.051Z",
+    "minute": 16,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 31,
+  "fields": {
+    "match_session": 11,
+    "player_in": 53,
+    "player_out": 58,
+    "timestamp": "2025-03-27T00:43:25.035Z",
+    "minute": 18,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 32,
+  "fields": {
+    "match_session": 11,
+    "player_in": 62,
+    "player_out": 53,
+    "timestamp": "2025-03-27T00:46:02.077Z",
+    "minute": 20,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 33,
+  "fields": {
+    "match_session": 11,
+    "player_in": 53,
+    "player_out": 48,
+    "timestamp": "2025-03-27T00:49:32.560Z",
+    "minute": 24,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 34,
+  "fields": {
+    "match_session": 11,
+    "player_in": 53,
+    "player_out": 48,
+    "timestamp": "2025-03-27T00:49:32.641Z",
+    "minute": 24,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 35,
+  "fields": {
+    "match_session": 11,
+    "player_in": 58,
+    "player_out": 59,
+    "timestamp": "2025-03-27T00:49:32.816Z",
+    "minute": 24,
+    "period": 1,
+    "notes": null
+  }
+},
+{
+  "model": "teammanager.playersubstitution",
+  "pk": 36,
+  "fields": {
+    "match_session": 11,
+    "player_in": 58,
+    "player_out": 59,
+    "timestamp": "2025-03-27T00:49:32.868Z",
+    "minute": 24,
+    "period": 1,
+    "notes": null
+  }
+},
+{
   "model": "teammanager.playingtime",
   "pk": 85,
   "fields": {
@@ -1518,7 +1622,7 @@
   "fields": {
     "match_session": 11,
     "player": 48,
-    "minutes_played": 12,
+    "minutes_played": 19,
     "last_substitution_time": null,
     "is_on_pitch": false
   }
@@ -1529,7 +1633,7 @@
   "fields": {
     "match_session": 11,
     "player": 59,
-    "minutes_played": 12,
+    "minutes_played": 19,
     "last_substitution_time": null,
     "is_on_pitch": false
   }
@@ -1540,8 +1644,8 @@
   "fields": {
     "match_session": 11,
     "player": 53,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-27T00:25:23.117Z",
+    "minutes_played": 18,
+    "last_substitution_time": "2025-03-27T00:49:32.641Z",
     "is_on_pitch": true
   }
 },
@@ -1551,8 +1655,8 @@
   "fields": {
     "match_session": 11,
     "player": 58,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-27T00:25:23.117Z",
+    "minutes_played": 18,
+    "last_substitution_time": "2025-03-27T00:49:32.868Z",
     "is_on_pitch": true
   }
 },
@@ -1562,8 +1666,8 @@
   "fields": {
     "match_session": 11,
     "player": 62,
-    "minutes_played": 0,
-    "last_substitution_time": "2025-03-27T00:25:23.117Z",
+    "minutes_played": 16,
+    "last_substitution_time": "2025-03-27T00:46:02.076Z",
     "is_on_pitch": true
   }
 },
