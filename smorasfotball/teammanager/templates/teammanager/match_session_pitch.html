@@ -807,15 +807,13 @@
                                 const recItem = document.createElement('div');
                                 recItem.className = 'list-group-item';
                                 
-                                // Create recommendation list item with checkbox
+                                // Create recommendation list item with checkbox and dropdown
                                 recItem.innerHTML = `
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <div class="form-check form-check-inline me-2">
                                             <input class="form-check-input rec-checkbox" type="checkbox" 
                                                 id="rec-check-${index}" 
-                                                data-player-in="${rec.player_in_id}" 
                                                 data-player-out="${rec.player_out_id}"
-                                                data-player-in-name="${rec.player_in_name}"
                                                 data-player-out-name="${rec.player_out_name}"
                                                 data-session="{{ match_session.id }}">
                                         </div>
@@ -825,20 +823,23 @@
                                                 <div class="small text-muted">${rec.player_out_minutes} mins played</div>
                                             </div>
                                             <div class="fs-4 mx-3"><i class="bi bi-arrow-left-right"></i></div>
-                                            <div class="text-center ms-3">
-                                                <div class="badge bg-success p-2 mb-2">${rec.player_in_name}</div>
-                                                <div class="small text-muted">${rec.player_in_minutes} mins played</div>
-                                                ${rec.bench_minutes ? `<div class="small text-info">${rec.bench_minutes} mins on bench</div>` : ''}
+                                            <div class="ms-3">
+                                                <select class="form-select form-select-sm bench-player-select" 
+                                                    data-rec-index="${index}">
+                                                    <option value="">Select bench player</option>
+                                                </select>
+                                                <div class="mt-1 text-muted bench-player-stats-${index}">
+                                                    <!-- Will be populated when player is selected -->
+                                                </div>
                                             </div>
                                         </div>
                                         <button class="btn btn-sm btn-primary apply-rec-btn" 
-                                            data-player-in="${rec.player_in_id}" 
                                             data-player-out="${rec.player_out_id}"
                                             data-session="{{ match_session.id }}">
                                             Apply
                                         </button>
                                     </div>
-                                    <div class="small text-muted">${rec.reason}</div>
+                                    <div class="small text-muted recommendation-reason-${index}">${rec.reason}</div>
                                 `;
                                 
                                 autoSubSuggestions.appendChild(recItem);
@@ -846,6 +847,55 @@
                             
                             // Show the bulk actions container
                             document.getElementById('bulkActionsContainer').classList.remove('d-none');
+                            
+                            // First populate bench player dropdowns for each recommendation
+                            data.players_on_bench.forEach(benchPlayer => {
+                                document.querySelectorAll('.bench-player-select').forEach(select => {
+                                    const option = document.createElement('option');
+                                    option.value = benchPlayer.id;
+                                    option.textContent = benchPlayer.name;
+                                    option.dataset.minutes = benchPlayer.minutes;
+                                    option.dataset.benchMinutes = benchPlayer.bench_minutes || 0;
+                                    select.appendChild(option);
+                                });
+                            });
+                            
+                            // Add change event listeners to bench player dropdowns
+                            document.querySelectorAll('.bench-player-select').forEach(select => {
+                                select.addEventListener('change', function() {
+                                    const recIndex = this.dataset.recIndex;
+                                    const playerId = this.value;
+                                    
+                                    if (!playerId) {
+                                        // Clear stats and return if no player selected
+                                        document.querySelector(`.bench-player-stats-${recIndex}`).innerHTML = '';
+                                        return;
+                                    }
+                                    
+                                    // Find player data
+                                    const selectedOption = this.options[this.selectedIndex];
+                                    const minutes = selectedOption.dataset.minutes;
+                                    const benchMinutes = selectedOption.dataset.benchMinutes;
+                                    const playerName = selectedOption.textContent;
+                                    
+                                    // Update stats display
+                                    document.querySelector(`.bench-player-stats-${recIndex}`).innerHTML = `
+                                        <div class="badge bg-success p-2 mb-1">${playerName}</div>
+                                        <div>${minutes} mins played</div>
+                                        ${benchMinutes > 0 ? `<div class="text-info">${benchMinutes} mins on bench</div>` : ''}
+                                    `;
+                                    
+                                    // Update Apply button with the new player info
+                                    const applyBtn = select.closest('.list-group-item').querySelector('.apply-rec-btn');
+                                    applyBtn.dataset.playerIn = playerId;
+                                    applyBtn.dataset.playerInName = playerName;
+                                    
+                                    // Update checkbox with player data
+                                    const checkbox = select.closest('.list-group-item').querySelector('.rec-checkbox');
+                                    checkbox.dataset.playerIn = playerId;
+                                    checkbox.dataset.playerInName = playerName;
+                                });
+                            });
                             
                             // Add event listeners to checkboxes
                             document.querySelectorAll('.rec-checkbox').forEach(checkbox => {
@@ -862,17 +912,39 @@
                                 const checkedBoxes = document.querySelectorAll('.rec-checkbox:checked');
                                 if (checkedBoxes.length === 0) return;
                                 
+                                // Check if all selected recommendations have bench players selected
+                                let allValid = true;
+                                checkedBoxes.forEach(checkbox => {
+                                    const listItem = checkbox.closest('.list-group-item');
+                                    const select = listItem.querySelector('.bench-player-select');
+                                    if (!select.value) {
+                                        allValid = false;
+                                    }
+                                });
+                                
+                                if (!allValid) {
+                                    alert('Please select bench players for all checked substitutions');
+                                    return;
+                                }
+                                
                                 // Close recommendation modal
                                 bsAutoSubModal.hide();
                                 
                                 // Prepare substitutions data
-                                const substitutions = Array.from(checkedBoxes).map(checkbox => ({
-                                    playerIn: checkbox.dataset.playerIn,
-                                    playerOut: checkbox.dataset.playerOut,
-                                    playerInName: checkbox.dataset.playerInName,
-                                    playerOutName: checkbox.dataset.playerOutName,
-                                    sessionId: checkbox.dataset.session
-                                }));
+                                const substitutions = Array.from(checkedBoxes).map(checkbox => {
+                                    const listItem = checkbox.closest('.list-group-item');
+                                    const select = listItem.querySelector('.bench-player-select');
+                                    const playerIn = select.value;
+                                    const playerInName = select.options[select.selectedIndex].textContent;
+                                    
+                                    return {
+                                        playerIn: playerIn,
+                                        playerOut: checkbox.dataset.playerOut,
+                                        playerInName: playerInName,
+                                        playerOutName: checkbox.dataset.playerOutName,
+                                        sessionId: checkbox.dataset.session
+                                    };
+                                });
                                 
                                 // Apply substitutions one by one
                                 applyMultipleSubstitutions(substitutions);
@@ -881,15 +953,24 @@
                             // Add event listeners to the Apply buttons
                             document.querySelectorAll('.apply-rec-btn').forEach(btn => {
                                 btn.addEventListener('click', function() {
-                                    const playerIn = this.dataset.playerIn;
+                                    // Get selected bench player from dropdown
+                                    const listItem = this.closest('.list-group-item');
+                                    const select = listItem.querySelector('.bench-player-select');
+                                    const playerIn = select.value;
+                                    
+                                    if (!playerIn) {
+                                        alert('Please select a bench player first');
+                                        return;
+                                    }
+                                    
                                     const playerOut = this.dataset.playerOut;
                                     const sessionId = this.dataset.session;
+                                    const playerInName = select.options[select.selectedIndex].textContent;
                                     
                                     // Close recommendation modal
                                     bsAutoSubModal.hide();
                                     
-                                    // Get player names from the surrounding elements
-                                    const playerInName = this.closest('.list-group-item').querySelector('.badge.bg-success').textContent.trim();
+                                    // Get player out name from the element
                                     const playerOutName = this.closest('.list-group-item').querySelector('.badge.bg-secondary').textContent.trim();
                                     
                                     // Set up confirmation modal

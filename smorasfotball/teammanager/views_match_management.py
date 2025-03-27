@@ -686,15 +686,19 @@ def get_sub_recommendations(request, session_pk):
         
         # Only make recommendations if we have both players on pitch and bench
         if players_on_pitch and players_on_bench:
-            # Get top 3 players with most minutes on pitch
-            candidates_out = players_on_pitch[:3] if len(players_on_pitch) >= 3 else players_on_pitch
+            # Get top 4 players with most minutes on pitch
+            candidates_out = players_on_pitch[:4] if len(players_on_pitch) >= 4 else players_on_pitch
             
-            # Get top 3 players with least minutes from bench (and most bench time)
-            candidates_in = players_on_bench[:3] if len(players_on_bench) >= 3 else players_on_bench
+            # For bench players, we'll include all of them in the response
+            # and let the frontend handle the dropdown selection
+            candidates_in = players_on_bench
             
-            # Create recommendations with meaningful reasons
+            # For the initial recommendations, just use the top ones from bench
+            top_bench = players_on_bench[:1] if len(players_on_bench) >= 1 else players_on_bench
+            
+            # Create recommendations with meaningful reasons for each player on pitch
             for player_out in candidates_out:
-                for player_in in candidates_in:
+                for player_in in top_bench:
                     # Calculate play time difference
                     play_time_diff = player_out['minutes'] - player_in['minutes']
                     
