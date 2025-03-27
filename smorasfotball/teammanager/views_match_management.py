@@ -118,26 +118,51 @@ class MatchSessionCreateView(LoginRequiredMixin, CreateView):
         appearances = match.appearances.all()
         
         if appearances.exists():
-            # Auto-import players from match appearances
-            players_from_match = Player.objects.filter(
-                match_appearances__match=match
-            ).distinct()
+            # Check for lineup associated with this match
+            lineup = match.lineups.filter(is_template=False).order_by('-created_at').first()
             
-            # Always use 7 players as starters (7-a-side format) as requested
-            # We're already getting the correct players from match appearances
-            all_players = list(players_from_match)
-            random.shuffle(all_players)  # Randomize the player order for random selection
-            
-            # If we have more than 7 players, use exactly 7 as starters
-            if len(all_players) >= 7:
-                starters = all_players[:7]  # First 7 players after shuffle
-                bench = all_players[7:]     # Remaining players to bench
-            else:
-                # If we have fewer than 7 players, use all available as starters
-                starters = all_players
+            if lineup and lineup.player_positions.exists():
+                # If a lineup exists for this match, use player positions from it
+                starters = []
                 bench = []
                 
-            print(f"Auto-imported {len(all_players)} players from match: {len(starters)} as starters, {len(bench)} on bench.")
+                # Get all players from the lineup with their starter status
+                for position in lineup.player_positions.all():
+                    if position.is_starter:
+                        starters.append(position.player)
+                    else:
+                        bench.append(position.player)
+                
+                # Get additional players from match appearances that might not be in lineup
+                lineup_player_ids = lineup.player_positions.values_list('player_id', flat=True)
+                additional_players = Player.objects.filter(
+                    match_appearances__match=match
+                ).exclude(id__in=lineup_player_ids).distinct()
+                
+                # Add additional players to bench
+                bench.extend(additional_players)
+                
+                print(f"Auto-imported players from match lineup: {len(starters)} as starters, {len(bench)} on bench.")
+            else:
+                # Fallback to getting players from match appearances if no lineup exists
+                players_from_match = Player.objects.filter(
+                    match_appearances__match=match
+                ).distinct()
+                
+                # Always use 7 players as starters (7-a-side format) as requested
+                all_players = list(players_from_match)
+                random.shuffle(all_players)  # Randomize the player order for random selection
+                
+                # If we have more than 7 players, use exactly 7 as starters
+                if len(all_players) >= 7:
+                    starters = all_players[:7]  # First 7 players after shuffle
+                    bench = all_players[7:]     # Remaining players to bench
+                else:
+                    # If we have fewer than 7 players, use all available as starters
+                    starters = all_players
+                    bench = []
+                    
+                print(f"Auto-imported {len(all_players)} players from match appearances: {len(starters)} as starters, {len(bench)} on bench.")
             
             # Create playing time records
             for player in starters:
@@ -162,10 +187,11 @@ class MatchSessionCreateView(LoginRequiredMixin, CreateView):
                     }
                 )
             
+            total_players = len(starters) + len(bench)
             messages.success(
                 self.request, 
                 f"Match session created and players auto-imported from match! "
-                f"{len(all_players)} players imported with {len(starters)} as starters."
+                f"{total_players} players imported with {len(starters)} as starters."
             )
             return redirect('match-session-detail', pk=self.object.pk)
         else:
@@ -226,26 +252,55 @@ def match_session_players(request, pk):
         form = PlayerSelectionSessionForm(match_session, request.POST)
         
         if 'import_from_match' in request.POST and has_appearances:
-            # Import players from match appearances
-            players_from_match = Player.objects.filter(
-                match_appearances__match=match_session.match
-            ).distinct()
+            # Check for lineup associated with this match
+            lineup = match_session.match.lineups.filter(is_template=False).order_by('-created_at').first()
             
-            # Always use 7 players as starters (7-a-side format) as requested
-            # We're already getting the correct players from match appearances
-            all_players = list(players_from_match)
-            random.shuffle(all_players)  # Randomize the player order for random selection
-            
-            # If we have more than 7 players, use exactly 7 as starters
-            if len(all_players) >= 7:
-                starters = all_players[:7]  # First 7 players after shuffle
-                bench = all_players[7:]     # Remaining players to bench
-            else:
-                # If we have fewer than 7 players, use all available as starters
-                starters = all_players
+            if lineup and lineup.player_positions.exists():
+                # If a lineup exists for this match, use player positions from it
+                starters = []
                 bench = []
                 
-            print(f"AJAX: Auto-imported {len(all_players)} players from match: {len(starters)} as starters, {len(bench)} on bench.")
+                # Get all players from the lineup with their starter status
+                for position in lineup.player_positions.all():
+                    if position.is_starter:
+                        starters.append(position.player)
+                    else:
+                        bench.append(position.player)
+                
+                # Get additional players from match appearances that might not be in lineup
+                lineup_player_ids = lineup.player_positions.values_list('player_id', flat=True)
+                additional_players = Player.objects.filter(
+                    match_appearances__match=match_session.match
+                ).exclude(id__in=lineup_player_ids).distinct()
+                
+                # Add additional players to bench
+                bench.extend(additional_players)
+                
+                # Combine for the all_players list that's used later
+                all_players = starters + bench
+                
+                print(f"AJAX: Auto-imported players from match lineup: {len(starters)} as starters, {len(bench)} on bench.")
+            else:
+                # Import players from match appearances
+                players_from_match = Player.objects.filter(
+                    match_appearances__match=match_session.match
+                ).distinct()
+                
+                # Always use 7 players as starters (7-a-side format) as requested
+                # We're already getting the correct players from match appearances
+                all_players = list(players_from_match)
+                random.shuffle(all_players)  # Randomize the player order for random selection
+                
+                # If we have more than 7 players, use exactly 7 as starters
+                if len(all_players) >= 7:
+                    starters = all_players[:7]  # First 7 players after shuffle
+                    bench = all_players[7:]     # Remaining players to bench
+                else:
+                    # If we have fewer than 7 players, use all available as starters
+                    starters = all_players
+                    bench = []
+                    
+                print(f"AJAX: Auto-imported {len(all_players)} players from match appearances: {len(starters)} as starters, {len(bench)} on bench.")
             
             # Create playing time records
             for player in starters:
@@ -270,7 +325,8 @@ def match_session_players(request, pk):
                     }
                 )
             
-            messages.success(request, f"Imported {len(all_players)} players from match. {len(starters)} players are starting.")
+            total_players = len(starters) + len(bench)
+            messages.success(request, f"Imported {total_players} players from match. {len(starters)} players are starting.")
             return redirect('match-session-detail', pk=match_session.pk)
             
         elif form.is_valid():
