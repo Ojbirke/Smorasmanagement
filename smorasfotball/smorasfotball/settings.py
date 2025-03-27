@@ -74,6 +74,14 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
     {
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/persistent/db.sqlite3',
+    }
+}
+
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
     {
