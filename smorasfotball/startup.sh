@@ -80,3 +80,12 @@ fi
 
 # Output success message
 echo "Startup script completed."
+#!/bin/bash
+# Create backup directory if it doesn't exist
+mkdir -p ../persistent_backups
+
+# Run persistent backup before startup
+python manage.py persistent_backup --name "pre_deploy"
+
+# Start the application
+gunicorn --bind 0.0.0.0:5000 smorasfotball.wsgi:application
