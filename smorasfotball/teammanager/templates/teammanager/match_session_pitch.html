@@ -289,8 +289,14 @@
             </div>
             
             <div class="col-6 text-end">
-                <div class="small text-muted">
-                    Manual substitutions only
+                <div class="small">
+                    {% if match_session.is_active and next_sub_countdown is not None %}
+                        <span class="badge bg-primary">
+                            <i class="bi bi-clock"></i> Next sub: {{ next_sub_countdown }} min
+                        </span>
+                    {% else %}
+                        <span class="text-muted">Manual substitutions only</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -1188,6 +1194,21 @@
                     if (periodInfoEl) {
                         periodInfoEl.innerHTML = `Period ${data.match_info.period}/{{ total_periods }}`;
                         currentPeriod = data.match_info.period;
+                    }
+                    
+                    // Update substitution countdown
+                    if (data.match_info.hasOwnProperty('next_sub_countdown')) {
+                        // Find the countdown element
+                        const countdownEl = document.querySelector('.col-6.text-end .small');
+                        if (countdownEl) {
+                            if (data.match_info.next_sub_countdown !== null) {
+                                countdownEl.innerHTML = `<span class="badge bg-primary">
+                                    <i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown} min
+                                </span>`;
+                            } else {
+                                countdownEl.innerHTML = `<span class="text-muted">Manual substitutions only</span>`;
+                            }
+                        }
                     }
                 }
             })

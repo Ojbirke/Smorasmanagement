@@ -594,14 +594,23 @@ def match_session_pitch_view(request, pk):
     current_game_time = None
     next_sub_time = None
     time_since_start = None
+    next_sub_countdown = None
     
     if match_session.is_active and match_session.start_time:
         elapsed = timezone.now() - match_session.start_time
         time_since_start = elapsed
         current_game_time = math.floor(elapsed.total_seconds() / 60)
+        current_seconds = elapsed.total_seconds()
         
-        # No random substitutions as requested by user
-        next_sub_time = None  # Disable substitution timer
+        # Calculate next substitution time based on substitution interval
+        if match_session.substitution_interval > 0:
+            # Calculate how many substitution intervals have passed
+            intervals_passed = current_game_time // match_session.substitution_interval
+            # Calculate when the next interval will occur
+            next_sub_time = (intervals_passed + 1) * match_session.substitution_interval
+            # Calculate seconds until next substitution
+            seconds_until_sub = (next_sub_time * 60) - current_seconds
+            next_sub_countdown = math.ceil(seconds_until_sub / 60)  # Convert to minutes and round up
     
     # Calculate period
     current_period = 1
@@ -622,6 +631,7 @@ def match_session_pitch_view(request, pk):
         'current_game_time': current_game_time,
         'time_since_start': time_since_start,
         'next_sub_time': next_sub_time,
+        'next_sub_countdown': next_sub_countdown,
         'can_edit': is_coach_or_admin(request.user),
         'current_period': current_period,
         'minutes_remaining': minutes_remaining,
@@ -793,12 +803,21 @@ def update_playing_times(request, session_pk):
         playing_times = PlayingTime.objects.filter(match_session=match_session)
         
         # Match statistics
+        next_sub_countdown = None
         if match_session.start_time:
             match_elapsed = (now - match_session.start_time).total_seconds() / 60
             current_period = min((int(match_elapsed) // match_session.period_length) + 1, match_session.periods)
             minute_in_match = int(match_elapsed)
             minute_in_period = int(match_elapsed) % match_session.period_length
             start_time_iso = match_session.start_time.isoformat()
+            
+            # Calculate next substitution time
+            if match_session.substitution_interval > 0:
+                current_seconds = (now - match_session.start_time).total_seconds()
+                intervals_passed = minute_in_match // match_session.substitution_interval
+                next_sub_time = (intervals_passed + 1) * match_session.substitution_interval
+                seconds_until_sub = (next_sub_time * 60) - current_seconds
+                next_sub_countdown = math.ceil(seconds_until_sub / 60)  # Convert to minutes and round up
         else:
             match_elapsed = 0
             current_period = 1
@@ -845,7 +864,9 @@ def update_playing_times(request, session_pk):
                 'period': current_period,
                 'minute_in_match': minute_in_match,
                 'minute_in_period': minute_in_period,
-                'start_time': start_time_iso
+                'start_time': start_time_iso,
+                'next_sub_countdown': next_sub_countdown,
+                'substitution_interval': match_session.substitution_interval
             }
         })
     except Exception as e:
