@@ -109,9 +109,43 @@ class Command(BaseCommand):
                     
                     self.stdout.write(self.style.SUCCESS(f"SQLite database backup created: {sqlite_filename}"))
             
-            # Clean up old backups if this is an auto backup
+            # Clean up old backups
             if custom_name and (custom_name == 'auto_startup' or custom_name == 'auto_shutdown'):
+                # For auto backups, keep only the latest 2
                 self.clean_old_backups(persistent_backup_dir, custom_name, keep=2)
+            else:
+                # For manual backups, clean up excess files keeping the latest 3
+                # We need to use a different approach since they don't have a prefix
+                self.stdout.write("Cleaning up manual backups, keeping the latest 3...")
+                
+                # Get all manual backup files (those that don't have auto_startup or auto_shutdown in the name)
+                all_json_files = glob.glob(os.path.join(persistent_backup_dir, 'backup_*.json'))
+                manual_json_files = [f for f in all_json_files if 'auto_startup' not in f and 'auto_shutdown' not in f]
+                
+                all_sqlite_files = glob.glob(os.path.join(persistent_backup_dir, 'backup_*.sqlite3'))
+                manual_sqlite_files = [f for f in all_sqlite_files if 'auto_startup' not in f and 'auto_shutdown' not in f]
+                
+                # Sort files by modification time (newest first)
+                manual_json_files.sort(key=os.path.getmtime, reverse=True)
+                manual_sqlite_files.sort(key=os.path.getmtime, reverse=True)
+                
+                # Remove excess JSON files (keeping the newest 3 files)
+                for file_path in manual_json_files[3:]:
+                    try:
+                        os.remove(file_path)
+                        self.stdout.write(f"Removed old manual JSON backup: {os.path.basename(file_path)}")
+                    except Exception as e:
+                        self.stdout.write(self.style.WARNING(f"Could not remove {file_path}: {str(e)}"))
+                
+                # Remove excess SQLite files
+                for file_path in manual_sqlite_files[3:]:
+                    try:
+                        os.remove(file_path)
+                        self.stdout.write(f"Removed old manual SQLite backup: {os.path.basename(file_path)}")
+                    except Exception as e:
+                        self.stdout.write(self.style.WARNING(f"Could not remove {file_path}: {str(e)}"))
+                
+                self.stdout.write("Manual backup cleanup completed")
         
         except Exception as e:
             raise CommandError(f"Error creating backup: {str(e)}")

@@ -58,9 +58,12 @@
                     </table>
                     
                     {% if has_data %}
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-info-circle"></i> To create a new backup, click the button below.
+                    </div>
                     <form action="{% url 'create-backup' %}" method="post" class="mt-3">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-success btn-block">
+                        <button type="submit" class="btn btn-success btn-lg btn-block">
                             <i class="fas fa-download"></i> Create Backup Now
                         </button>
                     </form>
