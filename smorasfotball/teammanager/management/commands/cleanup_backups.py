@@ -39,7 +39,7 @@ class Command(BaseCommand):
         sqlite_timestamps = {}
         
         # Extract timestamps from JSON filenames
-        pattern = re.compile(f'backup_{prefix}_([0-9]+).json')
+        pattern = re.compile(f'backup_{prefix}_([0-9_]+).json')
         for file_path in json_files:
             filename = os.path.basename(file_path)
             match = pattern.match(filename)
@@ -48,7 +48,7 @@ class Command(BaseCommand):
                 json_timestamps[timestamp] = file_path
         
         # Extract timestamps from SQLite filenames
-        pattern = re.compile(f'backup_{prefix}_([0-9]+).sqlite3')
+        pattern = re.compile(f'backup_{prefix}_([0-9_]+).sqlite3')
         for file_path in sqlite_files:
             filename = os.path.basename(file_path)
             match = pattern.match(filename)
@@ -102,8 +102,8 @@ class Command(BaseCommand):
         for backup_type in backup_types:
             self.clean_old_backups(persistent_backup_dir, backup_type, keep=keep)
             
-        # Also clean up manual backups
-        manual_pattern = os.path.join(persistent_backup_dir, 'backup_20*.json')
+        # Also clean up manual backups (those without auto_startup or auto_shutdown in the name)
+        manual_pattern = os.path.join(persistent_backup_dir, 'backup_*.json')
         manual_files = glob.glob(manual_pattern)
         
         # Extract timestamps for better matching
@@ -111,11 +111,12 @@ class Command(BaseCommand):
         manual_sqlite_files = {}
         timestamp_pattern = re.compile(r'backup_([0-9_]+)\.json')
         
-        # Get all JSON files with timestamps
+        # Get all JSON files with timestamps, excluding auto backups
         for file_path in manual_files:
             filename = os.path.basename(file_path)
             match = timestamp_pattern.match(filename)
-            if match and 'auto_' not in filename:  # Exclude auto backups
+            # Exclude auto backups with more precise pattern matching
+            if match and 'auto_startup' not in filename and 'auto_shutdown' not in filename:
                 timestamp = match.group(1)
                 manual_json_files[timestamp] = file_path
         
@@ -158,8 +159,14 @@ class Command(BaseCommand):
             file_counts = {}
             for file_path in all_files:
                 filename = os.path.basename(file_path)
-                if "_auto_" in filename:
-                    prefix = 'auto_' + filename.split('_auto_')[1].split('_')[0]
+                # Look for auto_startup and auto_shutdown files
+                if "auto_startup" in filename:
+                    prefix = 'auto_startup'
+                    if prefix not in file_counts:
+                        file_counts[prefix] = []
+                    file_counts[prefix].append(file_path)
+                elif "auto_shutdown" in filename:
+                    prefix = 'auto_shutdown'
                     if prefix not in file_counts:
                         file_counts[prefix] = []
                     file_counts[prefix].append(file_path)
