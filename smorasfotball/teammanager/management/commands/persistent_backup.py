@@ -4,6 +4,7 @@ import sys
 import shutil
 import glob
 import re
+import time
 from datetime import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command
@@ -106,6 +107,14 @@ class Command(BaseCommand):
                     shutil.copy2(db_path, sqlite_filepath)
                     # Create a copy in persistent location
                     shutil.copy2(db_path, persistent_sqlite_filepath)
+                    
+                    # Set the same timestamp on both the JSON and SQLite files to keep them in sync
+                    # This ensures they appear with the same timestamp in the UI
+                    current_time = time.time()
+                    os.utime(sqlite_filepath, (current_time, current_time))
+                    os.utime(persistent_sqlite_filepath, (current_time, current_time))
+                    os.utime(json_filepath, (current_time, current_time))
+                    os.utime(persistent_json_filepath, (current_time, current_time))
                     
                     self.stdout.write(self.style.SUCCESS(f"SQLite database backup created: {sqlite_filename}"))
             
