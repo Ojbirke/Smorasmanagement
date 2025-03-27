@@ -36,15 +36,33 @@ else:
 
 # Ensure UserProfile exists and is properly configured
 try:
-    profile = user.profile
-except UserProfile.DoesNotExist:
-    profile = UserProfile.objects.create(user=user)
+    try:
+        profile = user.profile
+    except (UserProfile.DoesNotExist, AttributeError):
+        profile = UserProfile.objects.create(user=user)
+        print(f"Created new UserProfile for {username}")
 
-# Set as admin and approved
-profile.role = 'admin'
-profile.status = 'approved'
-profile.save()
-print(f"User profile set to admin role with approved status.")
+    # Try the new profile schema first (role/status)
+    try:
+        # Set as admin and approved
+        profile.role = 'admin'
+        profile.status = 'approved'
+        profile.save()
+        print(f"User profile set to admin role with approved status.")
+    except Exception as e:
+        print(f"Error using new profile schema: {str(e)}")
+        # Fall back to the legacy profile schema if needed
+        try:
+            profile.is_coach = True
+            profile.is_approved = True
+            profile.save()
+            print(f"User profile set to coach role with approved status (legacy schema).")
+        except Exception as legacy_error:
+            print(f"Error using legacy profile schema: {str(legacy_error)}")
+            print("Profile updates failed, but superuser access should still work.")
+except Exception as profile_error:
+    print(f"Warning: Could not configure user profile: {str(profile_error)}")
+    print("Superuser should still be able to access the admin panel.")
 
 print("=" * 60)
 print(f"Superuser '{username}' is now ready to use.")

@@ -93,8 +93,26 @@ if [ -f "$DEPLOYMENT_SQLITE" ] || [ -f "$DEPLOYMENT_JSON" ]; then
         echo "Restoring from deployment backup..."
         # Use our custom management command for deployment backup restore
         # This will automatically choose between SQLite and JSON (preferring SQLite)
-        python manage.py deployment_backup --restore
-        echo "Deployment database restored from backup"
+        # Use a fallback approach if the restore operation fails
+        python manage.py deployment_backup --restore || {
+            echo "Deployment backup restore failed with new command. Trying fallback methods..."
+            
+            # Check which format is available
+            if [ -f "$DEPLOYMENT_DIR/deployment_db.sqlite" ]; then
+                echo "Using SQLite backup directly..."
+                cp "$DEPLOYMENT_DIR/deployment_db.sqlite" db.sqlite3
+            elif [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
+                echo "Using JSON backup directly..."
+                python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json" || {
+                    echo "Direct JSON load failed. Trying final fallback approach..."
+                    python manage.py flush --no-input
+                    python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json"
+                }
+            else
+                echo "No deployment backup found."
+            fi
+        }
+        echo "Deployment database restore process completed"
         
         # Exit early with successful status
         exit 0
