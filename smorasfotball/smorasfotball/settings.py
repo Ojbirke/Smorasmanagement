@@ -106,3 +106,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Login redirect
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# CSRF settings - allow Replit domains
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.repl.co',
+    'https://*.replit.app',
+    'https://*.repl.dev',
+]
