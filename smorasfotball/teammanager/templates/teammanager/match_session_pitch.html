@@ -1110,13 +1110,13 @@
             // Update period if needed (only when a full minute passes)
             if (elapsedMinutes !== currentGameTime) {
                 currentGameTime = elapsedMinutes;
-                const newPeriod = Math.min(Math.floor(elapsedMinutes / {{ period_length }}) + 1, {{ total_periods }});
+                const newPeriod = Math.min(Math.floor(elapsedMinutes / {{ period_length }}) + 1, data.match_info.total_periods);
                 
                 if (newPeriod !== currentPeriod) {
                     currentPeriod = newPeriod;
                     const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
                     if (periodInfoEl) {
-                        periodInfoEl.innerHTML = `Period ${currentPeriod}/{{ total_periods }}`;
+                        periodInfoEl.innerHTML = `Period ${currentPeriod}/${data.match_info.total_periods}`;
                     }
                 }
             }
@@ -1183,7 +1183,7 @@
                         // Update period badge
                         const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                         if (periodBadge) {
-                            periodBadge.textContent = `Period ${data.match_info.period}/${{{ total_periods }}}`;
+                            periodBadge.textContent = `Period ${data.match_info.period}/${data.match_info.total_periods}`;
                         }
                         
                         // Update minutes remaining in period
@@ -1234,7 +1234,7 @@
                     // Update period badge in the header
                     const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                     if (periodBadge) {
-                        periodBadge.textContent = `Period ${data.match_info.period}/{{ total_periods }}`;
+                        periodBadge.textContent = `Period ${data.match_info.period}/${data.match_info.total_periods}`;
                     }
                     
                     // Update minutes remaining in period

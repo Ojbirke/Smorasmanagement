@@ -1,0 +1,48 @@
+TemplateSyntaxError at /team/match-sessions/12/pitch/
+Could not parse the remainder: '{ total_periods' from '{ total_periods'
+Request Method:	GET
+Request URL:	http://0cae2ce2-a30e-4925-aa85-da01f7ace035-00-252e4sr0hcm33.spock.repl.co/team/match-sessions/12/pitch/
+Django Version:	5.1.7
+Exception Type:	TemplateSyntaxError
+Exception Value:	
+Could not parse the remainder: '{ total_periods' from '{ total_periods'
+Exception Location:	/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/django/template/base.py, line 706, in __init__
+Raised during:	teammanager.views_match_management.match_session_pitch_view
+Python Executable:	/home/runner/workspace/.pythonlibs/bin/python
+Python Version:	3.11.10
+Python Path:	
+['/home/runner/workspace/smorasfotball',
+ '/nix/store/lc7qv2ldzrs1aq3hbyzmbgvn0h2w26pl-sitecustomize/lib/python/site-packages',
+ '/nix/store/dfg63lldbvcj207iyr9z0xw21d8ax02n-python3.11-pip-24.0/lib/python3.11/site-packages',
+ '/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python311.zip',
+ '/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11',
+ '/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/lib-dynload',
+ '/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages',
+ '/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages',
+ '/nix/store/wblvmd5y7izx0z10d1w7ga7zc4apjxmb-python3.11-setuptools-75.1.1/lib/python3.11/site-packages']
+Server time:	Thu, 27 Mar 2025 01:14:24 +0000
+Error during template rendering
+In template /home/runner/workspace/smorasfotball/teammanager/templates/teammanager/match_session_pitch.html, error at line 1186
+
+Could not parse the remainder: '{ total_periods' from '{ total_periods'
+1176	                    if (data.match_info) {
+1177	                        // Update time
+1178	                        const timeDisplay = document.querySelector('.fs-5 .fw-bold');
+1179	                        if (timeDisplay) {
+1180	                            timeDisplay.textContent = `${data.match_info.elapsed}:00`;
+1181	                        }
+1182	                        
+1183	                        // Update period badge
+1184	                        const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
+1185	                        if (periodBadge) {
+1186	                            periodBadge.textContent = `Period ${data.match_info.period}/${{{ total_periods }}}`;
+1187	                        }
+1188	                        
+1189	                        // Update minutes remaining in period
+1190	                        if (data.match_info.minute_in_period !== undefined) {
+1191	                            const minutesRemaining = {{ period_length }} - data.match_info.minute_in_period;
+1192	                            const minutesEl = document.querySelector('.text-muted:not(:has(.badge))');
+1193	                            if (minutesEl && minutesRemaining >= 0) {
+1194	                                minutesEl.textContent = `${minutesRemaining} min left in period`;
+1195	                            }
+1196	                        }

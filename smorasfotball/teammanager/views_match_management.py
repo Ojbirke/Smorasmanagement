@@ -818,11 +818,19 @@ def get_sub_recommendations(request, session_pk):
                         'reason': reason
                     })
         
+        # Include match information for proper period display
+        match_info = {
+            'period': match_session.current_period,
+            'total_periods': match_session.periods,
+            # Add other match-related data that might be needed
+        }
+        
         return JsonResponse({
             'success': True,
             'recommendations': recommendations,  # Return all recommendations (7 or however many on-pitch players)
             'players_on_pitch': players_on_pitch,
-            'players_on_bench': players_on_bench
+            'players_on_bench': players_on_bench,
+            'match_info': match_info
         })
     except Exception as e:
         import traceback
@@ -920,6 +928,7 @@ def update_playing_times(request, session_pk):
             'match_info': {
                 'elapsed': int(match_elapsed),
                 'period': current_period,
+                'total_periods': match_session.periods,
                 'minute_in_match': minute_in_match,
                 'minute_in_period': minute_in_period,
                 'start_time': start_time_iso,
