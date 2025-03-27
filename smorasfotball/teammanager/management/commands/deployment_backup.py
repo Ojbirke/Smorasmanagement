@@ -134,51 +134,227 @@ class Command(BaseCommand):
         sqlite_path = os.path.join(deployment_dir, "deployment_db.sqlite")
         json_path = os.path.join(deployment_dir, "deployment_db.json")
         
-        # Determine which backup format to use
+        # List all available files for debugging
+        self.stdout.write(self.style.WARNING("DEBUG: Listing all files in deployment directory:"))
+        try:
+            for file in os.listdir(deployment_dir):
+                file_path = os.path.join(deployment_dir, file)
+                if os.path.isfile(file_path):
+                    file_size = os.path.getsize(file_path)
+                    self.stdout.write(f"  File: {file}, Size: {file_size} bytes")
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error listing files: {str(e)}"))
+            
+        # Look for backup files with pattern matching to find production backups
+        # This is a failsafe in case the main deployment_db files are missing
+        backup_files = []
+        try:
+            for file in os.listdir(deployment_dir):
+                if file.endswith('.sqlite') and ('production' in file or 'deployment' in file):
+                    backup_files.append(os.path.join(deployment_dir, file))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error searching for backup files: {str(e)}"))
+        
+        if backup_files:
+            self.stdout.write(self.style.SUCCESS(f"Found {len(backup_files)} additional backup files that could be used"))
+            # Sort by modification time (newest first)
+            backup_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            self.stdout.write(f"Most recent backup: {backup_files[0]}")
+        
+        # Check directory permissions
+        try:
+            os.access(deployment_dir, os.W_OK)
+            self.stdout.write(self.style.SUCCESS("Deployment directory is writable"))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Deployment directory permission check error: {str(e)}"))
+            
+        # Now determine which backup format to use
+        # Check file permissions and sizes to verify they are valid backups
+        sqlite_is_valid = False
+        json_is_valid = False
+        
         if os.path.exists(sqlite_path):
-            self.stdout.write(self.style.SUCCESS('Found SQLite deployment backup'))
-            return self.restore_sqlite_backup(sqlite_path)
-        elif os.path.exists(json_path):
-            self.stdout.write(self.style.SUCCESS('Found JSON deployment backup'))
-            return self.restore_json_backup(json_path)
-        else:
-            raise CommandError("No deployment backup found to restore from (checked both .sqlite and .json)")
+            try:
+                sqlite_size = os.path.getsize(sqlite_path)
+                sqlite_is_valid = sqlite_size > 1000  # Basic size check
+                self.stdout.write(self.style.SUCCESS(f'Found SQLite deployment backup: {sqlite_path}, Size: {sqlite_size} bytes'))
+                
+                # Check permissions
+                if not os.access(sqlite_path, os.R_OK):
+                    self.stdout.write(self.style.WARNING(f"WARNING: SQLite backup exists but is not readable"))
+                    # Try to fix permissions
+                    os.chmod(sqlite_path, 0o644)
+                    self.stdout.write(self.style.SUCCESS("Fixed permissions on SQLite backup"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Error checking SQLite backup: {str(e)}"))
+                
+        if os.path.exists(json_path):
+            try:
+                json_size = os.path.getsize(json_path)
+                json_is_valid = json_size > 10  # Basic size check
+                self.stdout.write(self.style.SUCCESS(f'Found JSON deployment backup: {json_path}, Size: {json_size} bytes'))
+                
+                # Check permissions
+                if not os.access(json_path, os.R_OK):
+                    self.stdout.write(self.style.WARNING(f"WARNING: JSON backup exists but is not readable"))
+                    # Try to fix permissions
+                    os.chmod(json_path, 0o644)
+                    self.stdout.write(self.style.SUCCESS("Fixed permissions on JSON backup"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Error checking JSON backup: {str(e)}"))
+                
+        # Use the valid backups in order of preference
+        success = False
+        
+        # First try SQLite (preferred method)
+        if sqlite_is_valid:
+            try:
+                self.stdout.write(self.style.SUCCESS('Using SQLite backup (preferred method)'))
+                success = self.restore_sqlite_backup(sqlite_path)
+                if success:
+                    return True
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'SQLite restore attempt failed: {str(e)}'))
+                # Continue to next method
+        
+        # Then try JSON backup
+        if not success and json_is_valid:
+            try:
+                self.stdout.write(self.style.SUCCESS('Using JSON backup as fallback'))
+                success = self.restore_json_backup(json_path)
+                if success:
+                    return True
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'JSON restore attempt failed: {str(e)}'))
+                # Continue to next method
+        
+        # If standard backups fail, try additional backup files found
+        if not success and backup_files:
+            try:
+                self.stdout.write(self.style.SUCCESS(f'Trying most recent backup file: {backup_files[0]}'))
+                if backup_files[0].endswith('.sqlite'):
+                    success = self.restore_sqlite_backup(backup_files[0])
+                else:
+                    success = self.restore_json_backup(backup_files[0])
+                if success:
+                    return True
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Additional backup restore attempt failed: {str(e)}'))
+                # Continue to next method
+                
+        # If all else fails, recreate the deployment_db files by copying from backup directory
+        if backup_files and not (sqlite_is_valid or json_is_valid):
+            try:
+                for backup_file in backup_files:
+                    if backup_file.endswith('.sqlite'):
+                        self.stdout.write(self.style.SUCCESS(f'Creating deployment_db.sqlite from {backup_file}'))
+                        shutil.copy2(backup_file, sqlite_path)
+                        os.chmod(sqlite_path, 0o644)
+                        success = self.restore_sqlite_backup(sqlite_path)
+                        if success:
+                            return True
+                        break
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Failed to create deployment_db files: {str(e)}'))
+                
+        if not success:
+            self.stdout.write(self.style.ERROR("ALL RESTORATION METHODS FAILED!"))
+            raise CommandError("No usable deployment backup found to restore from")
     
     def restore_sqlite_backup(self, backup_path):
         """Restore from SQLite backup file"""
+        self.stdout.write(self.style.SUCCESS(f'STARTING SQLITE RESTORATION FROM: {backup_path}'))
+        self.stdout.write(f'Backup file size: {os.path.getsize(backup_path)} bytes')
+        self.stdout.write(f'Backup last modified: {os.path.getmtime(backup_path)}')
+        
         try:
-            self.stdout.write(self.style.SUCCESS(f'Restoring from SQLite deployment backup: {backup_path}'))
-            
             # Get the current database path
             from django.db import connections
             db_path = connections['default'].settings_dict['NAME']
             
             if not os.path.exists(db_path):
                 self.stdout.write(self.style.WARNING(f"Current database file not found, will create new one at: {db_path}"))
+                # Make sure parent directory exists
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
             
             # Close all database connections
             from django.db import connection
             connection.close()
             
-            # Back up the current database file just in case
+            # Make multiple backups of the current database file just in case
             if os.path.exists(db_path):
-                temp_backup = f"{db_path}.bak"
+                # Create a timestamped backup
+                timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+                temp_backup = f"{db_path}.{timestamp}.bak"
                 shutil.copy2(db_path, temp_backup)
-                self.stdout.write(f"Created temporary backup of current database at: {temp_backup}")
+                self.stdout.write(f"Created timestamped backup of current database at: {temp_backup}")
+                
+                # Create a simple .bak file too
+                simple_backup = f"{db_path}.bak"
+                shutil.copy2(db_path, simple_backup)
+                self.stdout.write(f"Created simple backup at: {simple_backup}")
             
-            # Copy the backup file to the current database location
-            shutil.copy2(backup_path, db_path)
-            self.stdout.write(self.style.SUCCESS(f"Replaced database with backup from: {backup_path}"))
+            # Copy the backup file to the current database location with multiple retries
+            max_retries = 3
+            success = False
             
-            # Record this restore in environment variables for diagnostic purposes
-            os.environ['LAST_RESTORED_BACKUP'] = os.path.basename(backup_path) + " (Deployment Specific)"
-            os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            return True
+            for attempt in range(max_retries):
+                try:
+                    # Make sure there is adequate space
+                    backup_size = os.path.getsize(backup_path)
+                    self.stdout.write(f"Backup size: {backup_size} bytes")
+                    
+                    # First try to make a copy
+                    shutil.copy2(backup_path, db_path)
+                    
+                    # Check if the copy succeeded by comparing file sizes
+                    if os.path.exists(db_path):
+                        copy_size = os.path.getsize(db_path)
+                        if copy_size == backup_size:
+                            self.stdout.write(self.style.SUCCESS(f"Database copy successful: {copy_size} bytes"))
+                            success = True
+                            break
+                        else:
+                            self.stdout.write(self.style.ERROR(f"Size mismatch after copy! Backup: {backup_size}, Copy: {copy_size} bytes"))
+                    else:
+                        self.stdout.write(self.style.ERROR("Copy failed - destination file doesn't exist"))
+                        
+                    # If copy failed, wait a bit and try again
+                    self.stdout.write(f"Copy attempt {attempt+1} failed, retrying...")
+                    import time
+                    time.sleep(2)
+                    
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Copy attempt {attempt+1} error: {str(e)}"))
+                    if attempt == max_retries - 1:
+                        raise
+                        
+            if success:
+                self.stdout.write(self.style.SUCCESS(f"Replaced database with backup from: {backup_path}"))
+                
+                # Record this restore in environment variables for diagnostic purposes
+                os.environ['LAST_RESTORED_BACKUP'] = os.path.basename(backup_path) + " (Deployment Specific)"
+                os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Create a log file of the restoration in the deployment directory
+                log_path = os.path.join(os.path.dirname(os.path.dirname(backup_path)), "deployment", "restoration_log.txt")
+                with open(log_path, 'a') as f:
+                    f.write(f"{timezone.now()} - Restored from {os.path.basename(backup_path)}\n")
+                
+                # Try to set permissions on the new database file
+                try:
+                    os.chmod(db_path, 0o644)
+                    self.stdout.write("Set permissions on new database file")
+                except Exception as perm_error:
+                    self.stdout.write(f"Warning: Could not set permissions on new database: {str(perm_error)}")
+                
+                return True
+            else:
+                raise CommandError(f"Failed to copy database after {max_retries} attempts")
             
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error restoring from SQLite deployment backup: {str(e)}'))
-            raise CommandError(f'Failed to restore from SQLite deployment backup: {str(e)}')
+            self.stdout.write(self.style.ERROR(f'‼️ CRITICAL ERROR RESTORING FROM SQLITE DEPLOYMENT BACKUP: {str(e)}'))
+            # Don't raise here - let the caller handle the failure
     
     def restore_json_backup(self, backup_path):
         """Restore from JSON backup file"""

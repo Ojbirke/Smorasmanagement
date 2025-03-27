@@ -88,55 +88,98 @@ fi
 # First check if we're in a deployment environment and a deployment-specific backup exists
 DEPLOYMENT_SQLITE="../deployment/deployment_db.sqlite"
 DEPLOYMENT_JSON="../deployment/deployment_db.json"
+PRODUCTION_MARKER="../deployment/IS_PRODUCTION_ENVIRONMENT"
 
-if [ -f "$DEPLOYMENT_SQLITE" ] || [ -f "$DEPLOYMENT_JSON" ]; then
+# List all available backups for debugging
+echo "DEBUG: Listing all files in deployment directory:"
+ls -la "../deployment/"
+
+if [ -f "$PRODUCTION_MARKER" ] || [ -f "$DEPLOYMENT_SQLITE" ] || [ -f "$DEPLOYMENT_JSON" ]; then
+    echo "=========================================================="
+    echo "CRITICAL: PRODUCTION ENVIRONMENT DETECTED"
+    echo "=========================================================="
+    echo "Timestamp: $(date)"
+    
+    if [ -f "$PRODUCTION_MARKER" ]; then
+        echo "Production marker file found: $PRODUCTION_MARKER"
+        cat "$PRODUCTION_MARKER"
+    fi
+    
     if [ -f "$DEPLOYMENT_SQLITE" ]; then
         echo "Found SQLite deployment-specific backup: $DEPLOYMENT_SQLITE"
+        echo "  Last modified: $(stat -c %y $DEPLOYMENT_SQLITE)"
+        echo "  File size: $(stat -c %s $DEPLOYMENT_SQLITE) bytes"
     fi
     
     if [ -f "$DEPLOYMENT_JSON" ]; then
         echo "Found JSON deployment-specific backup: $DEPLOYMENT_JSON"
+        echo "  Last modified: $(stat -c %y $DEPLOYMENT_JSON)"
+        echo "  File size: $(stat -c %s $DEPLOYMENT_JSON) bytes"
     fi
     
-    echo "This indicates we're running in a deployment environment"
+    echo "This confirms we're running in a PRODUCTION deployment environment"
+    echo "RESTORING PRODUCTION DATABASE..."
     
-    # We will restore the deployment backup regardless of existing data
-    # This ensures that redeployments always use the latest backup
-    echo "In deployment environment - restoring from deployment backup..."
-    
-    # If we need to run migrations first
+    # Always run migrations first
     echo "Applying migrations..."
     python manage.py migrate
     
-    echo "Restoring from deployment backup..."
-    # Use our custom management command for deployment backup restore
-    # This will automatically choose between SQLite and JSON (preferring SQLite)
-    # Use a fallback approach if the restore operation fails
-    python manage.py deployment_backup --restore || {
-        echo "Deployment backup restore failed with new command. Trying fallback methods..."
-        
-        # Check which format is available
-        if [ -f "$DEPLOYMENT_DIR/deployment_db.sqlite" ]; then
-            echo "Using SQLite backup directly..."
-            cp "$DEPLOYMENT_DIR/deployment_db.sqlite" db.sqlite3
-            echo "SQLite backup applied directly"
-        elif [ -f "$DEPLOYMENT_DIR/deployment_db.json" ]; then
-            echo "Using JSON backup directly..."
-            python manage.py flush --no-input
-            python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json" || {
-                echo "Direct JSON load failed. Trying final fallback approach..."
-                python manage.py flush --no-input
-                python manage.py loaddata "$DEPLOYMENT_DIR/deployment_db.json"
-            }
-            echo "JSON backup applied directly"
-        else
-            echo "No deployment backup found."
-        fi
-    }
-    echo "Deployment database restore process completed"
+    # Make a copy of existing database if it exists (just in case)
+    if [ -f "db.sqlite3" ]; then
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        cp "db.sqlite3" "db.sqlite3.${TIMESTAMP}.pre_restore"
+        echo "Created safety copy of current database: db.sqlite3.${TIMESTAMP}.pre_restore"
+    fi
     
-    # Exit early with successful status
-    exit 0
+    echo "RESTORING PRODUCTION DATABASE FROM DEPLOYMENT BACKUP..."
+    # Try multiple restoration methods to ensure success
+    
+    # Method 1: Use our custom management command
+    echo "Method 1: Using deployment_backup management command..."
+    python manage.py deployment_backup --restore
+    
+    # Method 2: Direct file copy for SQLite (most reliable method)
+    if [ -f "$DEPLOYMENT_SQLITE" ]; then
+        echo "Method 2: Using direct SQLite file copy (most reliable)..."
+        cp "$DEPLOYMENT_SQLITE" db.sqlite3
+        chmod 644 db.sqlite3
+        echo "SQLite backup applied directly via file copy"
+    fi
+    
+    # Method 3: JSON restoration
+    if [ -f "$DEPLOYMENT_JSON" ] && [ ! -f "$DEPLOYMENT_SQLITE" ]; then
+        echo "Method 3: Using JSON restoration..."
+        python manage.py flush --no-input
+        python manage.py loaddata "$DEPLOYMENT_JSON"
+        echo "JSON backup restored"
+    fi
+    
+    # Verify restoration success
+    python -c "
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smorasfotball.settings')
+django.setup()
+from teammanager.models import Team, Player
+from django.contrib.auth.models import User
+print(f'Verification: Found {Team.objects.count()} teams, {Player.objects.count()} players, {User.objects.count()} users')
+"
+    
+    echo "PRODUCTION database restore process completed"
+    echo "=========================================================="
+    
+    # Run migrations again after restore to ensure database schema is current
+    echo "Re-applying migrations post-restoration..."
+    python manage.py migrate
+    
+    # Create a record of this restoration
+    echo "$(date) - Production database restored during startup" >> "../deployment/restoration_log.txt"
+    
+    # Make another backup after restoration
+    echo "Creating post-restoration backup..."
+    python manage.py deployment_backup --name "post_restore_$(date +%Y%m%d_%H%M%S)" --format sqlite
+    
+    # Continue with normal startup process
 fi
 
 # If no deployment backup or we're not in deployment mode, continue with regular backup process

@@ -27,21 +27,50 @@ cd smorasfotball
 # Check if we're in a production environment with existing deployment backups
 # We do NOT want to overwrite production backups with development data
 if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ]; then
-    echo "⚠️ Detected existing deployment backups - PRESERVING PRODUCTION DATA"
+    echo "⚠️ CRITICAL: Detected existing deployment backups - PRESERVING PRODUCTION DATA"
     echo "✅ Will use existing deployment backups during deployment startup"
     echo "✅ Database integrity will be maintained across deployments"
+    echo "✅ NO DEVELOPMENT DATA WILL REPLACE YOUR PRODUCTION DATA"
     
-    # Create a timestamp backup of the existing deployment backups (just for safety)
+    # Create multiple timestamp backups of the existing deployment backups (just for safety)
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    
+    # Make a backup with today's date for easy identification
+    TODAY=$(date +"%Y%m%d")
+    BACKUP_DIR="../deployment/backups"
+    mkdir -p "$BACKUP_DIR"
+    
     if [ -f "../deployment/deployment_db.sqlite" ]; then
+        # Create a timestamped backup
         cp "../deployment/deployment_db.sqlite" "../deployment/deployment_db.sqlite.${TIMESTAMP}.bak"
-        echo "Created safety backup: deployment_db.sqlite.${TIMESTAMP}.bak"
+        echo "Created timestamped safety backup: deployment_db.sqlite.${TIMESTAMP}.bak"
+        
+        # Create a dated backup
+        cp "../deployment/deployment_db.sqlite" "$BACKUP_DIR/deployment_backup_${TODAY}.sqlite"
+        echo "Created dated safety backup: $BACKUP_DIR/deployment_backup_${TODAY}.sqlite"
+        
+        # Make sure deployment_db.sqlite has the correct permissions
+        chmod 644 "../deployment/deployment_db.sqlite"
+        echo "Updated permissions on deployment_db.sqlite"
     fi
     
     if [ -f "../deployment/deployment_db.json" ]; then
+        # Create a timestamped backup
         cp "../deployment/deployment_db.json" "../deployment/deployment_db.json.${TIMESTAMP}.bak"
-        echo "Created safety backup: deployment_db.json.${TIMESTAMP}.bak"
+        echo "Created timestamped safety backup: deployment_db.json.${TIMESTAMP}.bak"
+        
+        # Create a dated backup
+        cp "../deployment/deployment_db.json" "$BACKUP_DIR/deployment_backup_${TODAY}.json"
+        echo "Created dated safety backup: $BACKUP_DIR/deployment_backup_${TODAY}.json"
+        
+        # Make sure deployment_db.json has the correct permissions
+        chmod 644 "../deployment/deployment_db.json"
+        echo "Updated permissions on deployment_db.json"
     fi
+    
+    # Create a marker file to explicitly indicate we're in a production environment
+    touch "../deployment/IS_PRODUCTION_ENVIRONMENT"
+    echo "$(date) - Deployment detected and marked as production" > "../deployment/IS_PRODUCTION_ENVIRONMENT"
 else
     # Only create new deployment backups if none exist (first deployment)
     echo "No existing deployment backups found - creating initial deployment backups..."
