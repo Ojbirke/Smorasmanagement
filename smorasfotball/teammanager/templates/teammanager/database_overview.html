@@ -152,6 +152,13 @@
                     <div class="alert alert-info mb-3">
                         <i class="fas fa-info-circle"></i> These backups are stored in a persistent location and will remain available after redeployments. They will be automatically detected and restored if the database is empty during startup.
                     </div>
+                    
+                    {% if last_restored_backup != "Unknown" %}
+                    <div class="alert alert-warning mb-3">
+                        <i class="fas fa-history"></i> <strong>Last Auto-Restored Backup:</strong> {{ last_restored_backup }}<br>
+                        <i class="fas fa-clock"></i> <strong>Restore Time:</strong> {{ last_restore_time }}
+                    </div>
+                    {% endif %}
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>

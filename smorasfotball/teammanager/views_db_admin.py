@@ -164,7 +164,9 @@ def database_overview(request):
         'backups': backups,
         'persistent_backups': persistent_backups,
         'has_persistent_backups': len(persistent_backups) > 0,
-        'is_admin': True  # Pass this for the template
+        'is_admin': True,  # Pass this for the template
+        'last_restored_backup': os.environ.get('LAST_RESTORED_BACKUP', 'Unknown'),
+        'last_restore_time': os.environ.get('LAST_RESTORE_TIME', 'Unknown')
     }
     
     return render(request, 'teammanager/database_overview.html', context)
@@ -235,12 +237,22 @@ def restore_backup(request, filename):
             # Restore from JSON backup
             restore_json_backup(backup_path)
             messages.success(request, f"Database restored successfully from {filename}.")
+            
+            # Record this restore in environment variables for diagnostic purposes
+            os.environ['LAST_RESTORED_BACKUP'] = filename
+            os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+            messages.info(request, f"Recorded restore information: {filename} at {os.environ['LAST_RESTORE_TIME']}")
         
         elif filename.endswith('.sqlite3') and 'sqlite3' in settings.DATABASES['default']['ENGINE']:
             # Restore from SQLite backup
             restore_sqlite_backup(backup_path)
             messages.success(request, f"Database restored successfully from {filename}.")
             messages.info(request, "The application will restart to apply changes.")
+            
+            # Record this restore in environment variables for diagnostic purposes
+            os.environ['LAST_RESTORED_BACKUP'] = filename
+            os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+            messages.info(request, f"Recorded restore information: {filename} at {os.environ['LAST_RESTORE_TIME']}")
         
         else:
             messages.error(request, f"Unsupported backup file format: {filename}")

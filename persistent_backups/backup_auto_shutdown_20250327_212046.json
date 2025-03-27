@@ -108,22 +108,6 @@
   }
 },
 {
-  "model": "sessions.session",
-  "pk": "04v3tydti0js7cyarscd2fgbn871yt6l",
-  "fields": {
-    "session_data": ".eJxVjMsOwiAQRf-FtSHDNDDg0r3fQIaXVA0kpV0Z_12bdKHbe865L-F5W6vfRl78nMRZWHH63QLHR247SHduty5jb-syB7kr8qBDXnvKz8vh_h1UHvVbB6CoSg7WOYqUoRhtEBUjooOgmdjRBEaZiahEQIi6ZDBkbZgQAMX7A8-bNq8:1txVn8:feMTcx6kUD2pj2kBSCgTausT5789W2bclhPfjAvcbqk",
-    "expire_date": "2025-04-09T18:47:54.352Z"
-  }
-},
-{
-  "model": "sessions.session",
-  "pk": "4pjh0xdhkap9b7zzmtmq1sg6sq4170nq",
-  "fields": {
-    "session_data": ".eJxVjEEOwiAQRe_C2pCBCQVcuvcMBJhBqgaS0q6Md9cmXej2v_f-S4S4rTVsg5cwkzgLJ06_W4r5wW0HdI_t1mXubV3mJHdFHnTIayd-Xg7376DGUb-19uBVslyAFIPWGCet0BRnHBpl0XMG0uRLdFTIoHNeI6Q8Za8sFBbvD8UvN08:1txtek:4UP8xozhvYn0n679QLqtqPAhlVjAWPZeh9FbYS7dPNY",
-    "expire_date": "2025-04-10T20:16:50.867Z"
-  }
-},
-{
   "model": "teammanager.userprofile",
   "pk": 1,
   "fields": {

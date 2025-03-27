@@ -17,19 +17,31 @@ mkdir -p $PERSISTENT_BACKUP_DIR
 
 # Check if persistent backups exist
 if [ -d "$PERSISTENT_BACKUP_DIR" ]; then
-    # Find the latest .sqlite3 backup (if using SQLite)
-    LATEST_SQLITE=$(ls -t $PERSISTENT_BACKUP_DIR/*.sqlite3 2>/dev/null | head -1)
+    # Look for manual backups first (not containing auto_startup or auto_shutdown)
+    LATEST_MANUAL_SQLITE=$(ls -t $PERSISTENT_BACKUP_DIR/backup_*.sqlite3 2>/dev/null | grep -v "auto_startup\|auto_shutdown" | head -1)
+    LATEST_MANUAL_JSON=$(ls -t $PERSISTENT_BACKUP_DIR/backup_*.json 2>/dev/null | grep -v "auto_startup\|auto_shutdown" | head -1)
     
-    # Find the latest .json backup
-    LATEST_JSON=$(ls -t $PERSISTENT_BACKUP_DIR/*.json 2>/dev/null | head -1)
+    # If no manual backups exist, fall back to any backup including auto backups
+    LATEST_AUTO_SQLITE=$(ls -t $PERSISTENT_BACKUP_DIR/*.sqlite3 2>/dev/null | head -1)
+    LATEST_AUTO_JSON=$(ls -t $PERSISTENT_BACKUP_DIR/*.json 2>/dev/null | head -1)
     
-    # Determine which backup to use based on database engine
-    if [ -f "db.sqlite3" ] && [ ! -z "$LATEST_SQLITE" ]; then
-        LATEST_BACKUP=$LATEST_SQLITE
+    # Prioritize manual backups over auto backups
+    if [ -f "db.sqlite3" ] && [ ! -z "$LATEST_MANUAL_SQLITE" ]; then
+        LATEST_BACKUP=$LATEST_MANUAL_SQLITE
         BACKUP_TYPE="sqlite"
-    elif [ ! -z "$LATEST_JSON" ]; then
-        LATEST_BACKUP=$LATEST_JSON
+        echo "Found manual SQLite backup: $LATEST_BACKUP"
+    elif [ ! -z "$LATEST_MANUAL_JSON" ]; then
+        LATEST_BACKUP=$LATEST_MANUAL_JSON
         BACKUP_TYPE="json"
+        echo "Found manual JSON backup: $LATEST_BACKUP"
+    elif [ -f "db.sqlite3" ] && [ ! -z "$LATEST_AUTO_SQLITE" ]; then
+        LATEST_BACKUP=$LATEST_AUTO_SQLITE
+        BACKUP_TYPE="sqlite"
+        echo "Found auto SQLite backup: $LATEST_BACKUP"
+    elif [ ! -z "$LATEST_AUTO_JSON" ]; then
+        LATEST_BACKUP=$LATEST_AUTO_JSON
+        BACKUP_TYPE="json"
+        echo "Found auto JSON backup: $LATEST_BACKUP"
     fi
 fi
 
@@ -52,11 +64,27 @@ if [ ! -z "$LATEST_BACKUP" ]; then
             # Make a copy of the backup to the db.sqlite3 file
             cp "$LATEST_BACKUP" db.sqlite3
             echo "SQLite database restored from backup"
+            
+            # Record which backup was used for diagnostic purposes
+            BASENAME=$(basename "$LATEST_BACKUP")
+            export LAST_RESTORED_BACKUP="$BASENAME"
+            export LAST_RESTORE_TIME="$(date +'%Y-%m-%d %H:%M:%S')"
+            echo "export LAST_RESTORED_BACKUP=\"$BASENAME\"" >> ../.env
+            echo "export LAST_RESTORE_TIME=\"$(date +'%Y-%m-%d %H:%M:%S')\"" >> ../.env
+            echo "Recorded restore of backup: $BASENAME at $(date +'%Y-%m-%d %H:%M:%S')"
         else
             echo "Restoring from JSON backup..."
             # Load the backup data
             python manage.py loaddata "$LATEST_BACKUP"
             echo "JSON data restored from backup"
+            
+            # Record which backup was used for diagnostic purposes
+            BASENAME=$(basename "$LATEST_BACKUP")
+            export LAST_RESTORED_BACKUP="$BASENAME"
+            export LAST_RESTORE_TIME="$(date +'%Y-%m-%d %H:%M:%S')"
+            echo "export LAST_RESTORED_BACKUP=\"$BASENAME\"" >> ../.env
+            echo "export LAST_RESTORE_TIME=\"$(date +'%Y-%m-%d %H:%M:%S')\"" >> ../.env
+            echo "Recorded restore of backup: $BASENAME at $(date +'%Y-%m-%d %H:%M:%S')"
         fi
     else
         echo "Database already contains data, skipping restore."
@@ -78,14 +106,12 @@ else
     echo "Superuser recreation script not found at $SUPERUSER_SCRIPT"
 fi
 
-# Output success message
-echo "Startup script completed."
-#!/bin/bash
-# Create backup directory if it doesn't exist
+# Create backup before starting the application
 mkdir -p ../persistent_backups
-
-# Run persistent backup before startup
 python manage.py persistent_backup --name "pre_deploy"
 
-# Start the application
-gunicorn --bind 0.0.0.0:5000 smorasfotball.wsgi:application
+# Output success message
+echo "Startup script completed."
+
+# Start the application if needed (handled by replit workflow)
+# gunicorn --bind 0.0.0.0:5000 smorasfotball.wsgi:application
