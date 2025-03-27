@@ -362,34 +362,94 @@ class Command(BaseCommand):
         temp_backup_path = os.path.join(os.path.dirname(backup_path), "temp_deployment_restore.json")
         
         try:
-            self.stdout.write(self.style.SUCCESS('Restoring from JSON deployment backup...'))
+            self.stdout.write(self.style.SUCCESS(f'STARTING JSON RESTORATION FROM: {backup_path}'))
+            self.stdout.write(f'Backup file size: {os.path.getsize(backup_path)} bytes')
+            self.stdout.write(f'Backup last modified: {os.path.getmtime(backup_path)}')
             
-            # Verify the backup before restoring
-            self.verify_backup(backup_path)
+            # Verify the backup exists and is readable
+            if not os.path.exists(backup_path):
+                self.stdout.write(self.style.ERROR(f"JSON backup file not found at: {backup_path}"))
+                return False
+                
+            if not os.access(backup_path, os.R_OK):
+                self.stdout.write(self.style.WARNING(f"JSON backup file exists but is not readable"))
+                # Try to fix permissions
+                try:
+                    os.chmod(backup_path, 0o644)
+                    self.stdout.write(self.style.SUCCESS("Fixed permissions on JSON backup"))
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Failed to fix permissions: {str(e)}"))
+                    return False
+            
+            # Verify the backup content
+            try:
+                self.verify_backup(backup_path)
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Backup verification failed: {str(e)}"))
+                # If verification fails but the file exists, we'll try anyway
+                self.stdout.write(self.style.WARNING("Attempting restoration despite verification failure"))
             
             # Create a temporary copy of the backup to modify if needed
-            shutil.copy2(backup_path, temp_backup_path)
+            try:
+                shutil.copy2(backup_path, temp_backup_path)
+                self.stdout.write(self.style.SUCCESS(f"Created temporary copy at {temp_backup_path}"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Failed to create temporary copy: {str(e)}"))
+                # Try to continue with the original file
+                temp_backup_path = backup_path
+            
+            # Make sure the database connection is working
+            try:
+                from django.db import connection
+                connection.ensure_connection()
+                self.stdout.write(self.style.SUCCESS("Database connection is working"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Database connection error: {str(e)}"))
+                # Try to reconnect
+                try:
+                    from django.db import connections
+                    connections.close_all()
+                    connection.ensure_connection()
+                    self.stdout.write(self.style.SUCCESS("Reconnected to database"))
+                except Exception as e2:
+                    self.stdout.write(self.style.ERROR(f"Failed to reconnect to database: {str(e2)}"))
+                    return False
             
             # Clear existing data (but keep structure)
             # We use reset_db instead of flush to avoid integrity errors
+            self.stdout.write(self.style.SUCCESS("Clearing existing data..."))
             from django.db import connection
             if connection.vendor == 'sqlite':
                 # For SQLite, we use a more aggressive approach
                 with connection.cursor() as cursor:
-                    # Get list of tables excluding django_migrations
-                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name != 'django_migrations' AND name != 'sqlite_sequence';")
-                    tables = [row[0] for row in cursor.fetchall()]
-                    
-                    # Clear all tables except migrations
-                    for table in tables:
-                        try:
-                            cursor.execute(f"DELETE FROM {table};")
-                            self.stdout.write(f"Cleared table: {table}")
-                        except Exception as e:
-                            self.stdout.write(f"Error clearing table {table}: {str(e)}")
+                    try:
+                        # Disable foreign key constraints temporarily
+                        cursor.execute("PRAGMA foreign_keys = OFF;")
+                        
+                        # Get list of tables excluding django_migrations
+                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name != 'django_migrations' AND name != 'sqlite_sequence';")
+                        tables = [row[0] for row in cursor.fetchall()]
+                        
+                        # Clear all tables except migrations
+                        for table in tables:
+                            try:
+                                cursor.execute(f"DELETE FROM {table};")
+                                self.stdout.write(f"Cleared table: {table}")
+                            except Exception as e:
+                                self.stdout.write(self.style.WARNING(f"Error clearing table {table}: {str(e)}"))
+                                
+                        # Re-enable foreign key constraints
+                        cursor.execute("PRAGMA foreign_keys = ON;")
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error during table clearing: {str(e)}"))
+                        # Continue anyway as loaddata might still work
             else:
                 # For other databases, use flush
-                call_command('flush', '--no-input')
+                try:
+                    call_command('flush', '--no-input')
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Error during flush: {str(e)}"))
+                    # Continue anyway
             
             # Let's modify the backup to avoid UserProfile conflicts
             try:

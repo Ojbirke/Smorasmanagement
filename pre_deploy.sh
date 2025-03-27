@@ -20,6 +20,21 @@ python -m pip install -r requirements.txt
 
 # Create deployment directory where we can store deployment-specific files
 mkdir -p deployment
+chmod 755 deployment
+
+echo "========================================================"
+echo "PRE-DEPLOYMENT DATABASE BACKUP SYSTEM"
+echo "========================================================"
+echo "Current directory: $(pwd)"
+echo "Current time: $(date)"
+echo "Deployment directory: $(pwd)/deployment"
+
+# List deployment directory contents for debugging
+echo "Current files in deployment directory:"
+ls -la deployment/
+
+# Create a marker file to indicate we're in a deployment process
+echo "$(date) - Pre-deployment script running" > deployment/DEPLOYMENT_IN_PROGRESS
 
 # Special pre-deployment database preparation:
 cd smorasfotball

@@ -63,12 +63,38 @@ This application has a sophisticated backup and restoration system designed to m
 
 ### Emergency Restoration
 
-If needed, you can force a restoration from the most recent deployment backup by running:
+If the automatic restoration fails during redeployment, you have several options:
 
-```
-cd smorasfotball
-python manage.py deployment_backup --restore
-```
+1. **Use the Standard Command**:
+   ```
+   cd smorasfotball
+   python manage.py deployment_backup --restore
+   ```
+
+2. **Use the Force Restore Script** (more aggressive direct file copy approach):
+   ```
+   python force_deployment_restore.py
+   ```
+   
+   Options:
+   - `--dry-run`: Show what would be done without making changes
+   - `--verbose`: Show detailed information
+
+3. **Reset the Deployment Backup Environment** (for testing only):
+   ```
+   python reset_deployment_backups.py
+   ```
+   
+   Options:
+   - `--dry-run`: Show what would be done without making changes
+   - `--force`: Skip confirmation prompt
+   - `--keep-backups`: Create new backups without deleting existing ones
+   
+4. **Simulate a Deployment** (for testing the deployment process):
+   ```
+   ./simulate_deployment.sh
+   ```
+   This script runs the same steps as a real deployment to verify that the system works correctly.
 
 ## Development Setup
 

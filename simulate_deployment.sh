@@ -1,131 +1,83 @@
 #!/bin/bash
-# Simulate deployment script
-# This script tests the deployment backup system by:
-# 1. Creating a temporary folder to simulate a fresh deployment
-# 2. Copying the necessary files to this folder
-# 3. Running the pre_deploy.sh script
-# 4. Running the startup.sh script in the simulated environment
-# 5. Testing that the database has been correctly restored
+# Simulate Deployment Script
+# This script simulates what happens during a Replit deployment
+# by running the same steps in the same order
 
-echo "========================================"
-echo "SIMULATING REPLIT DEPLOYMENT PROCESS"
-echo "========================================"
-echo "This script tests that your database will be preserved during redeployment"
+echo "========================================================"
+echo "SIMULATING REPLIT DEPLOYMENT"
+echo "========================================================"
+echo "Current directory: $(pwd)"
+echo "Current date and time: $(date)"
+
+# Ask for confirmation to avoid accidental runs
+read -p "This will simulate a deployment and might modify your database. Continue? (y/n) " -n 1 -r
 echo
-
-# Create a temporary deployment directory
-TEMP_DIR="./temp_deployment_test"
-echo "Creating temporary deployment environment at $TEMP_DIR"
-mkdir -p $TEMP_DIR
-
-# Create necessary subdirectories
-mkdir -p $TEMP_DIR/smorasfotball
-mkdir -p $TEMP_DIR/deployment
-mkdir -p $TEMP_DIR/persistent_backups
-
-# First, check if we have existing deployment backups
-echo "Checking for existing deployment backups..."
-if [ -f "./deployment/deployment_db.sqlite" ]; then
-    echo "Found SQLite deployment backup, copying to simulation environment..."
-    cp "./deployment/deployment_db.sqlite" "$TEMP_DIR/deployment/"
-    BACKUP_FOUND=true
-elif [ -f "./deployment/deployment_db.json" ]; then
-    echo "Found JSON deployment backup, copying to simulation environment..."
-    cp "./deployment/deployment_db.json" "$TEMP_DIR/deployment/"
-    BACKUP_FOUND=true
-else
-    echo "No existing deployment backups found."
-    echo "Creating test deployment backup..."
-    cd smorasfotball
-    python manage.py deployment_backup --name "test_simulation" --format sqlite || python manage.py deployment_backup --name "test_simulation"
-    cd ..
-    
-    if [ -f "./deployment/deployment_db.sqlite" ]; then
-        echo "Created SQLite test backup, copying to simulation environment..."
-        cp "./deployment/deployment_db.sqlite" "$TEMP_DIR/deployment/"
-        BACKUP_FOUND=true
-    elif [ -f "./deployment/deployment_db.json" ]; then
-        echo "Created JSON test backup, copying to simulation environment..."
-        cp "./deployment/deployment_db.json" "$TEMP_DIR/deployment/"
-        BACKUP_FOUND=true
-    else
-        echo "Failed to create test backup. Simulation cannot continue."
-        rm -rf $TEMP_DIR
-        exit 1
-    fi
-fi
-
-# Copy essential files for deployment
-echo "Copying essential files to simulation environment..."
-cp -r ./smorasfotball/* $TEMP_DIR/smorasfotball/
-cp pre_deploy.sh $TEMP_DIR/
-cp recreate_superuser.py $TEMP_DIR/
-
-# Change to the temporary directory
-cd $TEMP_DIR
-
-# Run the pre_deploy.sh script
-echo
-echo "========================================"
-echo "STEP 1: RUNNING PRE-DEPLOYMENT SCRIPT"
-echo "========================================"
-chmod +x pre_deploy.sh
-./pre_deploy.sh
-
-# Check that the deployment backups were preserved
-echo
-echo "========================================"
-echo "STEP 2: CHECKING DEPLOYMENT BACKUPS PRESERVATION"
-echo "========================================"
-if [ -f "./deployment/deployment_db.sqlite" ]; then
-    echo "✅ SQLite deployment backup was preserved as expected"
-elif [ -f "./deployment/deployment_db.json" ]; then
-    echo "✅ JSON deployment backup was preserved as expected"
-else
-    echo "❌ ERROR: No deployment backups found after pre-deployment"
-    echo "This suggests that the deployment backups would not be preserved"
-    cd ..
-    rm -rf $TEMP_DIR
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Simulation cancelled"
     exit 1
 fi
 
-# Run the startup script
-echo
-echo "========================================"
-echo "STEP 3: RUNNING STARTUP SCRIPT"
-echo "========================================"
+# Create a backup of the current database for safety
+DB_PATH="./smorasfotball/db.sqlite3"
+if [ -f "$DB_PATH" ]; then
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    BACKUP="./smorasfotball/db.sqlite3.${TIMESTAMP}.pre_simulation"
+    cp "$DB_PATH" "$BACKUP"
+    echo "Created backup of current database at $BACKUP"
+fi
+
+echo "========================================================"
+echo "STEP 1: Run pre_deploy.sh"
+echo "========================================================"
+# Run the pre-deployment script
+chmod +x pre_deploy.sh
+./pre_deploy.sh
+
+echo "========================================================"
+echo "STEP 2: Simulate deployment environment preparation"
+echo "========================================================"
+# Clear any existing database to simulate a fresh environment
+if [ -f "$DB_PATH" ]; then
+    rm "$DB_PATH"
+    echo "Removed current database to simulate fresh deployment"
+fi
+
+# Run migrations to create a fresh database
 cd smorasfotball
+python manage.py migrate
+cd ..
+echo "Created fresh database with migrations"
+
+echo "========================================================"
+echo "STEP 3: Run startup.sh from root directory"
+echo "========================================================"
+# Run the startup script which should restore from deployment backups
 chmod +x startup.sh
 ./startup.sh
 
-# Check if the database now exists
-echo
-echo "========================================"
-echo "STEP 4: VERIFYING DATABASE RESTORATION"
-echo "========================================"
-if [ -f "./db.sqlite3" ]; then
-    echo "✅ Database file exists"
-    
-    # Try to run a simple Django command to verify it's working
-    DB_CHECK=$(python manage.py shell -c "from teammanager.models import Team; print(f'Found {Team.objects.count()} teams in the database')")
-    if [ $? -eq 0 ]; then
-        echo "✅ Database is functional: $DB_CHECK"
-    else
-        echo "❌ Database exists but appears to be corrupted or invalid"
-    fi
-else
-    echo "❌ ERROR: Database file does not exist after startup"
-    echo "This suggests that database restoration failed"
-fi
+echo "========================================================"
+echo "STEP 4: Verify restoration"
+echo "========================================================"
+# Verify that the database has been restored properly
+cd smorasfotball
+python -c "
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smorasfotball.settings')
+django.setup()
+from teammanager.models import Team, Player, Match
+from django.contrib.auth.models import User
+print('Database verification:')
+print(f'- {User.objects.count()} users')
+print(f'- {Team.objects.count()} teams')
+print(f'- {Player.objects.count()} players')
+print(f'- {Match.objects.count()} matches')
+"
+cd ..
 
-# Return to the original directory and clean up
-cd ../../
-echo
-echo "========================================"
-echo "SIMULATION COMPLETE"
-echo "========================================"
-echo "The simulation environment is at: $TEMP_DIR"
-echo "You can inspect it to verify the deployment process behavior"
-echo
-echo "To clean up the simulation environment, run:"
-echo "rm -rf $TEMP_DIR"
+echo "========================================================"
+echo "DEPLOYMENT SIMULATION COMPLETED"
+echo "========================================================"
+echo "Original database backup: $BACKUP"
+echo "You can restore this backup if needed."
+echo "To do this: cp $BACKUP $DB_PATH"
