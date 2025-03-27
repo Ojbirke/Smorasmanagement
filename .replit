@@ -32,7 +32,7 @@ waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "cd smorasfotball && DATABASE_DIR=../deployment gunicorn --bind 0.0.0.0:5000 smorasfotball.wsgi:application"]
-build = ["sh", "-c", "python -m pip install -r requirements.txt && mkdir -p deployment && cd smorasfotball && python manage.py migrate && python manage.py collectstatic --noinput"]
+build = ["sh", "-c", "bash pre_deploy.sh"]
 
 [deployment.nix]
 enable = false
