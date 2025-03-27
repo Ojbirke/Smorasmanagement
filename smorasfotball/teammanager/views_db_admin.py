@@ -54,6 +54,10 @@ def database_overview(request):
     persistent_backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
     os.makedirs(persistent_backup_dir, exist_ok=True)
     
+    # Get deployment backup directory
+    deployment_backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+    os.makedirs(deployment_backup_dir, exist_ok=True)
+    
     # Check for regular backup files
     backups = []
     
@@ -157,16 +161,44 @@ def database_overview(request):
     else:
         persistent_backup_exists = False
     
+    # Check for deployment-specific backups
+    deployment_backups = []
+    if os.path.exists(deployment_backup_dir):
+        deployment_backup_exists = True
+        
+        # Collect deployment backup files
+        for filename in os.listdir(deployment_backup_dir):
+            if filename.endswith('.json'):
+                file_path = os.path.join(deployment_backup_dir, filename)
+                stat = os.stat(file_path)
+                
+                deployment_backups.append({
+                    'filename': filename,
+                    'type': 'JSON Data (Deployment)',
+                    'size': _format_file_size(stat.st_size),
+                    'date': datetime.fromtimestamp(stat.st_mtime),
+                    'deployment': True,
+                    'category': 'deployment'
+                })
+        
+        # Sort deployment backups by date (newest first)
+        deployment_backups.sort(key=lambda x: x['date'], reverse=True)
+    else:
+        deployment_backup_exists = False
+    
     context = {
         'stats': stats,
         'has_data': has_data,
-        'backup_exists': backup_exists or persistent_backup_exists,
+        'backup_exists': backup_exists or persistent_backup_exists or deployment_backup_exists,
         'backups': backups,
         'persistent_backups': persistent_backups,
+        'deployment_backups': deployment_backups,
         'has_persistent_backups': len(persistent_backups) > 0,
+        'has_deployment_backups': len(deployment_backups) > 0,
         'is_admin': True,  # Pass this for the template
         'last_restored_backup': os.environ.get('LAST_RESTORED_BACKUP', 'Unknown'),
-        'last_restore_time': os.environ.get('LAST_RESTORE_TIME', 'Unknown')
+        'last_restore_time': os.environ.get('LAST_RESTORE_TIME', 'Unknown'),
+        'is_deployment': os.path.exists(os.path.join(deployment_backup_dir, 'deployment_db.json'))
     }
     
     return render(request, 'teammanager/database_overview.html', context)
@@ -181,27 +213,48 @@ def create_backup(request):
     if request.method != 'POST':
         return redirect('database-overview')
     
+    # Check if we should create a deployment backup
+    is_deployment_backup = request.POST.get('deployment_backup', 'false') == 'true'
+    
     try:
-        # Use the management command to create persistent backups
-        output = io.StringIO()
-        call_command('persistent_backup', stdout=output)
-        
-        # Strip ANSI color codes pattern
+        # Strip ANSI color codes pattern for all outputs
         import re
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         
-        # Extract messages from command output
-        for line in output.getvalue().splitlines():
-            if line.strip():
-                # Remove ANSI color codes
-                clean_line = ansi_escape.sub('', line)
-                if "success" in line.lower():
-                    messages.success(request, clean_line)
-                else:
-                    messages.info(request, clean_line)
-        
-        messages.success(request, "Backup created successfully and stored in both regular and persistent locations.")
-        messages.info(request, "The persistent backup will be available even after redeployments.")
+        if is_deployment_backup:
+            # Use the deployment_backup command
+            output = io.StringIO()
+            call_command('deployment_backup', stdout=output)
+            
+            # Extract messages from command output
+            for line in output.getvalue().splitlines():
+                if line.strip():
+                    # Remove ANSI color codes
+                    clean_line = ansi_escape.sub('', line)
+                    if "success" in line.lower():
+                        messages.success(request, clean_line)
+                    else:
+                        messages.info(request, clean_line)
+            
+            messages.success(request, "Deployment backup created successfully.")
+            messages.info(request, "This backup will be used when deploying the application to production.")
+        else:
+            # Use the persistent_backup command for regular backups
+            output = io.StringIO()
+            call_command('persistent_backup', stdout=output)
+            
+            # Extract messages from command output
+            for line in output.getvalue().splitlines():
+                if line.strip():
+                    # Remove ANSI color codes
+                    clean_line = ansi_escape.sub('', line)
+                    if "success" in line.lower():
+                        messages.success(request, clean_line)
+                    else:
+                        messages.info(request, clean_line)
+            
+            messages.success(request, "Backup created successfully and stored in both regular and persistent locations.")
+            messages.info(request, "The persistent backup will be available even after redeployments.")
     
     except Exception as e:
         messages.error(request, f"Error creating backup: {str(e)}")
@@ -218,10 +271,16 @@ def restore_backup(request, filename):
     if request.method != 'POST':
         return redirect('database-overview')
     
-    # Check if it's a persistent backup
+    # Check if it's a deployment backup
+    is_deployment = request.POST.get('is_deployment', 'false') == 'true'
+    
+    # Check if it's a persistent backup (if not deployment)
     is_persistent = request.POST.get('is_persistent', 'false') == 'true'
     
-    if is_persistent:
+    if is_deployment:
+        # Use deployment directory
+        backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+    elif is_persistent:
         backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
     else:
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
@@ -229,7 +288,8 @@ def restore_backup(request, filename):
     backup_path = os.path.join(backup_dir, filename)
     
     if not os.path.exists(backup_path):
-        messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
+        backup_type = 'deployment' if is_deployment else ('persistent' if is_persistent else 'regular')
+        messages.error(request, f"Backup file {filename} not found in {backup_type} backup directory.")
         return redirect('database-overview')
     
     try:
@@ -272,10 +332,15 @@ def delete_backup(request, filename):
     if request.method != 'POST':
         return redirect('database-overview')
     
-    # Check if it's a persistent backup
+    # Check if it's a deployment backup
+    is_deployment = request.POST.get('is_deployment', 'false') == 'true'
+    
+    # Check if it's a persistent backup (if not deployment)
     is_persistent = request.POST.get('is_persistent', 'false') == 'true'
     
-    if is_persistent:
+    if is_deployment:
+        backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+    elif is_persistent:
         backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
     else:
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
@@ -283,12 +348,19 @@ def delete_backup(request, filename):
     backup_path = os.path.join(backup_dir, filename)
     
     if not os.path.exists(backup_path):
-        messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
+        backup_type = 'deployment' if is_deployment else ('persistent' if is_persistent else 'regular')
+        messages.error(request, f"Backup file {filename} not found in {backup_type} backup directory.")
+        return redirect('database-overview')
+    
+    # Don't allow deletion of the special deployment_db.json file
+    if is_deployment and filename == 'deployment_db.json':
+        messages.error(request, f"Cannot delete the active deployment backup file. This is used during deployment.")
         return redirect('database-overview')
     
     try:
         os.remove(backup_path)
-        messages.success(request, f"Backup file {filename} deleted successfully from {'persistent' if is_persistent else 'regular'} backup directory.")
+        backup_type = 'deployment' if is_deployment else ('persistent' if is_persistent else 'regular')
+        messages.success(request, f"Backup file {filename} deleted successfully from {backup_type} backup directory.")
     except Exception as e:
         messages.error(request, f"Error deleting backup: {str(e)}")
     
@@ -301,10 +373,15 @@ def download_backup(request, filename):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('dashboard')
     
-    # Check if it's a persistent backup
+    # Check if it's a deployment backup
+    is_deployment = request.GET.get('deployment', 'false') == 'true'
+    
+    # Check if it's a persistent backup (if not deployment)
     is_persistent = request.GET.get('persistent', 'false') == 'true'
     
-    if is_persistent:
+    if is_deployment:
+        backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+    elif is_persistent:
         backup_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'persistent_backups')
     else:
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
@@ -312,7 +389,8 @@ def download_backup(request, filename):
     filepath = os.path.join(backup_dir, filename)
     
     if not os.path.exists(filepath):
-        messages.error(request, f"Backup file {filename} not found in {'persistent' if is_persistent else 'regular'} backup directory.")
+        backup_type = 'deployment' if is_deployment else ('persistent' if is_persistent else 'regular')
+        messages.error(request, f"Backup file {filename} not found in {backup_type} backup directory.")
         return redirect('database-overview')
     
     # Check backup contents for verification
@@ -340,12 +418,20 @@ def download_backup(request, filename):
         except Exception as e:
             backup_info = {'error': str(e)}
     
+    if is_deployment:
+        backup_location = 'Deployment'
+    elif is_persistent:
+        backup_location = 'Persistent'
+    else:
+        backup_location = 'Regular'
+    
     context = {
         'filename': filename,
         'filepath': filepath,
         'is_admin': True,
         'is_persistent': is_persistent,
-        'backup_location': 'Persistent' if is_persistent else 'Regular',
+        'is_deployment': is_deployment,
+        'backup_location': backup_location,
         'backup_info': backup_info
     }
     

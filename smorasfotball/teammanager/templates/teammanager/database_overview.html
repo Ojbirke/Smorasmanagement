@@ -59,13 +59,24 @@
                     
                     {% if has_data %}
                     <div class="alert alert-success mt-3">
-                        <i class="fas fa-info-circle"></i> To create a new backup, click the button below.
+                        <i class="fas fa-info-circle"></i> To create a new backup, click one of the buttons below.
                     </div>
                     <form action="{% url 'create-backup' %}" method="post" class="mt-3">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-success btn-lg btn-block">
-                            <i class="fas fa-download"></i> Create Backup Now
+                        <button type="submit" class="btn btn-success btn-lg btn-block mb-2">
+                            <i class="fas fa-download"></i> Create Regular Backup
                         </button>
+                    </form>
+                    
+                    <form action="{% url 'create-backup' %}" method="post" class="mt-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="deployment_backup" value="true">
+                        <button type="submit" class="btn btn-primary btn-lg btn-block">
+                            <i class="fas fa-cloud-upload-alt"></i> Create Deployment Backup
+                        </button>
+                        <small class="form-text text-muted">
+                            Creates a special backup for use during deployment to production.
+                        </small>
                     </form>
                     {% else %}
                     <div class="alert alert-warning mt-3">
@@ -138,6 +149,84 @@
                     {% else %}
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> No regular backup files found. Create a backup using the button on the left.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-cloud"></i> Deployment Backups</h5>
+                </div>
+                <div class="card-body">
+                    {% if has_deployment_backups %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> These special backups are used during deployment to production. When the application is deployed, it will automatically restore from the latest deployment backup.
+                    </div>
+                    
+                    {% if is_deployment %}
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-check-circle"></i> <strong>Deployment Mode:</strong> This instance is running in deployment mode and will use deployment backups.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Backup Type</th>
+                                    <th>Format</th>
+                                    <th>Size</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for backup in deployment_backups %}
+                                <tr>
+                                    <td>
+                                        {% if backup.filename == 'deployment_db.json' %}
+                                            <span class="badge badge-danger">Active Deployment</span>
+                                        {% else %}
+                                            <span class="badge badge-info">Deployment Backup</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ backup.type }}</td>
+                                    <td>{{ backup.size }}</td>
+                                    <td>{{ backup.date|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <form action="{% url 'restore-backup' backup.filename %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="is_deployment" value="true">
+                                                <button type="submit" class="btn btn-warning btn-sm" 
+                                                        onclick="return confirm('WARNING: This will replace your current database with the deployment backup. All current data not in the backup will be lost. Are you sure you want to continue?')">
+                                                    <i class="fas fa-undo"></i> Restore
+                                                </button>
+                                            </form>
+                                            <a href="{% url 'download-backup' backup.filename %}?deployment=true" class="btn btn-info btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                            {% if backup.filename != 'deployment_db.json' %}
+                                            <form action="{% url 'delete-backup' backup.filename %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="is_deployment" value="true">
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                        onclick="return confirm('Are you sure you want to permanently delete this deployment backup file? This cannot be undone.')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No deployment backup files found. Create a deployment backup using the "Create Deployment Backup" button on the left.
                     </div>
                     {% endif %}
                 </div>
@@ -244,7 +333,11 @@
                 </div>
                 <div class="card-body">
                     <h5>Creating Backups</h5>
-                    <p>Click the "Create Backup Now" button to create a backup of the current database state. Both JSON data and SQLite file (if available) will be backed up.</p>
+                    <p>Two types of backups are available:</p>
+                    <ul>
+                        <li><strong>Regular Backup:</strong> Creates a standard backup that is stored in both regular and persistent locations.</li>
+                        <li><strong>Deployment Backup:</strong> Creates a special backup designed for deploying the application to production. This is used when the application is redeployed.</li>
+                    </ul>
                     
                     <h5>Restoring Backups</h5>
                     <p>Click the "Restore" button next to a backup file to restore the database to that state. <strong>Warning:</strong> This will replace all current data in the database with the data from the backup.</p>
@@ -255,9 +348,20 @@
                         <li><strong>SQLite Database:</strong> Direct copy of the SQLite database file. Contains all data including system tables. Only works with SQLite.</li>
                     </ul>
                     
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-cloud-upload-alt"></i> Deployment Backups</h5>
+                        <p>Deployment backups are special backups used when deploying the application to production:</p>
+                        <ul>
+                            <li><strong>Location:</strong> Stored in the <code>/deployment</code> directory</li>
+                            <li><strong>Purpose:</strong> Used during application deployment to ensure the production environment has the correct database state</li>
+                            <li><strong>Active File:</strong> <code>deployment_db.json</code> is the specific file used during deployment</li>
+                        </ul>
+                        <p>When you click "Create Deployment Backup", a timestamped backup is created and also linked as <code>deployment_db.json</code>.</p>
+                    </div>
+                    
                     <div class="alert alert-primary">
                         <h5><i class="fas fa-shield-alt"></i> Persistent Backups</h5>
-                        <p>When you create a backup, it's automatically stored in two locations:</p>
+                        <p>When you create a regular backup, it's automatically stored in two locations:</p>
                         <ul>
                             <li><strong>Regular location:</strong> The <code>/backups</code> folder inside the application directory</li>
                             <li><strong>Persistent location:</strong> A special <code>/persistent_backups</code> folder that remains available after redeployments</li>
