@@ -31,7 +31,8 @@ args = "cd smorasfotball && python -m pip install django pandas openpyxl reportl
 waitForPort = 5000
 
 [deployment]
-run = ["sh", "-c", "cd smorasfotball && python -m pip install django pandas openpyxl reportlab && python manage.py migrate && python manage.py runserver 0.0.0.0:5000"]
+run = ["sh", "-c", "cd smorasfotball && python manage.py runserver 0.0.0.0:5000"]
+build = ["sh", "-c", "cd smorasfotball && python -m pip install django pandas openpyxl reportlab && python manage.py migrate && python manage.py check_database --backup"]
 
 [[ports]]
 localPort = 5000
