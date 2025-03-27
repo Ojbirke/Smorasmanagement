@@ -1110,13 +1110,18 @@
             // Update period if needed (only when a full minute passes)
             if (elapsedMinutes !== currentGameTime) {
                 currentGameTime = elapsedMinutes;
-                const newPeriod = Math.min(Math.floor(elapsedMinutes / {{ period_length }}) + 1, data.match_info.total_periods);
+                
+                // Use the global match info object
+                const newPeriod = Math.min(
+                    Math.floor(elapsedMinutes / globalMatchInfo.period_length) + 1, 
+                    globalMatchInfo.total_periods
+                );
                 
                 if (newPeriod !== currentPeriod) {
                     currentPeriod = newPeriod;
                     const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
                     if (periodInfoEl) {
-                        periodInfoEl.innerHTML = `Period ${currentPeriod}/${data.match_info.total_periods}`;
+                        periodInfoEl.innerHTML = `Period ${currentPeriod}/${globalMatchInfo.total_periods}`;
                     }
                 }
             }
@@ -1174,6 +1179,9 @@
                     
                     // Update the match information
                     if (data.match_info) {
+                        // Update global match info object
+                        updateGlobalMatchInfo(data.match_info);
+                        
                         // Update time
                         const timeDisplay = document.querySelector('.fs-5 .fw-bold');
                         if (timeDisplay) {
@@ -1231,6 +1239,11 @@
                     // Update period info and badge
                     currentPeriod = data.match_info.period;
                     
+                    // Update global match info
+                    if (data.match_info) {
+                        updateGlobalMatchInfo(data.match_info);
+                    }
+                    
                     // Update period badge in the header
                     const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                     if (periodBadge) {
@@ -1278,6 +1291,23 @@
             .catch(error => {
                 console.error('Error updating match time info:', error);
             });
+        }
+        
+        // Global variables to store match info for all functions to use
+        let globalMatchInfo = {
+            period: {{ current_period|default:1 }},
+            total_periods: {{ total_periods|default:2 }},
+            period_length: {{ period_length|default:25 }}
+        };
+        
+        // Function to update global match info from AJAX response
+        function updateGlobalMatchInfo(matchInfo) {
+            if (matchInfo) {
+                globalMatchInfo = {
+                    ...globalMatchInfo,
+                    ...matchInfo
+                };
+            }
         }
         
         // Start auto-refresh when page loads
