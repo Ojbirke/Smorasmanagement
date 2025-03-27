@@ -56,20 +56,58 @@ def database_overview(request):
     
     # Check for regular backup files
     backups = []
+    
+    # Helper function to categorize backups
+    def categorize_backup(filename):
+        if 'auto_startup' in filename:
+            return 'auto_startup'
+        elif 'auto_shutdown' in filename:
+            return 'auto_shutdown'
+        else:
+            return 'manual'
+    
+    # Get the latest backup of each type in regular directory
     if os.path.exists(backup_dir):
         backup_exists = True
         
-        for filename in sorted(os.listdir(backup_dir), reverse=True):
+        # Organize backups by type and extension
+        categorized_backups = {
+            'auto_startup': {'json': [], 'sqlite3': []},
+            'auto_shutdown': {'json': [], 'sqlite3': []},
+            'manual': {'json': [], 'sqlite3': []}
+        }
+        
+        # Collect all files and organize them
+        for filename in os.listdir(backup_dir):
             if filename.endswith('.json') or filename.endswith('.sqlite3'):
+                extension = 'json' if filename.endswith('.json') else 'sqlite3'
+                category = categorize_backup(filename)
                 file_path = os.path.join(backup_dir, filename)
                 stat = os.stat(file_path)
-                backups.append({
+                
+                categorized_backups[category][extension].append({
                     'filename': filename,
-                    'type': 'JSON Data' if filename.endswith('.json') else 'SQLite Database',
-                    'size': _format_file_size(stat.st_size),
-                    'date': datetime.fromtimestamp(stat.st_mtime),
-                    'persistent': False
+                    'path': file_path,
+                    'stat': stat,
+                    'date': datetime.fromtimestamp(stat.st_mtime)
                 })
+        
+        # Sort each category by date (newest first) and take only the latest one
+        for category in categorized_backups:
+            for extension in categorized_backups[category]:
+                if categorized_backups[category][extension]:
+                    # Sort by date, newest first
+                    categorized_backups[category][extension].sort(key=lambda x: x['date'], reverse=True)
+                    # Add only the latest file to the final list
+                    latest = categorized_backups[category][extension][0]
+                    backups.append({
+                        'filename': latest['filename'],
+                        'type': 'JSON Data' if extension == 'json' else 'SQLite Database',
+                        'size': _format_file_size(latest['stat'].st_size),
+                        'date': latest['date'],
+                        'persistent': False,
+                        'category': category
+                    })
     else:
         backup_exists = False
     
@@ -78,17 +116,44 @@ def database_overview(request):
     if os.path.exists(persistent_backup_dir):
         persistent_backup_exists = True
         
-        for filename in sorted(os.listdir(persistent_backup_dir), reverse=True):
+        # Organize persistent backups by type and extension
+        categorized_persistent_backups = {
+            'auto_startup': {'json': [], 'sqlite3': []},
+            'auto_shutdown': {'json': [], 'sqlite3': []},
+            'manual': {'json': [], 'sqlite3': []}
+        }
+        
+        # Collect all files and organize them
+        for filename in os.listdir(persistent_backup_dir):
             if filename.endswith('.json') or filename.endswith('.sqlite3'):
+                extension = 'json' if filename.endswith('.json') else 'sqlite3'
+                category = categorize_backup(filename)
                 file_path = os.path.join(persistent_backup_dir, filename)
                 stat = os.stat(file_path)
-                persistent_backups.append({
+                
+                categorized_persistent_backups[category][extension].append({
                     'filename': filename,
-                    'type': 'JSON Data (Persistent)' if filename.endswith('.json') else 'SQLite Database (Persistent)',
-                    'size': _format_file_size(stat.st_size),
-                    'date': datetime.fromtimestamp(stat.st_mtime),
-                    'persistent': True
+                    'path': file_path,
+                    'stat': stat,
+                    'date': datetime.fromtimestamp(stat.st_mtime)
                 })
+        
+        # Sort each category by date (newest first) and take only the latest one
+        for category in categorized_persistent_backups:
+            for extension in categorized_persistent_backups[category]:
+                if categorized_persistent_backups[category][extension]:
+                    # Sort by date, newest first
+                    categorized_persistent_backups[category][extension].sort(key=lambda x: x['date'], reverse=True)
+                    # Add only the latest file to the final list
+                    latest = categorized_persistent_backups[category][extension][0]
+                    persistent_backups.append({
+                        'filename': latest['filename'],
+                        'type': 'JSON Data (Persistent)' if extension == 'json' else 'SQLite Database (Persistent)',
+                        'size': _format_file_size(latest['stat'].st_size),
+                        'date': latest['date'],
+                        'persistent': True,
+                        'category': category
+                    })
     else:
         persistent_backup_exists = False
     
