@@ -35,8 +35,10 @@ This application has a sophisticated backup and restoration system designed to m
 ### Database Preservation During Deployment
 
 - When you redeploy the application, your production database is automatically preserved
-- Pre-deployment script detects existing deployment backups and keeps them intact
+- The system uses a GitHub-based backup synchronization mechanism to ensure backups persist across deployments
+- Pre-deployment script pulls the latest backups from the repository before checking for existing deployment backups
 - Startup script prioritizes deployment backups during restoration
+- Any new backups created are automatically pushed to the repository for persistence
 - This ensures your live data (teams, players, matches) is never overwritten by development data
 
 ### Backup Workflow
@@ -95,6 +97,26 @@ If the automatic restoration fails during redeployment, you have several options
    ./simulate_deployment.sh
    ```
    This script runs the same steps as a real deployment to verify that the system works correctly.
+
+5. **Test GitHub-based Backup Sync**:
+   ```
+   python test_backup_sync.py
+   ```
+   This script tests the GitHub-based backup synchronization system by creating a backup, pushing it to the repository, simulating a redeployment, and then pulling the backup from the repository.
+
+### GitHub-based Backup Sync System
+
+The application now uses GitHub as a persistent storage solution for deployment backups:
+
+1. **Automatic Push**: When a backup is created, it's automatically pushed to the repository via the `sync_backups_with_repo` command.
+
+2. **Automatic Pull**: During deployment, the system pulls the latest backups from the repository before checking for existing deployment backups.
+
+3. **Manual Commands**:
+   - Push backups to repository: `python manage.py sync_backups_with_repo --push`
+   - Pull backups from repository: `python manage.py sync_backups_with_repo --pull`
+
+This ensures that backups persist across deployments even if the deployment process overwrites the files in the deployment directory.
 
 ## Development Setup
 

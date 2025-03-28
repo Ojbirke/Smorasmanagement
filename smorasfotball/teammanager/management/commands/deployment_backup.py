@@ -53,6 +53,20 @@ class Command(BaseCommand):
         timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
         name_suffix = f"_{name}" if name else ""
         
+        # Check if deployment directory exists and is writable
+        if not os.path.exists(deployment_dir):
+            os.makedirs(deployment_dir, exist_ok=True)
+            self.stdout.write(f"Created deployment directory: {deployment_dir}")
+        
+        if not os.access(deployment_dir, os.W_OK):
+            self.stdout.write(self.style.WARNING(f"Warning: Deployment directory {deployment_dir} is not writable!"))
+            try:
+                # Try to fix permissions
+                os.chmod(deployment_dir, 0o755)
+                self.stdout.write("Fixed permissions on deployment directory")
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Failed to fix permissions: {str(e)}"))
+                
         if backup_format == 'json':
             # Define backup filename for JSON format
             backup_filename = f"deployment_backup{name_suffix}_{timestamp}.json"
@@ -76,11 +90,24 @@ class Command(BaseCommand):
                     os.remove(latest_path)
                 shutil.copy2(backup_path, latest_path)
                 
+                # Set appropriate permissions
+                os.chmod(backup_path, 0o644)
+                os.chmod(latest_path, 0o644)
+                
                 # Verify the backup content
                 self.verify_backup(backup_path)
                 
                 self.stdout.write(self.style.SUCCESS(f'JSON deployment backup created: {backup_filename}'))
                 self.stdout.write(self.style.SUCCESS(f'Also linked as: deployment_db.json'))
+                
+                # Sync backup to repository for persistence across deployments
+                try:
+                    self.stdout.write("Syncing backup to repository for persistence...")
+                    call_command('sync_backups_with_repo', push=True)
+                    self.stdout.write(self.style.SUCCESS("Backup synced to repository"))
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"Failed to sync to repository: {str(e)}"))
+                    self.stdout.write(self.style.WARNING("Backup created locally but not synced to repository"))
                 
                 return backup_path
             
@@ -105,6 +132,16 @@ class Command(BaseCommand):
                 if not os.path.exists(db_path):
                     raise CommandError(f"Database file not found at: {db_path}")
                 
+                # Check if the source database is readable
+                if not os.access(db_path, os.R_OK):
+                    self.stdout.write(self.style.WARNING(f"Warning: Source database {db_path} is not readable!"))
+                    try:
+                        # Try to fix permissions
+                        os.chmod(db_path, 0o644)
+                        self.stdout.write("Fixed permissions on source database")
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Failed to fix permissions: {str(e)}"))
+                
                 # Create a direct copy of the SQLite database file
                 shutil.copy2(db_path, backup_path)
                 
@@ -114,8 +151,21 @@ class Command(BaseCommand):
                     os.remove(latest_path)
                 shutil.copy2(backup_path, latest_path)
                 
+                # Set appropriate permissions
+                os.chmod(backup_path, 0o644)
+                os.chmod(latest_path, 0o644)
+                
                 self.stdout.write(self.style.SUCCESS(f'SQLite deployment backup created: {backup_filename}'))
                 self.stdout.write(self.style.SUCCESS(f'Also linked as: deployment_db.sqlite'))
+                
+                # Sync backup to repository for persistence across deployments
+                try:
+                    self.stdout.write("Syncing backup to repository for persistence...")
+                    call_command('sync_backups_with_repo', push=True)
+                    self.stdout.write(self.style.SUCCESS("Backup synced to repository"))
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"Failed to sync to repository: {str(e)}"))
+                    self.stdout.write(self.style.WARNING("Backup created locally but not synced to repository"))
                 
                 return backup_path
                 

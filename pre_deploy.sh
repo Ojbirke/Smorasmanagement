@@ -9,6 +9,14 @@ export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
+# Configure Git for deployment (required for the backup sync system)
+git config --global user.email "deployment@example.com"
+git config --global user.name "Deployment Bot"
+
+# Make sure we're on the correct branch for backup synchronization
+git fetch origin
+git checkout main || git checkout master || echo "Warning: Could not checkout main or master branch"
+
 # First, make sure the persistent_backups directory exists
 mkdir -p persistent_backups
 
@@ -31,6 +39,16 @@ echo "Deployment directory: $(pwd)/deployment"
 
 # List deployment directory contents for debugging
 echo "Current files in deployment directory:"
+ls -la deployment/
+
+# Pull latest backups from repository to ensure we have the most recent ones
+echo "Pulling latest backups from repository..."
+cd smorasfotball
+python manage.py sync_backups_with_repo --pull
+cd ..
+
+# List deployment directory contents after the pull operation
+echo "Files in deployment directory after pull operation:"
 ls -la deployment/
 
 # Create a marker file to indicate we're in a deployment process
