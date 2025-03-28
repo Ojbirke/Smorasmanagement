@@ -3,6 +3,7 @@ from . import views
 from . import views_db_admin
 from . import views_lineup
 from . import views_match_management
+from . import views_video
 
 urlpatterns = [
     # Authentication
@@ -99,4 +100,28 @@ urlpatterns = [
     path('match-sessions/<int:session_pk>/quick-sub/', views_match_management.ajax_quick_sub, name='match-session-quick-sub'),
     path('match-sessions/<int:session_pk>/update-times/', views_match_management.update_playing_times, name='match-session-update-times'),
     path('match-sessions/<int:session_pk>/recommendations/', views_match_management.get_sub_recommendations, name='match-session-recommendations'),
+    
+    # Video Clips
+    path('videos/', views_video.video_clip_list, name='video-clip-list'),
+    path('videos/<int:pk>/', views_video.video_clip_detail, name='video-clip-detail'),
+    path('videos/add/', views_video.video_clip_create, name='video-clip-create'),
+    path('videos/<int:pk>/edit/', views_video.video_clip_edit, name='video-clip-edit'),
+    path('videos/<int:pk>/delete/', views_video.video_clip_delete, name='video-clip-delete'),
+    
+    # Match Session Videos
+    path('match-sessions/<int:match_session_id>/videos/', views_video.match_session_video_clips, name='match-session-video-clips'),
+    path('match-sessions/<int:match_session_id>/videos/add/', views_video.video_clip_create, name='match-session-video-clip-create'),
+    path('match-sessions/<int:match_session_id>/video-manager/', views_video.match_session_video_manager, name='match-session-video-manager'),
+    path('match-sessions/<int:match_session_id>/instant-replay/', views_video.match_session_instant_replay, name='match-session-instant-replay'),
+    
+    # Highlight Reels
+    path('highlights/', views_video.highlight_reel_list, name='highlight-reel-list'),
+    path('highlights/<int:pk>/', views_video.highlight_reel_detail, name='highlight-reel-detail'),
+    path('highlights/add/', views_video.highlight_reel_create, name='highlight-reel-create'),
+    path('highlights/<int:pk>/edit/', views_video.highlight_reel_edit, name='highlight-reel-edit'),
+    path('highlights/<int:pk>/edit-clips/', views_video.highlight_reel_edit_clips, name='highlight-reel-edit-clips'),
+    path('highlights/<int:pk>/delete/', views_video.highlight_reel_delete, name='highlight-reel-delete'),
+    
+    # Player Videos
+    path('players/<int:player_pk>/videos/', views_video.player_video_clips, name='player-video-clips'),
 ]

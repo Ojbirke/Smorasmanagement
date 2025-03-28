@@ -1,0 +1,332 @@
+{% extends 'teammanager/base.html' %}
+{% load static %}
+
+{% block title %}Video Clips - {{ match_session.match.home_team }} vs {{ match_session.match.away_team }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .clip-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .clip-card {
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s;
+        height: 100%;
+    }
+    
+    .clip-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .clip-thumbnail {
+        position: relative;
+        height: 180px;
+        background-color: #000;
+        overflow: hidden;
+    }
+    
+    .clip-thumbnail img, 
+    .clip-thumbnail video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .clip-thumbnail .play-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        background-color: rgba(255,255,255,0.8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .clip-thumbnail:hover .play-icon {
+        opacity: 1;
+    }
+    
+    .clip-body {
+        padding: 15px;
+    }
+    
+    .clip-title {
+        font-size: 18px;
+        margin-bottom: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .clip-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    .clip-meta-item {
+        display: flex;
+        align-items: center;
+    }
+    
+    .clip-meta-item i {
+        margin-right: 5px;
+    }
+    
+    .clip-tags {
+        margin-top: 10px;
+    }
+    
+    .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        background-color: #e9ecef;
+        margin-right: 5px;
+    }
+    
+    .tag-goal { background-color: #ffc107; }
+    .tag-assist { background-color: #20c997; }
+    .tag-save { background-color: #0dcaf0; }
+    .tag-tackle { background-color: #dc3545; }
+    .tag-skill { background-color: #6f42c1; }
+    .tag-pass { background-color: #0d6efd; }
+    .tag-shot { background-color: #fd7e14; }
+    
+    .filter-bar {
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        margin-bottom: 30px;
+    }
+    
+    .player-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background-color: #e9ecef;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .player-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Video Clips</h1>
+        <div>
+            <a href="{% url 'match-session-detail' match_session.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Match Session
+            </a>
+            {% if can_create %}
+            <a href="{% url 'match-session-video-manager' match_session.id %}" class="btn btn-outline-danger me-2">
+                <i class="bi bi-camera-video"></i> Record New Clip
+            </a>
+            <a href="{% url 'match-session-video-clip-create' match_session.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Upload Clip
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Match info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ match_session.match.home_team }} vs {{ match_session.match.away_team }}</h5>
+            <p class="card-text">
+                <strong>Date:</strong> {{ match_session.match.date|date:"F j, Y" }}<br>
+                <strong>Location:</strong> {{ match_session.match.location }}<br>
+                <strong>Result:</strong> 
+                {% if match_session.match.home_score is not None and match_session.match.away_score is not None %}
+                    {{ match_session.match.home_score }} - {{ match_session.match.away_score }}
+                {% else %}
+                    Not recorded
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Filter bar -->
+    <div class="filter-bar mb-4">
+        <form method="get" action="" class="row g-3">
+            <div class="col-md-4">
+                <label for="action_filter" class="form-label">Action Type</label>
+                <select class="form-select" id="action_filter" name="action">
+                    <option value="all">All Actions</option>
+                    <option value="goal">Goals</option>
+                    <option value="assist">Assists</option>
+                    <option value="save">Saves</option>
+                    <option value="tackle">Tackles</option>
+                    <option value="skill">Skill Moves</option>
+                    <option value="pass">Great Passes</option>
+                    <option value="shot">Shots</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="player_filter" class="form-label">Player</label>
+                <select class="form-select" id="player_filter" name="player">
+                    <option value="">All Players</option>
+                    {% for player in match_session.get_players %}
+                        <option value="{{ player.id }}">{{ player.first_name }} {{ player.last_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter Clips</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Clips count -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>{{ video_clips|length }} Clips</h3>
+        {% if can_create %}
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-box-arrow-up-right"></i> Export
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                <li><a class="dropdown-item" href="#">Create Highlight Reel</a></li>
+                <li><a class="dropdown-item" href="#">Download All Clips (ZIP)</a></li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Video clips grid -->
+    {% if video_clips %}
+    <div class="clip-grid">
+        {% for clip in video_clips %}
+        <div class="card clip-card">
+            <div class="clip-thumbnail">
+                <a href="{% url 'video-clip-detail' clip.id %}">
+                    {% if clip.thumbnail %}
+                        <img src="{{ clip.thumbnail.url }}" alt="{{ clip.title }}">
+                    {% else %}
+                        <video src="{{ clip.video_file.url }}" preload="metadata"></video>
+                    {% endif %}
+                    <div class="play-icon">
+                        <i class="bi bi-play-fill fs-1"></i>
+                    </div>
+                </a>
+            </div>
+            <div class="clip-body">
+                <h5 class="clip-title">{{ clip.title }}</h5>
+                <div class="clip-meta">
+                    <div class="clip-meta-item">
+                        <i class="bi bi-clock"></i>
+                        <span>{{ clip.formatted_game_time }}</span>
+                    </div>
+                    <div class="clip-meta-item">
+                        <i class="bi bi-stopwatch"></i>
+                        <span>{{ clip.duration }}s</span>
+                    </div>
+                </div>
+                
+                {% if clip.players_involved.exists %}
+                <div class="player-list">
+                    {% for player in clip.players_involved.all|slice:":3" %}
+                        <div class="player-avatar" title="{{ player.first_name }} {{ player.last_name }}">
+                            {{ player.first_name|first }}{{ player.last_name|first }}
+                        </div>
+                    {% endfor %}
+                    {% if clip.players_involved.all|length > 3 %}
+                        <div class="player-avatar">+{{ clip.players_involved.all|length|add:"-3" }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="clip-tags mt-2">
+                    <span class="tag tag-{{ clip.action_tag }}">{{ clip.get_action_tag_display }}</span>
+                    {% if clip.is_highlight %}
+                        <span class="tag">Highlight</span>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-between mt-3">
+                    <a href="{% url 'video-clip-detail' clip.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                    {% if can_edit %}
+                    <div>
+                        <a href="{% url 'video-clip-edit' clip.id %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'video-clip-delete' clip.id %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-camera-video fs-1 text-muted"></i>
+        <h3 class="mt-3">No Video Clips Yet</h3>
+        <p class="text-muted">Start recording highlights from this match session.</p>
+        {% if can_create %}
+        <a href="{% url 'match-session-video-manager' match_session.id %}" class="btn btn-primary mt-3">
+            <i class="bi bi-camera-video"></i> Record Now
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize any video preview functionality
+        const videos = document.querySelectorAll('.clip-thumbnail video');
+        videos.forEach(video => {
+            // Set current time to middle of video for better thumbnails
+            video.addEventListener('loadedmetadata', function() {
+                if (video.duration) {
+                    video.currentTime = video.duration / 2;
+                }
+            });
+        });
+        
+        // Set the filter values from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('action')) {
+            document.getElementById('action_filter').value = urlParams.get('action');
+        }
+        if (urlParams.has('player')) {
+            document.getElementById('player_filter').value = urlParams.get('player');
+        }
+    });
+</script>
+{% endblock %}

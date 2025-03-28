@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Video Clip{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h1 class="h3 mb-0">Delete Video Clip</h1>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone. The video clip will be permanently deleted.
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Are you sure you want to delete the following clip?</h5>
+                        <div class="card mt-2">
+                            <div class="card-body">
+                                <h6>{{ video_clip.title }}</h6>
+                                <div class="d-flex mb-2">
+                                    <span class="badge bg-primary me-1">{{ video_clip.get_action_tag_display }}</span>
+                                    <span class="badge bg-secondary">{{ video_clip.match_session.match.date|date:"d M Y" }}</span>
+                                </div>
+                                
+                                {% if video_clip.description %}
+                                    <p class="small text-muted">{{ video_clip.description|truncatechars:100 }}</p>
+                                {% endif %}
+                                
+                                <div class="mb-2">
+                                    <video class="img-thumbnail" width="100%" controls>
+                                        <source src="{{ video_clip.video_file.url }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                                
+                                <div class="small text-muted">
+                                    <strong>Recorded:</strong> {{ video_clip.timestamp|date:"d M Y H:i" }}
+                                </div>
+                                
+                                {% if video_clip.highlightcliporder_set.exists %}
+                                    <div class="alert alert-danger mt-3 mb-0">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <strong>Note:</strong> This clip is used in {{ video_clip.highlightcliporder_set.count }} highlight reel(s). Deleting it will remove it from those reels.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            {% if match_session %}
+                                <a href="{% url 'match-session-video-clips' match_session.id %}" class="btn btn-outline-secondary">Cancel</a>
+                            {% else %}
+                                <a href="{% url 'video-clip-detail' video_clip.id %}" class="btn btn-outline-secondary">Cancel</a>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Confirm Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -392,3 +392,77 @@ class PlayingTime(models.Model):
     def __str__(self):
         status = "playing" if self.is_on_pitch else "on bench"
         return f"{self.player} - {self.minutes_played} mins ({status})"
+
+
+class VideoClip(models.Model):
+    """
+    Stores a video clip from a match session
+    """
+    match_session = models.ForeignKey(MatchSession, related_name='video_clips', on_delete=models.CASCADE)
+    title = models.CharField(max_length=100, help_text="Title for this clip")
+    description = models.TextField(blank=True, null=True, help_text="Description of what happens in this clip")
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="When the clip was recorded")
+    game_minute = models.PositiveSmallIntegerField(help_text="Match minute when the clip occurred")
+    period = models.PositiveSmallIntegerField(default=1, help_text="Match period when the clip occurred")
+    duration = models.PositiveSmallIntegerField(default=30, help_text="Length of the clip in seconds")
+    video_file = models.FileField(upload_to='match_clips/', help_text="The video file")
+    is_highlight = models.BooleanField(default=False, help_text="Whether this clip should be included in highlight reels")
+    created_by = models.ForeignKey(User, related_name='created_clips', on_delete=models.SET_NULL, null=True)
+    
+    # Tags for players involved in the clip
+    players_involved = models.ManyToManyField(Player, related_name='video_clips', blank=True)
+    
+    # Action tags (goals, assists, saves, etc.)
+    ACTION_TAGS = [
+        ('goal', 'Goal'),
+        ('assist', 'Assist'),
+        ('save', 'Save'),
+        ('tackle', 'Tackle'),
+        ('skill', 'Skill Move'),
+        ('pass', 'Great Pass'),
+        ('shot', 'Shot'),
+        ('other', 'Other'),
+    ]
+    action_tag = models.CharField(max_length=10, choices=ACTION_TAGS, default='other')
+    
+    class Meta:
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.title} ({self.match_session})"
+    
+    def get_absolute_url(self):
+        return reverse('video-clip-detail', args=[str(self.id)])
+
+
+class HighlightReel(models.Model):
+    """
+    A compilation of multiple video clips
+    """
+    title = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, related_name='created_highlight_reels', on_delete=models.SET_NULL, null=True)
+    clips = models.ManyToManyField(VideoClip, through='HighlightClipOrder')
+    video_file = models.FileField(upload_to='highlight_reels/', blank=True, null=True)
+    is_published = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return self.title
+    
+    def get_absolute_url(self):
+        return reverse('highlight-reel-detail', args=[str(self.id)])
+
+
+class HighlightClipOrder(models.Model):
+    """
+    Through model to maintain order of clips in a highlight reel
+    """
+    highlight_reel = models.ForeignKey(HighlightReel, on_delete=models.CASCADE)
+    video_clip = models.ForeignKey(VideoClip, on_delete=models.CASCADE)
+    order = models.PositiveSmallIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order']
+        unique_together = ('highlight_reel', 'video_clip')

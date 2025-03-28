@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ video_clip.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">{{ video_clip.title }}</h1>
+        <div>
+            <a href="{% url 'match-session-video-clips' video_clip.match_session.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Match Clips
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Video Player -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <div class="position-relative">
+                        <video class="w-100 rounded" controls autoplay>
+                            <source src="{{ video_clip.video_file.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        
+                        <!-- Overlay with match/period info (hidden when video plays) -->
+                        <div class="position-absolute top-0 start-0 py-1 px-2 m-2 rounded bg-dark bg-opacity-75 text-white small">
+                            <span>Period {{ video_clip.period }}</span>
+                            <span class="mx-1">|</span>
+                            <span>{{ video_clip.game_minute }}'</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-primary me-1">{{ video_clip.get_action_tag_display }}</span>
+                        <span class="badge bg-secondary">{{ video_clip.duration }}s</span>
+                    </div>
+                    
+                    <div class="text-muted small">
+                        {{ video_clip.timestamp|date:"d M Y H:i" }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Video Description -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Description</h5>
+                </div>
+                <div class="card-body">
+                    {% if video_clip.description %}
+                        <p>{{ video_clip.description }}</p>
+                    {% else %}
+                        <p class="text-muted">No description provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            {% if can_edit %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'video-clip-edit' video_clip.id %}" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Clip
+                        </a>
+                        <a href="{% url 'video-clip-delete' video_clip.id %}" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                        {% if video_clip.is_highlight %}
+                        <a href="{% url 'highlight-reel-add-clip' video_clip.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-collection-play"></i> Add to Highlight Reel
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Match Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Match Information</h5>
+                </div>
+                <div class="card-body">
+                    <h6>{{ video_clip.match_session.match.smoras_team }} vs {{ video_clip.match_session.match.opponent_name }}</h6>
+                    <p class="text-muted mb-2">{{ video_clip.match_session.match.date|date:"d M Y" }}</p>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="me-3 fw-bold text-primary fs-4">
+                            {{ video_clip.match_session.match.smoras_score|default:"0" }}
+                        </span>
+                        <span class="text-muted fs-5">vs</span>
+                        <span class="ms-3 fw-bold text-primary fs-4">
+                            {{ video_clip.match_session.match.opponent_score|default:"0" }}
+                        </span>
+                    </div>
+                    
+                    <a href="{% url 'match-session-detail' video_clip.match_session.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> View Match Session
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Featured Players -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Featured Players</h5>
+                </div>
+                <div class="card-body">
+                    {% if video_clip.players_involved.exists %}
+                        <div class="list-group list-group-flush">
+                            {% for player in video_clip.players_involved.all %}
+                                <a href="{% url 'player-detail' player.id %}" class="list-group-item list-group-item-action border-0 px-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">{{ player.first_name }} {{ player.last_name }}</h6>
+                                            {% if player.position %}
+                                                <small class="text-muted">{{ player.position }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{% url 'player-video-clips' player.id %}" class="btn btn-sm btn-outline-secondary">
+                                            More Clips
+                                        </a>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No players tagged in this clip.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Related Clips -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Related Clips</h5>
+                </div>
+                <div class="card-body">
+                    {% if related_clips %}
+                        <div class="row">
+                            {% for clip in related_clips %}
+                                <div class="col-6 mb-3">
+                                    <div class="position-relative">
+                                        <a href="{% url 'video-clip-detail' clip.id %}">
+                                            <video class="w-100 rounded" poster="">
+                                                <source src="{{ clip.video_file.url }}" type="video/mp4">
+                                            </video>
+                                            <div class="position-absolute bottom-0 start-0 end-0 py-1 px-2 bg-dark bg-opacity-75 text-white small text-truncate">
+                                                {{ clip.title }}
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No related clips found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

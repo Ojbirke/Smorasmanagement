@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from .models import (
     Team, Player, Match, MatchAppearance,
     FormationTemplate, LineupPosition, Lineup, LineupPlayerPosition,
-    MatchSession, PlayerSubstitution, PlayingTime
+    MatchSession, PlayerSubstitution, PlayingTime,
+    VideoClip, HighlightReel, HighlightClipOrder
 )
 
 
@@ -387,3 +388,93 @@ class SubstitutionForm(forms.ModelForm):
             self.fields['player_in'].queryset = Player.objects.filter(
                 id__in=players_on_bench
             ).order_by('first_name', 'last_name')
+
+
+class VideoClipForm(forms.ModelForm):
+    """
+    Form for creating and editing video clips
+    """
+    class Meta:
+        model = VideoClip
+        fields = [
+            'title', 'description', 'game_minute', 'period', 
+            'duration', 'video_file', 'is_highlight', 'action_tag', 'players_involved'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'game_minute': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '120'}),
+            'period': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '4'}),
+            'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': '5', 'max': '120'}),
+            'is_highlight': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'action_tag': forms.Select(attrs={'class': 'form-select'}),
+            'players_involved': forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        match_session = kwargs.pop('match_session', None)
+        super().__init__(*args, **kwargs)
+        
+        if match_session:
+            # Filter players to only those in this match session
+            session_player_ids = PlayingTime.objects.filter(
+                match_session=match_session
+            ).values_list('player_id', flat=True)
+            
+            self.fields['players_involved'].queryset = Player.objects.filter(
+                id__in=session_player_ids
+            ).order_by('first_name', 'last_name')
+            
+            # Set initial values for game minute and period based on current match status
+            if match_session.is_active:
+                # Game is in progress, use current values
+                from django.utils import timezone
+                import math
+                
+                if match_session.start_time:
+                    current_time = timezone.now()
+                    elapsed_seconds = (current_time - match_session.start_time).total_seconds()
+                    elapsed_seconds += match_session.elapsed_time  # Add time from previous periods
+                    
+                    # Convert to minutes for the form fields
+                    total_elapsed_minutes = math.floor(elapsed_seconds / 60)
+                    
+                    # Calculate period
+                    period_length_seconds = match_session.period_length * 60
+                    current_period = math.ceil(elapsed_seconds / period_length_seconds)
+                    
+                    # Calculate minutes within the current period
+                    period_minutes = total_elapsed_minutes % match_session.period_length
+                    
+                    self.fields['game_minute'].initial = period_minutes
+                    self.fields['period'].initial = current_period
+            
+            # Set a more descriptive label for the players field
+            self.fields['players_involved'].label = f"Players featured in this clip"
+
+
+class HighlightReelForm(forms.ModelForm):
+    """
+    Form for creating and editing highlight reels
+    """
+    class Meta:
+        model = HighlightReel
+        fields = ['title', 'description', 'is_published']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'is_published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class HighlightClipOrderForm(forms.ModelForm):
+    """
+    Form for ordering clips in a highlight reel
+    """
+    class Meta:
+        model = HighlightClipOrder
+        fields = ['video_clip', 'order']
+        widgets = {
+            'video_clip': forms.Select(attrs={'class': 'form-select'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '100'}),
+        }

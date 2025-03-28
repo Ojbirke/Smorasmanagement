@@ -1,0 +1,533 @@
+{% extends 'teammanager/base.html' %}
+{% load static %}
+
+{% block title %}Video Manager - Match Session {{ match_session.id }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .video-container {
+        position: relative;
+        width: 100%;
+        background-color: #000;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .recording-controls {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .recording-btn {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    
+    .recording-btn.recording {
+        animation: pulse 1.5s infinite;
+    }
+    
+    .timer {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin: 15px 0;
+    }
+    
+    .recent-clips-container {
+        height: 400px;
+        overflow-y: auto;
+    }
+    
+    .clip-card {
+        margin-bottom: 10px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .clip-card img {
+        width: 100%;
+        height: 80px;
+        object-fit: cover;
+    }
+    
+    .clip-card .card-body {
+        padding: 10px;
+    }
+    
+    .clip-card .card-title {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .clip-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #6c757d;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    .player-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .player-chip {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #e9ecef;
+        border-radius: 25px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .player-chip.selected {
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Video Manager</h1>
+        <div>
+            <a href="{% url 'match-session-detail' match_session.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Match Session
+            </a>
+            <a href="{% url 'match-session-video-clips' match_session.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-collection-play"></i> View All Clips
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Match info -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ match_session.match.home_team }} vs {{ match_session.match.away_team }}</h5>
+                    <p class="card-text">
+                        <strong>Date:</strong> {{ match_session.match.date|date:"F j, Y" }}<br>
+                        <strong>Location:</strong> {{ match_session.match.location }}<br>
+                        <strong>Status:</strong> 
+                        {% if match_session.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main content -->
+        <div class="col-md-8">
+            <!-- Video preview -->
+            <div class="video-container mb-4">
+                <video id="videoPreview" style="width: 100%; height: 400px; background-color: #000;" autoplay muted></video>
+            </div>
+            
+            <!-- Recording controls -->
+            <div class="recording-controls mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center">
+                        <button id="recordBtn" class="btn btn-danger recording-btn" disabled>
+                            <i class="bi bi-record-circle"></i>
+                        </button>
+                        <div class="mt-2">Record</div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="timer" id="recordingTimer">00:00</div>
+                        <div id="recordingStatus">Not recording</div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <button id="saveClipBtn" class="btn btn-primary recording-btn" disabled>
+                            <i class="bi bi-save"></i>
+                        </button>
+                        <div class="mt-2">Save as Highlight</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Clip form details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    Clip Details
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="clipTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="clipTitle" placeholder="Goal by Player 1">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="actionTag" class="form-label">Action Type</label>
+                                <select class="form-select" id="actionTag">
+                                    <option value="goal">Goal</option>
+                                    <option value="assist">Assist</option>
+                                    <option value="save">Save</option>
+                                    <option value="tackle">Tackle</option>
+                                    <option value="skill">Skill Move</option>
+                                    <option value="pass">Great Pass</option>
+                                    <option value="shot">Shot</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="clipDuration" class="form-label">Duration (seconds)</label>
+                                <input type="number" class="form-control" id="clipDuration" value="10" min="3" max="60">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Players Involved</label>
+                        <div class="player-selector" id="playerSelector">
+                            {% for player in match_session.get_players %}
+                                <div class="player-chip" data-player-id="{{ player.id }}">{{ player.first_name }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="isHighlight" checked>
+                        <label class="form-check-label" for="isHighlight">
+                            Include in highlight reels
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    Recent Clips
+                </div>
+                <div class="card-body p-2">
+                    <div class="recent-clips-container">
+                        {% if recent_clips %}
+                            {% for clip in recent_clips %}
+                                <div class="card clip-card">
+                                    {% if clip.thumbnail %}
+                                        <img src="{{ clip.thumbnail.url }}" alt="{{ clip.title }}">
+                                    {% else %}
+                                        <div class="bg-secondary text-white text-center py-3">
+                                            <i class="bi bi-film"></i> No thumbnail
+                                        </div>
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ clip.title }}</h6>
+                                        <div class="clip-info">
+                                            <span>{{ clip.formatted_game_time }}</span>
+                                            <span>{{ clip.duration }}s</span>
+                                        </div>
+                                        <a href="{% url 'video-clip-detail' clip.id %}" class="btn btn-sm btn-outline-primary mt-2 w-100">View</a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="bi bi-camera-video fs-3 text-muted"></i>
+                                <p class="mt-2">No clips recorded yet</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    Instructions
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li>Allow camera access when prompted</li>
+                        <li>Click the red record button to start recording</li>
+                        <li>Record a clip (max 60 seconds)</li>
+                        <li>Click the save button to save your clip</li>
+                        <li>Add details like title and players involved</li>
+                        <li>The clip will appear in the Recent Clips section</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for camera permissions -->
+<div class="modal fade" id="cameraPermissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Camera Access Required</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>To record video clips, we need permission to access your camera. Please allow access when prompted by your browser.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="requestPermissionBtn">Request Permission</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const videoPreview = document.getElementById('videoPreview');
+        const recordBtn = document.getElementById('recordBtn');
+        const saveClipBtn = document.getElementById('saveClipBtn');
+        const recordingTimer = document.getElementById('recordingTimer');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const permissionModal = new bootstrap.Modal(document.getElementById('cameraPermissionModal'));
+        const playerChips = document.querySelectorAll('.player-chip');
+        
+        // Variables
+        let stream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let timerInterval = null;
+        let recordingTime = 0;
+        let selectedPlayers = [];
+        
+        // Match session data
+        const matchSessionId = {{ match_session.id }};
+        const currentPeriod = {{ match_session.current_period }};
+        const gameMinute = {{ match_session.elapsed_minutes }};
+        
+        // Initialize camera
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 1280, height: 720 },
+                    audio: true 
+                });
+                
+                videoPreview.srcObject = stream;
+                
+                // Enable recording button
+                recordBtn.disabled = false;
+                
+                // Setup media recorder
+                const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+                mediaRecorder = new MediaRecorder(stream, options);
+                
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = function() {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    videoPreview.srcObject = stream; // Switch back to camera preview
+                    
+                    // Enable save button
+                    saveClipBtn.disabled = false;
+                    
+                    // Save function will use this blob
+                    window.recordedBlob = blob;
+                };
+                
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                permissionModal.show();
+            }
+        }
+        
+        // Start recording
+        function startRecording() {
+            recordedChunks = [];
+            mediaRecorder.start();
+            isRecording = true;
+            
+            // Update UI
+            recordBtn.innerHTML = '<i class="bi bi-stop-circle"></i>';
+            recordBtn.classList.add('recording');
+            recordingStatus.textContent = 'Recording...';
+            
+            // Start timer
+            recordingTime = 0;
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Disable save button while recording
+            saveClipBtn.disabled = true;
+        }
+        
+        // Stop recording
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+            
+            // Update UI
+            recordBtn.innerHTML = '<i class="bi bi-record-circle"></i>';
+            recordBtn.classList.remove('recording');
+            recordingStatus.textContent = 'Recording finished';
+            
+            // Stop timer
+            clearInterval(timerInterval);
+        }
+        
+        // Update timer display
+        function updateTimer() {
+            recordingTime++;
+            const minutes = Math.floor(recordingTime / 60).toString().padStart(2, '0');
+            const seconds = (recordingTime % 60).toString().padStart(2, '0');
+            recordingTimer.textContent = `${minutes}:${seconds}`;
+            
+            // Automatically stop recording after 60 seconds
+            if (recordingTime >= 60) {
+                stopRecording();
+            }
+        }
+        
+        // Save clip to server
+        async function saveClip() {
+            if (!window.recordedBlob) {
+                alert('No recording to save');
+                return;
+            }
+            
+            // Get form values
+            const title = document.getElementById('clipTitle').value || 'Untitled Clip';
+            const actionTag = document.getElementById('actionTag').value;
+            const duration = document.getElementById('clipDuration').value;
+            const isHighlight = document.getElementById('isHighlight').checked;
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('action_tag', actionTag);
+            formData.append('duration', duration);
+            formData.append('is_highlight', isHighlight);
+            formData.append('game_minute', gameMinute);
+            formData.append('period', currentPeriod);
+            formData.append('player_ids', JSON.stringify(selectedPlayers));
+            
+            // Add video file
+            formData.append('video_file', window.recordedBlob, 'recorded-clip.webm');
+            
+            try {
+                // Show loading state
+                saveClipBtn.disabled = true;
+                saveClipBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                
+                // Send to server
+                const response = await fetch(`/team/match-sessions/${matchSessionId}/instant-replay/`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Reset form and state
+                    document.getElementById('clipTitle').value = '';
+                    document.getElementById('isHighlight').checked = true;
+                    selectedPlayers = [];
+                    updatePlayerSelection();
+                    
+                    // Reset recording state
+                    window.recordedBlob = null;
+                    recordedChunks = [];
+                    saveClipBtn.disabled = true;
+                    
+                    // Show success message
+                    alert('Clip saved successfully!');
+                    
+                    // Reload page to see the new clip in recent clips
+                    window.location.reload();
+                } else {
+                    alert('Error saving clip: ' + result.error);
+                }
+            } catch (err) {
+                console.error('Error saving clip:', err);
+                alert('Error saving clip. Please try again.');
+            } finally {
+                // Reset button state
+                saveClipBtn.innerHTML = '<i class="bi bi-save"></i>';
+            }
+        }
+        
+        // Update player selection UI
+        function updatePlayerSelection() {
+            playerChips.forEach(chip => {
+                const playerId = parseInt(chip.dataset.playerId);
+                if (selectedPlayers.includes(playerId)) {
+                    chip.classList.add('selected');
+                } else {
+                    chip.classList.remove('selected');
+                }
+            });
+        }
+        
+        // Toggle player selection
+        function togglePlayerSelection(playerId) {
+            playerId = parseInt(playerId);
+            const index = selectedPlayers.indexOf(playerId);
+            
+            if (index === -1) {
+                selectedPlayers.push(playerId);
+            } else {
+                selectedPlayers.splice(index, 1);
+            }
+            
+            updatePlayerSelection();
+        }
+        
+        // Event listeners
+        recordBtn.addEventListener('click', function() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+        
+        saveClipBtn.addEventListener('click', saveClip);
+        
+        document.getElementById('requestPermissionBtn').addEventListener('click', function() {
+            permissionModal.hide();
+            initCamera();
+        });
+        
+        playerChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                const playerId = this.dataset.playerId;
+                togglePlayerSelection(playerId);
+            });
+        });
+        
+        // Initialize
+        initCamera();
+    });
+</script>
+{% endblock %}

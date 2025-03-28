@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Video Clips{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Video Clips</h1>
+        {% if can_create %}
+        <a href="{% url 'video-clip-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Record New Clip
+        </a>
+        {% endif %}
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="get" class="mb-0">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <select name="action_tag" class="form-select">
+                                    <option value="">All Action Types</option>
+                                    <option value="goal">Goals</option>
+                                    <option value="assist">Assists</option>
+                                    <option value="save">Saves</option>
+                                    <option value="tackle">Tackles</option>
+                                    <option value="skill">Skill Moves</option>
+                                    <option value="pass">Great Passes</option>
+                                    <option value="shot">Shots</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" name="player" class="form-control" placeholder="Player Name">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" name="match" class="form-control" placeholder="Match">
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for clip in video_clips %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ clip.title }}</h5>
+                    <div class="d-flex mb-2">
+                        <span class="badge bg-primary me-1">{{ clip.get_action_tag_display }}</span>
+                        <span class="badge bg-secondary">{{ clip.match_session.match.date|date:"d M Y" }}</span>
+                    </div>
+                    
+                    <div class="video-thumbnail position-relative mb-3">
+                        <video class="w-100 rounded" poster="" controls>
+                            <source src="{{ clip.video_file.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <span class="position-absolute bottom-0 end-0 bg-dark text-white px-2 py-1 rounded-start">
+                            <i class="bi bi-clock"></i> {{ clip.duration }}s
+                        </span>
+                    </div>
+                    
+                    <p class="card-text text-truncate">{{ clip.description|default:"No description" }}</p>
+                    
+                    {% if clip.players_involved.exists %}
+                    <div class="small mb-2">
+                        <strong>Players:</strong>
+                        {% for player in clip.players_involved.all %}
+                        <span class="badge bg-light text-dark">{{ player.first_name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ clip.timestamp|date:"d M Y H:i" }}</small>
+                        <a href="{% url 'video-clip-detail' clip.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-camera-video fs-4 me-2"></i>
+                <p class="mb-0">No video clips available.</p>
+                {% if can_create %}
+                <p class="mb-0 mt-2">
+                    <a href="{% url 'video-clip-create' %}" class="btn btn-primary btn-sm">
+                        Record your first clip
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,656 @@
+{% extends 'teammanager/base.html' %}
+{% load static %}
+
+{% block title %}Edit Highlight Reel Clips - {{ highlight_reel.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .clip-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .clip-card {
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .clip-card.selected {
+        border: 2px solid #0d6efd;
+        transform: translateY(-5px);
+    }
+    
+    .clip-thumbnail {
+        position: relative;
+        height: 150px;
+        background-color: #000;
+        overflow: hidden;
+    }
+    
+    .clip-thumbnail img, 
+    .clip-thumbnail video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .clip-body {
+        padding: 10px;
+    }
+    
+    .clip-title {
+        font-size: 16px;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .clip-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #6c757d;
+    }
+    
+    .clip-checkbox {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 25px;
+        height: 25px;
+        background-color: rgba(255,255,255,0.8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    
+    .clip-order {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 25px;
+        height: 25px;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        z-index: 10;
+    }
+    
+    .reel-preview-container {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .reel-clips-list {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+    
+    .reel-clip-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        border-bottom: 1px solid #dee2e6;
+        background-color: #fff;
+    }
+    
+    .reel-clip-item:last-child {
+        border-bottom: none;
+    }
+    
+    .reel-clip-item.active {
+        background-color: #f8f9fa;
+    }
+    
+    .reel-clip-thumbnail {
+        width: 100px;
+        height: 60px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    
+    .reel-clip-thumbnail img,
+    .reel-clip-thumbnail video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .reel-clip-details {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    
+    .reel-clip-title {
+        font-size: 16px;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .reel-clip-meta {
+        display: flex;
+        font-size: 12px;
+        color: #6c757d;
+    }
+    
+    .reel-clip-duration {
+        margin-right: 15px;
+    }
+    
+    .reel-clip-actions {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .sortable-ghost {
+        opacity: 0.5;
+    }
+    
+    .drag-handle {
+        cursor: move;
+        margin-right: 10px;
+        color: #adb5bd;
+    }
+    
+    .badge-match {
+        background-color: #20c997;
+        color: white;
+    }
+    
+    .total-duration {
+        font-size: 14px;
+        color: #6c757d;
+    }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/modular/sortable.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Edit Highlight Reel</h1>
+        <div>
+            <a href="{% url 'highlight-reel-detail' highlight_reel.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Reel
+            </a>
+            <a href="{% url 'highlight-reel-edit' highlight_reel.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-gear"></i> Edit Details
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left column -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ highlight_reel.title }}</h5>
+                    <span class="badge bg-primary">{{ highlight_reel.clip_associations.count }} clips</span>
+                </div>
+                <div class="card-body">
+                    <p>{{ highlight_reel.description }}</p>
+                    
+                    <!-- Clips in reel (sortable) -->
+                    <h5 class="mt-4 mb-3">Clips in This Reel</h5>
+                    <p class="text-muted mb-3">Drag and drop to reorder clips. Click the trash icon to remove a clip from the reel.</p>
+                    
+                    {% if highlight_reel.clip_associations.exists %}
+                        <div class="reel-clips-list" id="sortableReelClips">
+                            {% for clip_assoc in clips %}
+                                <div class="reel-clip-item" data-id="{{ clip_assoc.id }}" data-clip-id="{{ clip_assoc.video_clip.id }}" data-order="{{ clip_assoc.order }}">
+                                    <div class="drag-handle">
+                                        <i class="bi bi-grip-vertical"></i>
+                                    </div>
+                                    <span class="badge rounded-pill bg-primary me-2">{{ forloop.counter }}</span>
+                                    <div class="reel-clip-thumbnail">
+                                        {% if clip_assoc.video_clip.thumbnail %}
+                                            <img src="{{ clip_assoc.video_clip.thumbnail.url }}" alt="{{ clip_assoc.video_clip.title }}">
+                                        {% else %}
+                                            <video src="{{ clip_assoc.video_clip.video_file.url }}" preload="metadata"></video>
+                                        {% endif %}
+                                    </div>
+                                    <div class="reel-clip-details">
+                                        <div class="reel-clip-title">{{ clip_assoc.video_clip.title }}</div>
+                                        <div class="reel-clip-meta">
+                                            <div class="reel-clip-duration">
+                                                <i class="bi bi-stopwatch"></i> {{ clip_assoc.video_clip.duration }}s
+                                            </div>
+                                            <div class="reel-clip-match">
+                                                <i class="bi bi-calendar-event"></i> {{ clip_assoc.video_clip.match_session.match.home_team }} vs {{ clip_assoc.video_clip.match_session.match.away_team }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="reel-clip-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-clip-btn" data-clip-id="{{ clip_assoc.id }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="total-duration">
+                                <strong>Total Duration:</strong> <span id="totalDuration">0</span> seconds
+                            </div>
+                            <button type="button" class="btn btn-primary" id="saveOrderBtn">
+                                <i class="bi bi-save"></i> Save Order
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No clips added to this reel yet. Select clips from below to add them.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Available clips -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Available Highlight Clips</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filter controls -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="clipSearchInput" placeholder="Search clips...">
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="matchFilterSelect">
+                                <option value="">All Matches</option>
+                                {% for match in matches %}
+                                    <option value="{{ match.id }}">{{ match.home_team }} vs {{ match.away_team }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Clips grid -->
+                    <div class="clip-selector" id="availableClips">
+                        {% for clip in available_clips %}
+                            <div class="card clip-card" data-clip-id="{{ clip.id }}" data-match-id="{{ clip.match_session.match.id }}" data-title="{{ clip.title|lower }}">
+                                <div class="clip-thumbnail">
+                                    {% if clip.thumbnail %}
+                                        <img src="{{ clip.thumbnail.url }}" alt="{{ clip.title }}">
+                                    {% else %}
+                                        <video src="{{ clip.video_file.url }}" preload="metadata"></video>
+                                    {% endif %}
+                                </div>
+                                <div class="clip-body">
+                                    <h6 class="clip-title">{{ clip.title }}</h6>
+                                    <div class="clip-meta">
+                                        <span>{{ clip.duration }}s</span>
+                                        <span>{{ clip.formatted_game_time }}</span>
+                                    </div>
+                                </div>
+                                <div class="clip-checkbox">
+                                    <i class="bi bi-plus-circle"></i>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="col-12 text-center py-4">
+                                <i class="bi bi-camera-video fs-1 text-muted"></i>
+                                <p class="mt-2">No highlight clips available</p>
+                                <a href="{% url 'video-clip-list' %}" class="btn btn-sm btn-primary mt-2">
+                                    Create New Clips
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right column -->
+        <div class="col-lg-4">
+            <!-- Preview -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="reel-preview-container">
+                        <video id="previewVideo" controls style="width: 100%;" src="{{ highlight_reel.clip_associations.first.video_clip.video_file.url }}"></video>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" type="button" id="previewReelBtn">
+                            <i class="bi bi-play-fill"></i> Preview Entire Reel
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Reel Stats</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Clips
+                            <span class="badge bg-primary rounded-pill" id="statsClipCount">{{ highlight_reel.clip_associations.count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Duration
+                            <span id="statsTotalDuration">0</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Created
+                            <span>{{ highlight_reel.created_at|date:"M d, Y" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Last Updated
+                            <span>{{ highlight_reel.updated_at|date:"M d, Y" }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Help -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Click on clips from "Available Clips" to add them to your reel</li>
+                        <li>Drag and drop to reorder clips in your reel</li>
+                        <li>Click the trash icon to remove a clip from your reel</li>
+                        <li>Don't forget to save your changes!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const sortableList = document.getElementById('sortableReelClips');
+        const availableClips = document.getElementById('availableClips');
+        const saveOrderBtn = document.getElementById('saveOrderBtn');
+        const removeClipBtns = document.querySelectorAll('.remove-clip-btn');
+        const clipSearchInput = document.getElementById('clipSearchInput');
+        const matchFilterSelect = document.getElementById('matchFilterSelect');
+        const previewVideo = document.getElementById('previewVideo');
+        const previewReelBtn = document.getElementById('previewReelBtn');
+        const totalDurationEl = document.getElementById('totalDuration');
+        const statsTotalDurationEl = document.getElementById('statsTotalDuration');
+        const statsClipCount = document.getElementById('statsClipCount');
+        
+        // Constants
+        const highlightReelId = {{ highlight_reel.id }};
+        
+        // Initialize sortable
+        if (sortableList) {
+            const sortable = new Sortable(sortableList, {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    updateOrderNumbers();
+                }
+            });
+        }
+        
+        // Update the order numbers display
+        function updateOrderNumbers() {
+            const items = sortableList.querySelectorAll('.reel-clip-item');
+            items.forEach((item, index) => {
+                const orderBadge = item.querySelector('.badge');
+                orderBadge.textContent = index + 1;
+                item.dataset.order = index + 1;
+            });
+        }
+        
+        // Calculate and update total duration
+        function updateTotalDuration() {
+            let total = 0;
+            const clipItems = sortableList ? sortableList.querySelectorAll('.reel-clip-item') : [];
+            
+            clipItems.forEach(item => {
+                const durationText = item.querySelector('.reel-clip-duration').innerText;
+                const duration = parseInt(durationText.match(/\d+/)[0]);
+                total += duration;
+            });
+            
+            if (totalDurationEl) totalDurationEl.textContent = total;
+            if (statsTotalDurationEl) statsTotalDurationEl.textContent = formatDuration(total);
+            if (statsClipCount) statsClipCount.textContent = clipItems.length;
+        }
+        
+        // Format duration as MM:SS
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Save the new order
+        saveOrderBtn.addEventListener('click', async function() {
+            const items = sortableList.querySelectorAll('.reel-clip-item');
+            const updatedOrder = Array.from(items).map(item => ({
+                id: item.dataset.id,
+                order: item.dataset.order
+            }));
+            
+            try {
+                const response = await fetch(`/team/highlight-reels/${highlightReelId}/update-clips/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({
+                        clips: updatedOrder
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    alert('Clip order updated successfully!');
+                } else {
+                    alert('Error updating clip order: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving clip order:', error);
+                alert('An error occurred while saving. Please try again.');
+            }
+        });
+        
+        // Get CSRF token from cookies
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            const cookieValue = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return cookieValue ? cookieValue.pop() : '';
+        }
+        
+        // Remove clip from reel
+        removeClipBtns.forEach(btn => {
+            btn.addEventListener('click', async function() {
+                if (!confirm('Are you sure you want to remove this clip from the reel?')) {
+                    return;
+                }
+                
+                const clipAssocId = this.dataset.clipId;
+                
+                try {
+                    const response = await fetch(`/team/highlight-clips/${clipAssocId}/remove/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCSRFToken()
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Remove from UI
+                        this.closest('.reel-clip-item').remove();
+                        // Update order numbers
+                        updateOrderNumbers();
+                        // Update duration
+                        updateTotalDuration();
+                        // Show success message
+                        alert('Clip removed from reel!');
+                    } else {
+                        alert('Error removing clip: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error removing clip:', error);
+                    alert('An error occurred. Please try again.');
+                }
+            });
+        });
+        
+        // Add clip to reel
+        if (availableClips) {
+            const clipCards = availableClips.querySelectorAll('.clip-card');
+            
+            clipCards.forEach(card => {
+                card.addEventListener('click', async function() {
+                    const clipId = this.dataset.clipId;
+                    
+                    try {
+                        const response = await fetch(`/team/highlight-reels/${highlightReelId}/add-clip/${clipId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': getCSRFToken()
+                            }
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // Show success message
+                            alert('Clip added to reel! Refreshing...');
+                            // Reload page to show the updated reel
+                            window.location.reload();
+                        } else {
+                            alert('Error adding clip: ' + result.error);
+                        }
+                    } catch (error) {
+                        console.error('Error adding clip:', error);
+                        alert('An error occurred. Please try again.');
+                    }
+                });
+            });
+        }
+        
+        // Filter available clips by search text
+        if (clipSearchInput) {
+            clipSearchInput.addEventListener('input', function() {
+                const searchText = this.value.toLowerCase();
+                filterClips();
+            });
+        }
+        
+        // Filter available clips by match
+        if (matchFilterSelect) {
+            matchFilterSelect.addEventListener('change', function() {
+                filterClips();
+            });
+        }
+        
+        function filterClips() {
+            const searchText = clipSearchInput.value.toLowerCase();
+            const matchId = matchFilterSelect.value;
+            
+            const clipCards = availableClips.querySelectorAll('.clip-card');
+            
+            clipCards.forEach(card => {
+                const title = card.dataset.title;
+                const cardMatchId = card.dataset.matchId;
+                
+                const matchesSearch = !searchText || title.includes(searchText);
+                const matchesFilter = !matchId || cardMatchId === matchId;
+                
+                if (matchesSearch && matchesFilter) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Initialize video previews
+        const clipVideos = document.querySelectorAll('.clip-thumbnail video');
+        clipVideos.forEach(video => {
+            video.addEventListener('loadedmetadata', function() {
+                if (video.duration) {
+                    video.currentTime = video.duration / 2;
+                }
+            });
+        });
+        
+        // Play clip when clicking on reel clip item
+        const reelClipItems = document.querySelectorAll('.reel-clip-item');
+        reelClipItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Don't trigger if clicking remove button or drag handle
+                if (e.target.closest('.remove-clip-btn') || e.target.closest('.drag-handle')) {
+                    return;
+                }
+                
+                const clipId = this.dataset.clipId;
+                const clipItems = document.querySelectorAll('.reel-clip-item');
+                
+                // Update active state
+                clipItems.forEach(item => item.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Load and play video
+                loadVideoForPreview(clipId);
+            });
+        });
+        
+        // Load video for preview
+        async function loadVideoForPreview(clipId) {
+            try {
+                const response = await fetch(`/team/video-clips/${clipId}/`);
+                const clip = await response.json();
+                
+                if (clip.video_url) {
+                    previewVideo.src = clip.video_url;
+                    previewVideo.load();
+                    previewVideo.play();
+                }
+            } catch (error) {
+                console.error('Error loading video preview:', error);
+            }
+        }
+        
+        // Calculate initial durations
+        updateTotalDuration();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Videos of {{ player.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Videos of {{ player.first_name }} {{ player.last_name }}</h1>
+        <a href="{% url 'player-detail' player.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Player Profile
+        </a>
+    </div>
+    
+    <!-- Player stats card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">{{ player.first_name }} {{ player.last_name }}</h5>
+                    {% if player.position %}
+                        <p class="card-text text-muted">
+                            <strong>Position:</strong> {{ player.position }}
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1">
+                        <span class="badge bg-primary">{{ video_clips.count }} Video Clips</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for clip in video_clips %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ clip.title }}</h5>
+                    <div class="d-flex mb-2">
+                        <span class="badge bg-primary me-1">{{ clip.get_action_tag_display }}</span>
+                        <span class="badge bg-secondary">{{ clip.match_session.match.date|date:"d M Y" }}</span>
+                    </div>
+                    
+                    <div class="video-thumbnail position-relative mb-3">
+                        <video class="w-100 rounded" poster="" controls>
+                            <source src="{{ clip.video_file.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <span class="position-absolute bottom-0 end-0 bg-dark text-white px-2 py-1 rounded-start">
+                            <i class="bi bi-clock"></i> {{ clip.duration }}s
+                        </span>
+                    </div>
+                    
+                    <p class="card-text text-truncate">{{ clip.description|default:"No description" }}</p>
+                    
+                    <div class="small mb-2">
+                        <strong>Match:</strong> {{ clip.match_session.match.smoras_team }} vs {{ clip.match_session.match.opponent_name }}
+                    </div>
+                    
+                    {% if clip.players_involved.count > 1 %}
+                    <div class="small mb-2">
+                        <strong>Also featuring:</strong>
+                        {% for p in clip.players_involved.all %}
+                            {% if p.id != player.id %}
+                                <span class="badge bg-light text-dark">{{ p.first_name }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ clip.timestamp|date:"d M Y H:i" }}</small>
+                        <a href="{% url 'video-clip-detail' clip.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-camera-video fs-4 me-2"></i>
+                <p class="mb-0">No video clips available for {{ player.first_name }} yet.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.id %}Edit: {{ form.instance.title }}{% else %}Create New Highlight Reel{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">
+            {% if form.instance.id %}
+                Edit Highlight Reel: {{ form.instance.title }}
+            {% else %}
+                Create New Highlight Reel
+            {% endif %}
+        </h1>
+        <div>
+            {% if form.instance.id %}
+                <a href="{% url 'highlight-reel-detail' form.instance.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Reel
+                </a>
+            {% else %}
+                <a href="{% url 'highlight-reel-list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Reels
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger">
+                                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Please correct the errors below</h5>
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">{{ form.title.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">{{ form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Match Association -->
+                        <div class="mb-3">
+                            <label for="{{ form.match.id_for_label }}" class="form-label">Associated Match (Optional)</label>
+                            {{ form.match }}
+                            {% if form.match.errors %}
+                                <div class="text-danger">{{ form.match.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Select a match if this highlight reel is focused on a specific match</div>
+                        </div>
+                        
+                        <!-- Publication Status -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.is_published }}
+                                <label for="{{ form.is_published.id_for_label }}" class="form-check-label">
+                                    Publish this highlight reel
+                                </label>
+                                {% if form.is_published.errors %}
+                                    <div class="text-danger">{{ form.is_published.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">When published, this highlight reel will be visible to all users</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Video File (Optional override) -->
+                        <div class="mb-3">
+                            <label for="{{ form.video_file.id_for_label }}" class="form-label">
+                                Manually Upload Video File (Optional)
+                            </label>
+                            {% if form.instance.video_file %}
+                                <div class="text-muted mb-2">Current file: {{ form.instance.video_file.name }}</div>
+                            {% endif %}
+                            {{ form.video_file }}
+                            {% if form.video_file.errors %}
+                                <div class="text-danger">{{ form.video_file.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                Optional: Upload a pre-made highlight video instead of using the built-in editor.
+                                If you upload a file here, the clips you select in the editor will still be associated but not used for playback.
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if form.instance.id %}{% url 'highlight-reel-detail' form.instance.id %}{% else %}{% url 'highlight-reel-list' %}{% endif %}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    {% if form.instance.id %}Save Changes{% else %}Create Highlight Reel{% endif %}
+                                </button>
+                                {% if form.instance.id %}
+                                    <a href="{% url 'highlight-reel-edit-clips' form.instance.id %}" class="btn btn-outline-primary ms-2">
+                                        <i class="bi bi-collection-play"></i> Edit Clips
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Preview Section (for existing reels) -->
+            {% if form.instance.id and form.instance.video_file %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Preview</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <video class="w-100 rounded" controls>
+                            <source src="{{ form.instance.video_file.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Instructions -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Creating Highlight Reels</h5>
+                </div>
+                <div class="card-body">
+                    <p>A highlight reel is a collection of video clips from one or more matches that tells a story.</p>
+                    
+                    <h6 class="mt-3">Step 1: Basic Information</h6>
+                    <p>First, provide a title and description for your highlight reel.</p>
+                    
+                    <h6 class="mt-3">Step 2: Select Clips</h6>
+                    <p>After creating the reel, go to the "Edit Clips" page to select and arrange video clips.</p>
+                    
+                    <h6 class="mt-3">Step 3: Generate & Publish</h6>
+                    <p>Once you're happy with your selection, generate the final highlight video and publish it.</p>
+                </div>
+            </div>
+            
+            <!-- Clips Count (for existing reels) -->
+            {% if form.instance.id %}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Clips</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>
+                            <span class="badge bg-primary">{{ clips_count }} clips</span>
+                            <span class="badge bg-secondary ms-2">Total: {{ total_duration }}s</span>
+                        </p>
+                        
+                        {% if clips_count > 0 %}
+                            <a href="{% url 'highlight-reel-edit-clips' form.instance.id %}" class="btn btn-primary w-100">
+                                <i class="bi bi-collection-play"></i> Edit Clips
+                            </a>
+                        {% else %}
+                            <div class="alert alert-info mb-0">
+                                <p class="mb-0">No clips have been added to this reel yet.</p>
+                            </div>
+                            
+                            <a href="{% url 'highlight-reel-edit-clips' form.instance.id %}" class="btn btn-primary w-100 mt-3">
+                                <i class="bi bi-plus-circle"></i> Add Clips
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
