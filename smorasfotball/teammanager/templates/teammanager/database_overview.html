@@ -370,6 +370,15 @@
                     <h5 class="card-title mb-0">Database Management Instructions</h5>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <strong><i class="fas fa-database"></i> Database Type: </strong>
+                        {% if 'DATABASE_URL' in request.META %}
+                            <span class="badge badge-success">PostgreSQL</span>
+                        {% else %}
+                            <span class="badge badge-secondary">SQLite</span>
+                        {% endif %}
+                    </div>
+
                     <h5>Creating Backups</h5>
                     <p>Two types of backups are available:</p>
                     <ul>
@@ -383,8 +392,21 @@
                     <h5>Backup Types</h5>
                     <ul>
                         <li><strong>JSON Data:</strong> Contains all data in a format that can be loaded into any database backend. Best for transferring data between environments.</li>
-                        <li><strong>SQLite Database:</strong> Direct copy of the SQLite database file. Contains all data including system tables. Only works with SQLite.</li>
+                        <li><strong>SQL Data (PostgreSQL):</strong> Native PostgreSQL backups created with pg_dump. Contains all data in SQL format.</li>
+                        <li><strong>SQLite Database:</strong> Direct copy of the SQLite database file. Contains all data including system tables. Only used when running in SQLite mode.</li>
                     </ul>
+                    
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-database"></i> PostgreSQL Integration</h5>
+                        <p>The application now uses PostgreSQL as its primary database, providing these benefits:</p>
+                        <ul>
+                            <li><strong>Enhanced Reliability:</strong> Better handling during redeployments</li>
+                            <li><strong>Multiple Backup Formats:</strong> Both JSON and SQL formats</li>
+                            <li><strong>Improved Concurrency:</strong> Better handling of multiple users</li>
+                            <li><strong>Transaction Support:</strong> Stronger data integrity protection</li>
+                        </ul>
+                        <p>PostgreSQL connection is managed through the <code>DATABASE_URL</code> environment variable.</p>
+                    </div>
                     
                     <div class="alert alert-info">
                         <h5><i class="fas fa-cloud-upload-alt"></i> Deployment Backups</h5>

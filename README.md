@@ -1,133 +1,98 @@
-# Smørås Fotball Team Management
+# Smørås Fotball Team Management System
 
-A Django-powered football team management platform for Smørås Fotball, providing tools for managing youth team development through advanced technological solutions.
+A comprehensive Django-powered football team management platform designed for Smørås Fotball youth teams.
 
-## Key Features
+## Features
 
-- Team management with player tracking and statistics
-- Match session management with substitution tracking
-- Player performance monitoring and visualization
-- Advanced matrix visualization showing which players have played together
-- Secure multi-role authentication system
-- Interactive lineup builder with formation management
-- Database backup and restore system
+- **Team Management**: Create and manage multiple teams within your club
+- **Player Management**: Track player information, team assignments, and statistics
+- **Match Sessions**: Record match participation, track play time, and manage periods
+- **Formation Templates**: Pre-built formations for different team sizes (5er, 7er, 9er, 11er)
+- **Statistics Dashboard**: Visual representations of player participation and team dynamics
+- **Video Integration**: Record match highlights and create video reels
+- **Database Protection**: Multi-layer system to protect data during redeployments
+- **PostgreSQL Support**: Enhanced database reliability with PostgreSQL integration
 
-## Deployment and Database Management
+## System Architecture
 
-This application has a sophisticated backup and restoration system designed to maintain database integrity across deployments.
+The application is built with Django and offers:
 
-### Backup Types
+- **Multi-User Support**: Different roles for coaches, players, and administrators
+- **Responsive Design**: Works on mobile devices for sideline use
+- **Data Visualization**: Interactive matrices showing player combinations
+- **Data Import/Export**: Easy data exchange with Excel spreadsheets
+- **Intelligent Backup System**: Prevents data loss during redeployments
 
-1. **Deployment Backups**: Located in `/deployment` directory
-   - These backups are specifically for production deployment
-   - SQLite format (direct file copy) is preferred for reliability
-   - JSON format provided as fallback
-   - These backups are NEVER replaced during redeployment
-   - Daily production backups are automatically created with date-stamped names
-   - Only the 3 most recent backups are kept to save space
+## PostgreSQL Database Integration
 
-2. **Persistent Backups**: Located in `/persistent_backups` directory
-   - Created automatically on startup and shutdown
-   - Manual backups created via the UI
-   - Both SQLite and JSON formats
-   - Used as fallback if deployment backups aren't available
+The application now uses PostgreSQL as its primary database for enhanced reliability:
 
-### Database Preservation During Deployment
+- **Improved Stability**: Better handling of database connections during redeployments
+- **Transaction Support**: Stronger data integrity protection
+- **Concurrent Access**: Support for multiple simultaneous users
+- **Automatic Fallback**: Falls back to SQLite if PostgreSQL is unavailable
 
-- When you redeploy the application, your production database is automatically preserved
-- The system uses a GitHub-based backup synchronization mechanism to ensure backups persist across deployments
-- Pre-deployment script pulls the latest backups from the repository before checking for existing deployment backups
-- Startup script prioritizes deployment backups during restoration
-- Any new backups created are automatically pushed to the repository for persistence
-- This ensures your live data (teams, players, matches) is never overwritten by development data
+## Deployment and Backup System
 
-### Backup Workflow
+The application includes a robust backup and restoration system:
 
-1. **First Deployment**:
-   - Initial backup created from development database
-   - This becomes the starting point for the production database
+- **Pre-Deployment Backups**: Automatic backups before any deployment
+- **Multiple Backup Formats**: Support for JSON and SQL database backups
+- **Intelligent Restoration**: Smart backup selection based on content quality
+- **Recovery Wizard**: User-friendly interface for database management
 
-2. **Subsequent Deployments**:
-   - Existing production backups are preserved
-   - Production database is restored from these backups
-   - Development data never replaces production data
+For detailed information on the backup system, see [DEPLOYMENT_BACKUP_GUIDE.md](DEPLOYMENT_BACKUP_GUIDE.md).
 
-3. **Automatic Backups**:
-   - Daily production backups created automatically
-   - Safety backups before each deployment
-   - Automatic cleanup of older backups
+## Technical Documentation
 
-### How to Create a Manual Backup
+### PostgreSQL Migration
 
-1. Go to the Database Overview page
-2. Click "Create Backup Now"
-3. The backup will be stored in the `/persistent_backups` directory
+To migrate existing data from SQLite to PostgreSQL:
 
-### Emergency Restoration
+```bash
+python smorasfotball/migrate_to_postgres.py
+```
 
-If the automatic restoration fails during redeployment, you have several options:
+### Creating PostgreSQL Backups
 
-1. **Use the Standard Command**:
+To create a backup of the PostgreSQL database:
+
+```bash
+python smorasfotball/postgres_backup.py
+```
+
+Add the `--deployment` flag to create a deployment backup:
+
+```bash
+python smorasfotball/postgres_backup.py --deployment
+```
+
+### Development Setup
+
+1. Install required packages:
+   ```bash
+   pip install django pandas openpyxl reportlab dj-database-url psycopg2-binary
    ```
+
+2. Run database migrations:
+   ```bash
    cd smorasfotball
-   python manage.py deployment_backup --restore
+   python manage.py migrate
    ```
 
-2. **Use the Force Restore Script** (more aggressive direct file copy approach):
+3. Create test data:
+   ```bash
+   python create_test_data.py
+   python create_formations.py
    ```
-   python force_deployment_restore.py
+
+4. Start the development server:
+   ```bash
+   python manage.py runserver 0.0.0.0:5000
    ```
-   
-   Options:
-   - `--dry-run`: Show what would be done without making changes
-   - `--verbose`: Show detailed information
 
-3. **Reset the Deployment Backup Environment** (for testing only):
-   ```
-   python reset_deployment_backups.py
-   ```
-   
-   Options:
-   - `--dry-run`: Show what would be done without making changes
-   - `--force`: Skip confirmation prompt
-   - `--keep-backups`: Create new backups without deleting existing ones
-   
-4. **Simulate a Deployment** (for testing the deployment process):
-   ```
-   ./simulate_deployment.sh
-   ```
-   This script runs the same steps as a real deployment to verify that the system works correctly.
+## Admin Access
 
-5. **Test GitHub-based Backup Sync**:
-   ```
-   python test_backup_sync.py
-   ```
-   This script tests the GitHub-based backup synchronization system by creating a backup, pushing it to the repository, simulating a redeployment, and then pulling the backup from the repository.
-
-### GitHub-based Backup Sync System
-
-The application now uses GitHub as a persistent storage solution for deployment backups:
-
-1. **Automatic Push**: When a backup is created, it's automatically pushed to the repository via the `sync_backups_with_repo` command.
-
-2. **Automatic Pull**: During deployment, the system pulls the latest backups from the repository before checking for existing deployment backups.
-
-3. **Manual Commands**:
-   - Push backups to repository: `python manage.py sync_backups_with_repo --push`
-   - Pull backups from repository: `python manage.py sync_backups_with_repo --pull`
-
-This ensures that backups persist across deployments even if the deployment process overwrites the files in the deployment directory.
-
-## Development Setup
-
-1. Clone the repository
-2. Install the required packages: `pip install -r requirements.txt`
-3. Change directory to smorasfotball: `cd smorasfotball`
-4. Run migrations: `python manage.py migrate`
-5. Create a superuser: `python manage.py createsuperuser`
-6. Start the development server: `python manage.py runserver 0.0.0.0:5000`
-
-## Admin Credentials
-
-- Default Django Admin: Username: `djadmin` | Password: `superuser123`
-- A deployment-specific admin is also created automatically during deployment
+The superuser account has the following credentials:
+- Username: djadmin
+- Password: superuser123
