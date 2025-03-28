@@ -378,33 +378,83 @@ def push_to_git(request):
         return redirect('database-overview')
     
     try:
-        # Execute the sync_backups_with_repo command with the push option
+        # First, create a fresh deployment backup
+        messages.info(request, "Creating a fresh deployment backup...")
         output = io.StringIO()
-        call_command('sync_backups_with_repo', push=True, stdout=output)
+        call_command('deployment_backup', stdout=output)
         
-        # Process output for user messages
+        # Process output for backup messages
         import re
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         
-        success_found = False
         for line in output.getvalue().splitlines():
             if line.strip():
                 # Remove ANSI color codes
                 clean_line = ansi_escape.sub('', line)
-                if "success" in line.lower():
-                    success_found = True
-                    messages.success(request, clean_line)
-                else:
-                    messages.info(request, clean_line)
+                messages.info(request, clean_line)
         
+        # Check if the deployment backup was created
+        deployment_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+        deployment_db_path = os.path.join(deployment_dir, 'deployment_db.json')
+        
+        if os.path.exists(deployment_db_path):
+            file_size = os.path.getsize(deployment_db_path)
+            messages.success(request, f"Deployment backup created successfully: deployment_db.json ({file_size} bytes)")
+            
+            # Verify the backup contents
+            try:
+                with open(deployment_db_path, 'r') as f:
+                    data = json.load(f)
+                    record_count = len(data)
+                    
+                    # Count important model types
+                    teams = len([x for x in data if x.get('model') == 'teammanager.team'])
+                    players = len([x for x in data if x.get('model') == 'teammanager.player'])
+                    users = len([x for x in data if x.get('model') == 'auth.user'])
+                    
+                    messages.info(request, f"Backup contains: {teams} teams, {players} players, {users} users, {record_count} total records")
+            except Exception as e:
+                messages.warning(request, f"Could not verify backup contents: {str(e)}")
+        else:
+            messages.warning(request, "Deployment backup file was not created. The Git push may not contain your latest data.")
+        
+        # Now execute the sync_backups_with_repo command with the push option
+        messages.info(request, "Pushing backups to Git repository...")
+        output = io.StringIO()
+        call_command('sync_backups_with_repo', push=True, stdout=output)
+        
+        # Process output for git messages
+        output_lines = output.getvalue().splitlines()
+        for line in output_lines:
+            if line.strip():
+                # Remove ANSI color codes
+                clean_line = ansi_escape.sub('', line)
+                messages.info(request, f"Git output: {clean_line}")
+        
+        # Try to find important information about the push
+        added_files = []
+        for line in output_lines:
+            if "Added:" in line:
+                added_file = line.split("Added:")[-1].strip()
+                added_files.append(added_file)
+        
+        if added_files:
+            messages.success(request, f"Successfully added {len(added_files)} files to Git")
+            messages.info(request, f"Files: {', '.join(added_files)}")
+        
+        success_found = any("success" in line.lower() for line in output_lines)
         if success_found:
             messages.success(request, "Database backups have been successfully pushed to Git repository.")
             messages.info(request, "These backups will be available even after redeployments.")
         else:
-            messages.info(request, "Git push operation completed, but no explicit success message was found.")
+            messages.info(request, "Git push operation completed, but no explicit success message was found in the output.")
     
     except Exception as e:
         messages.error(request, f"Error pushing backups to Git: {str(e)}")
+        if hasattr(e, '__traceback__'):
+            import traceback
+            tb = ''.join(traceback.format_tb(e.__traceback__))
+            messages.error(request, f"Traceback: {tb}")
     
     return redirect('database-overview')
 
@@ -418,8 +468,20 @@ def pull_from_git(request):
     if request.method != 'POST':
         return redirect('database-overview')
     
+    # First, create a backup of the current database as a safety precaution
+    try:
+        messages.info(request, "Creating safety backup before Git pull operation...")
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        safety_backup_name = f"pre_git_restore_{timestamp}"
+        output = io.StringIO()
+        call_command('persistent_backup', name=safety_backup_name, stdout=output)
+        messages.success(request, f"Safety backup created: {safety_backup_name}")
+    except Exception as e:
+        messages.warning(request, f"Could not create safety backup: {str(e)}")
+    
     try:
         # Execute the sync_backups_with_repo command with the pull option
+        messages.info(request, "Pulling latest backups from Git repository...")
         output = io.StringIO()
         call_command('sync_backups_with_repo', pull=True, stdout=output)
         
@@ -427,42 +489,100 @@ def pull_from_git(request):
         import re
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         
-        success_found = False
-        for line in output.getvalue().splitlines():
+        output_lines = output.getvalue().splitlines()
+        for line in output_lines:
             if line.strip():
                 # Remove ANSI color codes
                 clean_line = ansi_escape.sub('', line)
-                if "success" in line.lower():
-                    success_found = True
-                    messages.success(request, clean_line)
-                else:
-                    messages.info(request, clean_line)
+                messages.info(request, f"Git output: {clean_line}")
         
-        if success_found:
-            # Find the latest deployment backup
-            deployment_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+        success_found = any("success" in line.lower() for line in output_lines)
+        
+        # Find the latest deployment backup
+        deployment_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+        messages.info(request, f"Checking deployment directory: {deployment_dir}")
+        
+        if os.path.exists(deployment_dir):
+            # List all files in the deployment directory for debugging
+            file_list = os.listdir(deployment_dir)
+            messages.info(request, f"Files in deployment directory: {', '.join(file_list)}")
+            
+            # Look for deployment_db.json and other backups
             deployment_db_path = os.path.join(deployment_dir, 'deployment_db.json')
             
             if os.path.exists(deployment_db_path):
-                # Automatically restore from the pulled backup
-                try:
-                    restore_json_backup(deployment_db_path)
-                    messages.success(request, "Database automatically restored from Git backup.")
-                    
-                    # Record this restore in environment variables for diagnostic purposes
-                    os.environ['LAST_RESTORED_BACKUP'] = 'deployment_db.json (from Git)'
-                    os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
-                    messages.info(request, f"Recorded restore information: deployment_db.json at {os.environ['LAST_RESTORE_TIME']}")
-                except Exception as e:
-                    messages.error(request, f"Error restoring from Git backup: {str(e)}")
-                    messages.info(request, "Backups were pulled successfully, but automatic restoration failed. You can restore manually.")
+                file_size = os.path.getsize(deployment_db_path)
+                messages.info(request, f"Found deployment_db.json (Size: {file_size} bytes)")
+                
+                if file_size > 100:  # Basic check to ensure it's not empty
+                    # Verify the file content
+                    try:
+                        with open(deployment_db_path, 'r') as f:
+                            data = json.load(f)
+                            record_count = len(data)
+                            messages.info(request, f"JSON backup contains {record_count} records")
+                            
+                            # Show counts of important model types
+                            teams = len([x for x in data if x.get('model') == 'teammanager.team'])
+                            players = len([x for x in data if x.get('model') == 'teammanager.player'])
+                            users = len([x for x in data if x.get('model') == 'auth.user'])
+                            
+                            messages.info(request, f"Contents: {teams} teams, {players} players, {users} users")
+                            
+                            if record_count > 0:
+                                # Automatically restore from the pulled backup
+                                try:
+                                    messages.info(request, "Starting database restoration from Git backup...")
+                                    restore_json_backup(deployment_db_path)
+                                    messages.success(request, "Database successfully restored from Git backup.")
+                                    
+                                    # Record this restore in environment variables for diagnostic purposes
+                                    os.environ['LAST_RESTORED_BACKUP'] = 'deployment_db.json (from Git)'
+                                    os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+                                    messages.info(request, f"Recorded restore information: deployment_db.json at {os.environ['LAST_RESTORE_TIME']}")
+                                except Exception as e:
+                                    messages.error(request, f"Error during database restoration: {str(e)}")
+                                    if hasattr(e, '__traceback__'):
+                                        import traceback
+                                        tb = ''.join(traceback.format_tb(e.__traceback__))
+                                        messages.error(request, f"Traceback: {tb}")
+                            else:
+                                messages.error(request, "The backup file is empty or has no records. No restoration performed.")
+                        
+                    except json.JSONDecodeError as e:
+                        messages.error(request, f"The JSON backup file is invalid: {str(e)}")
+                    except Exception as e:
+                        messages.error(request, f"Error reading backup file: {str(e)}")
+                else:
+                    messages.error(request, f"The backup file is too small ({file_size} bytes) and appears to be empty or corrupted.")
             else:
-                messages.warning(request, "Backups pulled from Git, but no deployment backup found to restore from.")
+                messages.warning(request, "No deployment_db.json found in the deployment directory.")
+                
+                # Look for any other JSON backups
+                json_backups = [f for f in file_list if f.endswith('.json') and 'deployment' in f]
+                if json_backups:
+                    messages.info(request, f"Found alternative backups: {', '.join(json_backups)}")
+                    # Use the most recent one
+                    json_backups.sort(key=lambda x: os.path.getmtime(os.path.join(deployment_dir, x)), reverse=True)
+                    alt_backup = os.path.join(deployment_dir, json_backups[0])
+                    
+                    messages.info(request, f"Attempting to restore from alternative backup: {json_backups[0]}")
+                    try:
+                        restore_json_backup(alt_backup)
+                        messages.success(request, f"Database restored from alternative backup: {json_backups[0]}")
+                    except Exception as e:
+                        messages.error(request, f"Error restoring from alternative backup: {str(e)}")
+                else:
+                    messages.error(request, "No suitable JSON backups found in the deployment directory.")
         else:
-            messages.info(request, "Git pull operation completed, but no explicit success message was found.")
+            messages.error(request, f"Deployment directory not found: {deployment_dir}")
     
     except Exception as e:
-        messages.error(request, f"Error pulling backups from Git: {str(e)}")
+        messages.error(request, f"Error during Git pull operation: {str(e)}")
+        if hasattr(e, '__traceback__'):
+            import traceback
+            tb = ''.join(traceback.format_tb(e.__traceback__))
+            messages.error(request, f"Traceback: {tb}")
     
     return redirect('database-overview')
 
