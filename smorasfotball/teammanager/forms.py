@@ -4,9 +4,9 @@ from django.contrib.auth.models import User
 from .models import (
     Team, Player, Match, MatchAppearance,
     FormationTemplate, LineupPosition, Lineup, LineupPlayerPosition,
-    MatchSession, PlayerSubstitution, PlayingTime,
-    VideoClip, HighlightReel, HighlightClipOrder
+    MatchSession, PlayerSubstitution, PlayingTime
 )
+from .models_video import VideoClip, HighlightReel, HighlightClipAssociation
 
 
 class SignUpForm(UserCreationForm):
@@ -472,7 +472,7 @@ class HighlightClipOrderForm(forms.ModelForm):
     Form for ordering clips in a highlight reel
     """
     class Meta:
-        model = HighlightClipOrder
+        model = HighlightClipAssociation
         fields = ['video_clip', 'order']
         widgets = {
             'video_clip': forms.Select(attrs={'class': 'form-select'}),

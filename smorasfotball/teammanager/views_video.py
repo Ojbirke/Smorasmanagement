@@ -8,8 +8,8 @@ from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.db.models import Count, Q
 
-from .models import VideoClip, HighlightReel, Match, MatchSession, Player
-from .models_video import HighlightClipAssociation
+from .models import Match, MatchSession, Player
+from .models_video import VideoClip, HighlightReel, HighlightClipAssociation
 from .forms import VideoClipForm, HighlightReelForm
 
 # Permission helpers
