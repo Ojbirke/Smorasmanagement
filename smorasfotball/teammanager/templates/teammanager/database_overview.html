@@ -71,13 +71,45 @@
                     <form action="{% url 'create-backup' %}" method="post" class="mt-3">
                         {% csrf_token %}
                         <input type="hidden" name="deployment_backup" value="true">
-                        <button type="submit" class="btn btn-primary btn-lg btn-block">
+                        <button type="submit" class="btn btn-primary btn-lg btn-block mb-2">
                             <i class="fas fa-cloud-upload-alt"></i> Create Deployment Backup
                         </button>
                         <small class="form-text text-muted">
                             Creates a special backup for use during deployment to production.
                         </small>
                     </form>
+                    
+                    <div class="card mt-3">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="card-title mb-0"><i class="fab fa-git"></i> Git Backup Operations</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">
+                                Use these buttons to push your database to Git or restore from Git. 
+                                This helps ensure data persistence across redeployments.
+                            </p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <form action="{% url 'git-push-backups' %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-block"
+                                                onclick="return confirm('This will push your current database state to the Git repository. Continue?')">
+                                            <i class="fas fa-upload"></i> Push to Git
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="col-md-6">
+                                    <form action="{% url 'git-pull-backups' %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-warning btn-block"
+                                                onclick="return confirm('WARNING: This will pull the latest database from Git and restore it. Your current data may be replaced. Continue?')">
+                                            <i class="fas fa-download"></i> Restore from Git
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     {% else %}
                     <div class="alert alert-warning mt-3">
                         <i class="fas fa-exclamation-triangle"></i> The database is currently empty. No backup is needed.

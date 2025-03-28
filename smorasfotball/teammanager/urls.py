@@ -50,6 +50,8 @@ urlpatterns = [
     path('database/backup/<str:filename>/restore/', views_db_admin.restore_backup, name='restore-backup'),
     path('database/backup/<str:filename>/delete/', views_db_admin.delete_backup, name='delete-backup'),
     path('database/backup/<str:filename>/download/', views_db_admin.download_backup, name='download-backup'),
+    path('database/git/push/', views_db_admin.push_to_git, name='git-push-backups'),
+    path('database/git/pull/', views_db_admin.pull_from_git, name='git-pull-backups'),
     
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),

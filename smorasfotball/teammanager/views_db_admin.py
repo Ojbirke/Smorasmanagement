@@ -15,6 +15,7 @@ import sys
 import shutil
 import sqlite3
 import tempfile
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -363,6 +364,105 @@ def delete_backup(request, filename):
         messages.success(request, f"Backup file {filename} deleted successfully from {backup_type} backup directory.")
     except Exception as e:
         messages.error(request, f"Error deleting backup: {str(e)}")
+    
+    return redirect('database-overview')
+
+@login_required
+def push_to_git(request):
+    """Push database backups to Git repository"""
+    if not is_admin(request.user):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('dashboard')
+    
+    if request.method != 'POST':
+        return redirect('database-overview')
+    
+    try:
+        # Execute the sync_backups_with_repo command with the push option
+        output = io.StringIO()
+        call_command('sync_backups_with_repo', push=True, stdout=output)
+        
+        # Process output for user messages
+        import re
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        
+        success_found = False
+        for line in output.getvalue().splitlines():
+            if line.strip():
+                # Remove ANSI color codes
+                clean_line = ansi_escape.sub('', line)
+                if "success" in line.lower():
+                    success_found = True
+                    messages.success(request, clean_line)
+                else:
+                    messages.info(request, clean_line)
+        
+        if success_found:
+            messages.success(request, "Database backups have been successfully pushed to Git repository.")
+            messages.info(request, "These backups will be available even after redeployments.")
+        else:
+            messages.info(request, "Git push operation completed, but no explicit success message was found.")
+    
+    except Exception as e:
+        messages.error(request, f"Error pushing backups to Git: {str(e)}")
+    
+    return redirect('database-overview')
+
+@login_required
+def pull_from_git(request):
+    """Pull database backups from Git repository"""
+    if not is_admin(request.user):
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('dashboard')
+    
+    if request.method != 'POST':
+        return redirect('database-overview')
+    
+    try:
+        # Execute the sync_backups_with_repo command with the pull option
+        output = io.StringIO()
+        call_command('sync_backups_with_repo', pull=True, stdout=output)
+        
+        # Process output for user messages
+        import re
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        
+        success_found = False
+        for line in output.getvalue().splitlines():
+            if line.strip():
+                # Remove ANSI color codes
+                clean_line = ansi_escape.sub('', line)
+                if "success" in line.lower():
+                    success_found = True
+                    messages.success(request, clean_line)
+                else:
+                    messages.info(request, clean_line)
+        
+        if success_found:
+            # Find the latest deployment backup
+            deployment_dir = os.path.join(os.path.dirname(settings.BASE_DIR), 'deployment')
+            deployment_db_path = os.path.join(deployment_dir, 'deployment_db.json')
+            
+            if os.path.exists(deployment_db_path):
+                # Automatically restore from the pulled backup
+                try:
+                    restore_json_backup(deployment_db_path)
+                    messages.success(request, "Database automatically restored from Git backup.")
+                    
+                    # Record this restore in environment variables for diagnostic purposes
+                    os.environ['LAST_RESTORED_BACKUP'] = 'deployment_db.json (from Git)'
+                    os.environ['LAST_RESTORE_TIME'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+                    messages.info(request, f"Recorded restore information: deployment_db.json at {os.environ['LAST_RESTORE_TIME']}")
+                except Exception as e:
+                    messages.error(request, f"Error restoring from Git backup: {str(e)}")
+                    messages.info(request, "Backups were pulled successfully, but automatic restoration failed. You can restore manually.")
+            else:
+                messages.warning(request, "Backups pulled from Git, but no deployment backup found to restore from.")
+        else:
+            messages.info(request, "Git pull operation completed, but no explicit success message was found.")
+    
+    except Exception as e:
+        messages.error(request, f"Error pulling backups from Git: {str(e)}")
     
     return redirect('database-overview')
 
