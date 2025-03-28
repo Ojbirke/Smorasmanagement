@@ -317,6 +317,14 @@ class Command(BaseCommand):
         self.stdout.write(f'Backup file size: {os.path.getsize(backup_path)} bytes')
         self.stdout.write(f'Backup last modified: {os.path.getmtime(backup_path)}')
         
+        # Close any existing database connections to avoid locking issues
+        try:
+            from django.db import connections
+            connections.close_all()
+            self.stdout.write(self.style.SUCCESS('Successfully closed all database connections'))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'Warning: Failed to close database connections: {str(e)}'))
+        
         try:
             # Get the current database path
             from django.db import connections

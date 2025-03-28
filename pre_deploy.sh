@@ -59,7 +59,7 @@ cd smorasfotball
 
 # Check if we're in a production environment with existing deployment backups
 # We do NOT want to overwrite production backups with development data
-if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ]; then
+if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment_db.json" ] || [ -f "../deployment/IS_PRODUCTION_ENVIRONMENT" ] || [ -f "../deployment/PERMANENT_PRODUCTION_MARKER" ]; then
     echo "⚠️ CRITICAL: Detected existing deployment backups - PRESERVING PRODUCTION DATA"
     echo "✅ Will use existing deployment backups during deployment startup"
     echo "✅ Database integrity will be maintained across deployments"
@@ -104,6 +104,11 @@ if [ -f "../deployment/deployment_db.sqlite" ] || [ -f "../deployment/deployment
     # Create a marker file to explicitly indicate we're in a production environment
     touch "../deployment/IS_PRODUCTION_ENVIRONMENT"
     echo "$(date) - Deployment detected and marked as production" > "../deployment/IS_PRODUCTION_ENVIRONMENT"
+    
+    # Create a special permanent marker to ensure we always detect this as production
+    # in the future, even if the IS_PRODUCTION_ENVIRONMENT file is deleted
+    echo "$(date) - PERMANENT PRODUCTION MARKER - DO NOT DELETE" > "../deployment/PERMANENT_PRODUCTION_MARKER"
+    chmod 444 "../deployment/PERMANENT_PRODUCTION_MARKER" # Make read-only
 else
     # Only create new deployment backups if none exist (first deployment)
     echo "No existing deployment backups found - creating initial deployment backups..."
