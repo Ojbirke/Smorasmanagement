@@ -1208,7 +1208,8 @@
                         
                         // Update minutes remaining in period
                         if (data.match_info.minute_in_period !== undefined) {
-                            const minutesRemaining = {{ period_length }} - data.match_info.minute_in_period;
+                            const periodLength = {{ period_length }};
+                            const minutesRemaining = periodLength - data.match_info.minute_in_period;
                             const minutesEl = document.querySelector('.text-muted:not(:has(.badge))');
                             if (minutesEl && minutesRemaining >= 0) {
                                 minutesEl.textContent = `${minutesRemaining} min left in period`;
@@ -1268,7 +1269,8 @@
                     
                     // Update minutes remaining in period
                     if (data.match_info.minute_in_period !== undefined) {
-                        const minutesRemaining = {{ period_length }} - data.match_info.minute_in_period;
+                        const periodLength = {{ period_length }};
+                        const minutesRemaining = periodLength - data.match_info.minute_in_period;
                         const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
                         if (periodInfoEl) {
                             // Create the HTML with dynamic content
