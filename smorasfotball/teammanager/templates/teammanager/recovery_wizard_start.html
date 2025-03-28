@@ -151,7 +151,7 @@
                     
                     <div class="mt-4">
                         {% if backup_counts.git or backup_counts.deployment > 0 or backup_counts.persistent > 0 or backup_counts.regular > 0 %}
-                        <a href="{% url 'recovery-wizard-select-type' %}" class="btn btn-primary btn-lg">
+                        <a href="/team/recovery/select-type/" class="btn btn-primary btn-lg">
                             <i class="fas fa-forward"></i> Continue to Step 2: Select Backup Type
                         </a>
                         {% else %}
@@ -159,12 +159,12 @@
                             <i class="fas fa-exclamation-triangle"></i> 
                             <strong>No backups found!</strong> You may need to create a backup first or use emergency recovery options.
                         </div>
-                        <a href="{% url 'recovery-wizard-select-type' %}" class="btn btn-danger btn-lg">
+                        <a href="/team/recovery/select-type/" class="btn btn-danger btn-lg">
                             <i class="fas fa-ambulance"></i> Emergency Recovery Options
                         </a>
                         {% endif %}
                         
-                        <a href="{% url 'database-overview' %}" class="btn btn-secondary btn-lg ml-2">
+                        <a href="/team/database/" class="btn btn-secondary btn-lg ml-2">
                             <i class="fas fa-arrow-left"></i> Back to Database Management
                         </a>
                     </div>

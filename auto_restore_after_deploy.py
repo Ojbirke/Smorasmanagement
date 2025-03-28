@@ -20,6 +20,7 @@ import sys
 import json
 import subprocess
 import time
+import shutil
 from pathlib import Path
 
 # Add Django project to path
@@ -57,10 +58,93 @@ def setup_git():
 def pull_from_git():
     """Pull the latest backups from Git"""
     print("Pulling latest backups from Git repository...")
+    
+    # Define deployment and backup directories outside of try blocks
+    repo_root = Path(settings.BASE_DIR).parent
+    deployment_dir = repo_root / 'deployment'
+    
+    # Create deployment dir if it doesn't exist
+    os.makedirs(deployment_dir, exist_ok=True)
+    
+    backup_dir = deployment_dir / 'pre_git_pull_backup'
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    # First, backup any existing deployment files
     try:
-        # First, let's pull the latest from the repository
+        # Save existing deployment_db.json
+        deployment_db_path = deployment_dir / 'deployment_db.json'
+        if deployment_db_path.exists() and deployment_db_path.stat().st_size > 100:
+            print(f"Backing up existing deployment_db.json (size: {deployment_db_path.stat().st_size} bytes)")
+            
+            # Check if it has content
+            try:
+                with open(deployment_db_path, 'r') as f:
+                    data = json.load(f)
+                    record_count = len(data)
+                    
+                    # Only save if it has meaningful content
+                    if record_count > 0:
+                        timestamp = time.strftime('%Y%m%d_%H%M%S')
+                        backup_path = backup_dir / f"deployment_db_pre_pull_{timestamp}.json"
+                        shutil.copy2(deployment_db_path, backup_path)
+                        print(f"Deployment backup saved to {backup_path}")
+            except Exception as e:
+                print(f"Error reading deployment_db.json, not backing up: {str(e)}")
+    except Exception as e:
+        print(f"Warning: Failed to backup existing deployment files: {str(e)}")
+    
+    try:
+        # Now pull the latest from the repository
         subprocess.run(['git', 'pull', 'origin', 'main'], check=True)
         print("Git pull successful")
+        
+        # After pull, check if we need to restore our backup
+        deployment_db_path = deployment_dir / 'deployment_db.json'
+        should_restore = False
+        
+        if not deployment_db_path.exists():
+            print("Git pull resulted in missing deployment_db.json, will restore from backup")
+            should_restore = True
+        elif deployment_db_path.stat().st_size < 100:
+            print(f"Deployment backup is too small after pull ({deployment_db_path.stat().st_size} bytes), will restore from backup")
+            should_restore = True
+        else:
+            # Verify content
+            try:
+                with open(deployment_db_path, 'r') as f:
+                    data = json.load(f)
+                    if len(data) == 0:
+                        print("Deployment backup is empty after pull, will restore from backup")
+                        should_restore = True
+            except:
+                print("Error reading deployment backup after pull, will restore from backup")
+                should_restore = True
+        
+        if should_restore:
+            # Find the most recent pre-pull backup
+            backup_files = list(backup_dir.glob('deployment_db_pre_pull_*.json'))
+            if backup_files:
+                backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                latest_backup = backup_files[0]
+                
+                # Check backup content
+                try:
+                    with open(latest_backup, 'r') as f:
+                        data = json.load(f)
+                        record_count = len(data)
+                        
+                        if record_count > 0:
+                            print(f"Restoring deployment_db.json from pre-pull backup: {latest_backup}")
+                            shutil.copy2(latest_backup, deployment_db_path)
+                            
+                            # Verify restoration
+                            if deployment_db_path.exists() and deployment_db_path.stat().st_size > 100:
+                                print("Pre-pull backup successfully restored")
+                            else:
+                                print("Failed to restore pre-pull backup")
+                except Exception as e:
+                    print(f"Error reading backup {latest_backup}, not restoring: {str(e)}")
+        
         return True
     except subprocess.CalledProcessError as e:
         print(f"Git pull failed: {str(e)}")
