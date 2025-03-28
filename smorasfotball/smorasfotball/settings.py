@@ -59,17 +59,37 @@ WSGI_APPLICATION = 'smorasfotball.wsgi.application'
 
 # Database
 import os
+import dj_database_url
 
-# Use persistent storage for database
-DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))
-os.makedirs(DB_DIR, exist_ok=True)
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(DB_DIR, 'db.sqlite3'),
+# First, check for PostgreSQL configuration
+if os.environ.get('DATABASE_URL'):
+    # PostgreSQL configuration with SSL settings to handle connection issues
+    database_config = dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+    
+    # Add special options to fix SSL issues
+    database_config['OPTIONS'] = {
+        'sslmode': 'require',
+        'connect_timeout': 10,
     }
-}
+    
+    DATABASES = {
+        'default': database_config
+    }
+else:
+    # Fallback to SQLite (for development only)
+    DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))
+    os.makedirs(DB_DIR, exist_ok=True)
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(DB_DIR, 'db.sqlite3'),
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -44,7 +44,16 @@ fi
 
 # Create deployment backup
 echo "Creating deployment backup..."
-python manage.py deployment_backup
+
+# Use PostgreSQL backup if available
+if [ -n "$DATABASE_URL" ]; then
+    echo "Using PostgreSQL backup for deployment..."
+    python postgres_backup.py --deployment
+else
+    # Fallback to SQLite backup
+    echo "Using SQLite backup for deployment..."
+    python manage.py deployment_backup
+fi
 
 # Verify backup contents
 deployment_path="../deployment/deployment_db.json"
