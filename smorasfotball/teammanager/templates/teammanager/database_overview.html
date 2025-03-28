@@ -9,6 +9,12 @@
             <h1 class="display-4">Database Management</h1>
             <p class="lead">Manage database backups and restoration for Smørås Fotball application.</p>
             
+            <div class="alert alert-info">
+                <i class="fas fa-magic"></i> 
+                <strong>Need help recovering your database?</strong> 
+                Use our <a href="{% url 'recovery-wizard-start' %}" class="alert-link">Database Recovery Wizard</a> for a step-by-step guided process.
+            </div>
+            
             {% if messages %}
             <div class="messages">
                 {% for message in messages %}

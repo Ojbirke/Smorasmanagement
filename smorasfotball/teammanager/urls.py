@@ -4,6 +4,7 @@ from . import views_db_admin
 from . import views_lineup
 from . import views_match_management
 from . import views_video
+from . import views_recovery_wizard
 
 urlpatterns = [
     # Authentication
@@ -124,4 +125,12 @@ urlpatterns = [
     
     # Player Videos
     path('players/<int:player_pk>/videos/', views_video.player_video_clips, name='player-video-clips'),
+    
+    # Database Recovery Wizard
+    path('recovery/', views_recovery_wizard.recovery_wizard_start, name='recovery-wizard-start'),
+    path('recovery/select-type/', views_recovery_wizard.recovery_wizard_select_type, name='recovery-wizard-select-type'),
+    path('recovery/select-backup/<str:backup_type>/', views_recovery_wizard.recovery_wizard_select_backup, name='recovery-wizard-select-backup'),
+    path('recovery/confirm/<str:backup_type>/<str:filename>/', views_recovery_wizard.recovery_wizard_confirm, name='recovery-wizard-confirm'),
+    path('recovery/execute/', views_recovery_wizard.recovery_wizard_execute, name='recovery-wizard-execute'),
+    path('recovery/success/', views_recovery_wizard.recovery_wizard_success, name='recovery-wizard-success'),
 ]

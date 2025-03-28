@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Database Recovery Wizard - Select Backup{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-4">Database Recovery Wizard</h1>
+            <p class="lead">Step 3: Select a specific backup file to recover from.</p>
+            
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Step 3: {{ title }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Select a specific backup file to recover from. Newer backups are listed first.
+                    </div>
+                    
+                    {% if backup_files %}
+                    <div class="table-responsive mt-4">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Date</th>
+                                    <th>Contents</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for backup in backup_files %}
+                                <tr>
+                                    <td>{{ backup.filename }}</td>
+                                    <td>{{ backup.type }}</td>
+                                    <td>{{ backup.size }}</td>
+                                    <td>{{ backup.date|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        {% if backup.record_counts %}
+                                        <small>
+                                            {{ backup.record_counts.teams }} teams,
+                                            {{ backup.record_counts.players }} players,
+                                            {{ backup.record_counts.matches }} matches,
+                                            {{ backup.record_counts.total }} total records
+                                        </small>
+                                        {% else %}
+                                        <small class="text-muted">Info not available</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'recovery-wizard-confirm' backup_type=backup_type filename=backup.filename %}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-check-circle"></i> Select
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mt-4">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        No backup files found in this category.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'recovery-wizard-select-type' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Backup Types
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Backup Selection Tips</h5>
+                </div>
+                <div class="card-body">
+                    <h5>Choosing the Right Backup</h5>
+                    <ul>
+                        <li>Newer backups usually contain more up-to-date data</li>
+                        <li>Check the content statistics to ensure the backup has the data you need</li>
+                        <li>JSON backups are more compatible across different database backends</li>
+                        <li>SQLite backups may contain more detailed system information</li>
+                    </ul>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        <strong>Note:</strong> Restoring a backup will replace ALL current data in the database!
+                    </div>
+                    
+                    <h5 class="mt-4">Recovery Steps</h5>
+                    <ol>
+                        <li>Assess Current State</li>
+                        <li>Select Backup Type</li>
+                        <li class="font-weight-bold">Select Specific Backup (You are here)</li>
+                        <li>Confirm and Execute Recovery</li>
+                        <li>Verify Restored Data</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
