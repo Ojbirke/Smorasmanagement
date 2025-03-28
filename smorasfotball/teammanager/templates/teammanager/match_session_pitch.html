@@ -798,7 +798,8 @@
                 bsAutoSubModal.show();
                 
                 // Get recommendations
-                fetch(`/team/match-sessions/{{ match_session.id }}/recommendations/`, {
+                const matchSessionId = {{ match_session.id }};
+                fetch('/team/match-sessions/' + matchSessionId + '/recommendations/', {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -1138,7 +1139,7 @@
         
         // Separate function to update player times that can be called by both functions
         function updatePlayerTimes() {
-            fetch(`/team/match-sessions/{{ match_session.id }}/update-times/`, {
+            fetch('/team/match-sessions/' + matchSessionId + '/update-times/', {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1208,7 +1209,7 @@
                         
                         // Update minutes remaining in period
                         if (data.match_info.minute_in_period !== undefined) {
-                            const periodLength = {{ period_length }};
+                            const periodLength = globalMatchInfo.period_length;
                             const minutesRemaining = periodLength - data.match_info.minute_in_period;
                             const minutesEl = document.querySelector('.text-muted:not(:has(.badge))');
                             if (minutesEl && minutesRemaining >= 0) {
@@ -1236,7 +1237,7 @@
             updatePlayerTimes();
             
             // Additionally, update the match info
-            fetch(`/team/match-sessions/{{ match_session.id }}/update-times/`, {
+            fetch('/team/match-sessions/' + matchSessionId + '/update-times/', {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1269,7 +1270,7 @@
                     
                     // Update minutes remaining in period
                     if (data.match_info.minute_in_period !== undefined) {
-                        const periodLength = {{ period_length }};
+                        const periodLength = globalMatchInfo.period_length;
                         const minutesRemaining = periodLength - data.match_info.minute_in_period;
                         const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
                         if (periodInfoEl) {
