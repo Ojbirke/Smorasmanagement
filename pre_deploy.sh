@@ -5,6 +5,10 @@ echo "Running pre-deploy script..."
 # Ensure Django is installed
 python -m pip install django pandas openpyxl reportlab
 
+# Add timestamp to deployment logs
+timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+echo "Deployment started at: $timestamp" > deployment_log.txt
+
 # Navigate to the Django project
 cd smorasfotball
 

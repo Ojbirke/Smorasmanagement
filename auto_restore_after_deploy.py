@@ -251,8 +251,82 @@ def mark_as_production():
         print(f"Error creating production marker: {str(e)}")
         return False
 
+def check_if_production():
+    """Determine if this is a production environment"""
+    # Define deployment directory
+    repo_root = Path(settings.BASE_DIR).parent
+    marker_path = repo_root / 'deployment' / 'IS_PRODUCTION_ENVIRONMENT'
+    return marker_path.exists()
+
+def count_database_objects():
+    """Count objects in the current database"""
+    try:
+        from django.contrib.auth.models import User
+        from teammanager.models import Team, Player, Match
+        
+        return {
+            'teams': Team.objects.count(),
+            'players': Player.objects.count(),
+            'matches': Match.objects.count(),
+            'users': User.objects.count(),
+        }
+    except Exception as e:
+        print(f"Error counting database objects: {str(e)}")
+        return {'teams': 0, 'players': 0, 'matches': 0, 'users': 0}
+
+def check_backup_content(backup_path):
+    """Check if a backup has minimum required content"""
+    try:
+        print(f"Checking backup content in {backup_path}...")
+        with open(backup_path, 'r') as f:
+            data = json.load(f)
+            
+            # Count important models
+            teams = len([x for x in data if x.get('model') == 'teammanager.team'])
+            players = len([x for x in data if x.get('model') == 'teammanager.player'])
+            users = len([x for x in data if x.get('model') == 'auth.user'])
+            
+            print(f"Backup contains: {teams} teams, {players} players, {users} users")
+            
+            # Production backups should have reasonable content
+            if teams < 1 or players < 5:
+                print("Warning: Backup contains very few records, might not be suitable for production")
+                return False
+            
+            return True
+    except Exception as e:
+        print(f"Error checking backup content: {str(e)}")
+        return False
+
+def create_safety_backup():
+    """Create a safety backup of the current database before restoration"""
+    try:
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        call_command('dumpdata', output=f"pre_restore_safety_{timestamp}.json")
+        return f"pre_restore_safety_{timestamp}.json"
+    except Exception as e:
+        print(f"Error creating safety backup: {str(e)}")
+        return None
+
 def main():
     print("Starting auto-restore process after deployment...")
+    
+    # Check if this is a production environment
+    is_production = check_if_production()
+    if is_production:
+        print("This is a PRODUCTION environment.")
+    else:
+        print("This is a DEVELOPMENT environment.")
+    
+    # Count objects in current database
+    current_db_state = count_database_objects()
+    print(f"Current database contains: {current_db_state['teams']} teams, "
+          f"{current_db_state['players']} players, {current_db_state['users']} users")
+    
+    # Create a safety backup of the current database
+    safety_backup = create_safety_backup()
+    if safety_backup:
+        print(f"Created safety backup: {safety_backup}")
     
     # Configure git
     if not setup_git():
@@ -265,12 +339,43 @@ def main():
     # Check for deployment backup
     backup_path = check_deployment_backup()
     if backup_path:
+        # For production, verify backup has sufficient content
+        if is_production and not check_backup_content(backup_path):
+            print("WARNING: Deployment backup has insufficient content for production")
+            
+            # If we have some data but backup is empty, don't restore
+            if current_db_state['teams'] > 0 and current_db_state['players'] > 5:
+                print("Current database has content but backup is inadequate. NOT restoring.")
+                print("Creating a fresh deployment backup from current database instead...")
+                try:
+                    # Create a new deployment backup from current data
+                    call_command('deployment_backup')
+                    print("Created fresh deployment backup from current database")
+                    return True
+                except Exception as e:
+                    print(f"Error creating deployment backup: {str(e)}")
+                    return False
+        
         # Restore from backup
+        print(f"Restoring database from {backup_path}...")
         if restore_backup(backup_path):
-            print("Database successfully restored from Git backup")
+            print("Database successfully restored from backup")
             
             # Mark as production
             mark_as_production()
+            
+            # Verify restoration succeeded
+            post_restore_state = count_database_objects()
+            print(f"Post-restoration database contains: {post_restore_state['teams']} teams, "
+                  f"{post_restore_state['players']} players, {post_restore_state['users']} users")
+            
+            # If restoration emptied the database in production, revert to safety backup
+            if is_production and all(v == 0 for v in post_restore_state.values()) and safety_backup:
+                print("WARNING: Restoration resulted in empty database! Reverting to safety backup...")
+                if restore_backup(safety_backup):
+                    print("Successfully reverted to safety backup")
+                else:
+                    print("Failed to revert to safety backup")
             
             print("Auto-restore completed successfully")
             return True
