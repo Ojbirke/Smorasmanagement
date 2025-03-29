@@ -21,9 +21,22 @@ python auto_restore_after_deploy.py
 # Check if restore was successful
 if [ $? -eq 0 ]; then
     echo "Auto-restore completed successfully"
-    echo "Starting Django server..."
-    cd smorasfotball && python manage.py runserver 0.0.0.0:5000
 else
-    echo "Auto-restore failed, starting Django server without restored data..."
-    cd smorasfotball && python manage.py migrate && python manage.py runserver 0.0.0.0:5000
+    echo "Auto-restore failed, will run database population script..."
+    
+    # Run migrations
+    cd smorasfotball && python manage.py migrate
+    
+    # Recreate the superuser if needed
+    cd .. && python recreate_superuser.py
+    
+    # Reset and populate the database with comprehensive data
+    echo "Populating database with teams, players, matches and sessions..."
+    cd smorasfotball && python reset_and_populate_db.py
+    
+    cd ..
 fi
+
+# Start the Django server
+echo "Starting Django server..."
+cd smorasfotball && python manage.py runserver 0.0.0.0:5000

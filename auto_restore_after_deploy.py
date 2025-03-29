@@ -381,9 +381,67 @@ def main():
             return True
         else:
             print("Database restoration failed")
+            
+            # Create a fresh database with teams, players, matches and sessions
+            print("Running comprehensive database population script...")
+            try:
+                # Run migrations first
+                print("Running migrations...")
+                from django.core import management
+                management.call_command('migrate')
+                
+                # Run the populate script
+                print("Populating database with reset_and_populate_db.py...")
+                reset_script_path = os.path.join(settings.BASE_DIR, 'reset_and_populate_db.py')
+                if os.path.exists(reset_script_path):
+                    try:
+                        # Import using direct execution
+                        os.chdir(settings.BASE_DIR)
+                        os.system('python reset_and_populate_db.py')
+                        print("Database successfully populated with default data")
+                        return True
+                    except Exception as e:
+                        print(f"Error running reset_and_populate_db.py: {str(e)}")
+                        return False
+                else:
+                    print(f"Reset script not found at {reset_script_path}")
+                    return False
+            except Exception as e:
+                print(f"Error running database population: {str(e)}")
+                return False
+            
             return False
     else:
         print("No valid deployment backup found")
+        
+        # Create a fresh database with teams, players, matches and sessions
+        print("Running comprehensive database population script...")
+        try:
+            # Run migrations first
+            print("Running migrations...")
+            from django.core import management
+            management.call_command('migrate')
+            
+            # Run the populate script
+            print("Populating database with reset_and_populate_db.py...")
+            reset_script_path = os.path.join(settings.BASE_DIR, 'reset_and_populate_db.py')
+            if os.path.exists(reset_script_path):
+                try:
+                    # Import using direct execution
+                    os.chdir(settings.BASE_DIR)
+                    os.system('python reset_and_populate_db.py')
+                    print("Database successfully populated with default data")
+                    return True
+                except Exception as e:
+                    print(f"Error running reset_and_populate_db.py: {str(e)}")
+                    return False
+            else:
+                print(f"Reset script not found at {reset_script_path}")
+                return False
+        except Exception as e:
+            print(f"Error running database population: {str(e)}")
+            return False
+        
         return False
 
 if __name__ == "__main__":
