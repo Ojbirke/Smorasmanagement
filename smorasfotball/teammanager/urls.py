@@ -4,7 +4,6 @@ from . import views_db_admin
 from . import views_lineup
 from . import views_match_management
 from . import views_video
-from . import views_recovery_wizard
 
 urlpatterns = [
     # Authentication
@@ -47,13 +46,6 @@ urlpatterns = [
     
     # Database Management
     path('database/', views_db_admin.database_overview, name='database-overview'),
-    path('database/backup/create/', views_db_admin.create_backup, name='create-backup'),
-    path('database/backup/cleanup/', views_db_admin.cleanup_backups, name='cleanup-backups'),
-    path('database/backup/<str:filename>/restore/', views_db_admin.restore_backup, name='restore-backup'),
-    path('database/backup/<str:filename>/delete/', views_db_admin.delete_backup, name='delete-backup'),
-    path('database/backup/<str:filename>/download/', views_db_admin.download_backup, name='download-backup'),
-    path('database/git/push/', views_db_admin.push_to_git, name='git-push-backups'),
-    path('database/git/pull/', views_db_admin.pull_from_git, name='git-pull-backups'),
     
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),
@@ -126,11 +118,5 @@ urlpatterns = [
     # Player Videos
     path('players/<int:player_pk>/videos/', views_video.player_video_clips, name='player-video-clips'),
     
-    # Database Recovery Wizard
-    path('recovery/', views_recovery_wizard.recovery_wizard_start, name='recovery-wizard-start'),
-    path('recovery/select-type/', views_recovery_wizard.recovery_wizard_select_type, name='recovery-wizard-select-type'),
-    path('recovery/select-backup/<str:backup_type>/', views_recovery_wizard.recovery_wizard_select_backup, name='recovery-wizard-select-backup'),
-    path('recovery/confirm/<str:backup_type>/<str:filename>/', views_recovery_wizard.recovery_wizard_confirm, name='recovery-wizard-confirm'),
-    path('recovery/execute/', views_recovery_wizard.recovery_wizard_execute, name='recovery-wizard-execute'),
-    path('recovery/success/', views_recovery_wizard.recovery_wizard_success, name='recovery-wizard-success'),
+
 ]

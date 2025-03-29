@@ -711,6 +711,15 @@ def player_matrix(request):
         # Get all active players
         players = Player.objects.filter(active=True)
         players_data = list(players.values('id', 'first_name', 'last_name'))
+        
+        # Clean up player names by trimming whitespace
+        for player in players_data:
+            player['first_name'] = player['first_name'].strip()
+            player['last_name'] = player['last_name'].strip()
+            
+            # Fix any other formatting issues in player names
+            # e.g., replace "Tørvik -Pedersen" with "Tørvik-Pedersen"
+            player['last_name'] = player['last_name'].replace(' -', '-').replace('- ', '-')
 
         # If no players, return empty response
         if not players_data:
