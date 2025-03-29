@@ -63,7 +63,7 @@ def main():
         template_path = sys.argv[1]
     else:
         # Default to match_session_pitch.html
-        template_path = "smorasfotball/teammanager/templates/teammanager/match_session_pitch.html"
+        template_path = os.path.join("smorasfotball", "teammanager", "templates", "teammanager", "match_session_pitch.html")
     
     if not os.path.exists(template_path):
         print(f"Error: File not found: {template_path}")

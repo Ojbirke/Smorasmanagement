@@ -1,0 +1,3 @@
+1145:                        periodBadge.textContent = `Period ${currentPeriod}/${globalMatchInfo.total_periods}`;
+1220:                            periodBadge.textContent = `Period ${data.match_info.period}/${data.match_info.total_periods}`;
+1283:                        periodBadge.textContent = `Period ${data.match_info.period}/${data.match_info.total_periods}`;
