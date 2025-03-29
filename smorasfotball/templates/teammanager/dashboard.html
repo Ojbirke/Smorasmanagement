@@ -318,14 +318,36 @@
                     player.first_name + (player.last_name ? ' ' + player.last_name.charAt(0) + '.' : '')
                 );
                 
-                // Define specific teams we want to display
-                // We'll show total matches, Smørås Ferrari, and Smørås Maserati
-                const specificTeams = ['Total', 'Smørås Ferrari', 'Smørås Maserati'];
-                const colorPalette = [
+                // Dynamically determine which teams are in the data
+                // Extract unique team names from player data
+                const allTeams = new Set();
+                topPlayers.forEach(player => {
+                    if (player.teams && player.teams.length > 0) {
+                        player.teams.forEach(team => {
+                            allTeams.add(team.team__name);
+                        });
+                    }
+                });
+                
+                // Build the team list - 'Total' always first, then all actual teams
+                const specificTeams = ['Total', ...Array.from(allTeams)];
+                
+                // Generate enough colors for all teams
+                const baseColors = [
                     'rgba(108, 117, 125, 0.7)',  // gray for total
-                    'rgba(220, 53, 69, 0.7)',    // red for Ferrari
-                    'rgba(0, 123, 255, 0.7)',    // blue for Maserati
+                    'rgba(220, 53, 69, 0.7)',    // red 
+                    'rgba(0, 123, 255, 0.7)',    // blue
+                    'rgba(40, 167, 69, 0.7)',    // green
+                    'rgba(255, 193, 7, 0.7)',    // yellow
+                    'rgba(111, 66, 193, 0.7)',   // purple
+                    'rgba(23, 162, 184, 0.7)',   // cyan
+                    'rgba(253, 126, 20, 0.7)',   // orange
                 ];
+                
+                // Create color palette, repeating base colors if needed
+                const colorPalette = specificTeams.map((_, index) => 
+                    baseColors[index % baseColors.length]
+                );
                 
                 // Create datasets for the specific teams
                 const datasets = [
