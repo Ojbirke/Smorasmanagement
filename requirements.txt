@@ -7,3 +7,4 @@ gunicorn>=23.0.0,<24.0.0
 twilio
 dj-database-url
 psycopg2-binary
+django-rosetta

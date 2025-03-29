@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+{% load i18n %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/style.css">
     {% block extra_css %}{% endblock %}
@@ -25,42 +28,66 @@
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                        <a class="nav-link" href="{% url 'dashboard' %}">{% translate "Dashboard" %}</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'team-list' %}">Teams</a>
+                        <a class="nav-link" href="{% url 'team-list' %}">{% translate "Teams" %}</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'player-list' %}">Players</a>
+                        <a class="nav-link" href="{% url 'player-list' %}">{% translate "Players" %}</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'match-list' %}">Matches</a>
+                        <a class="nav-link" href="{% url 'match-list' %}">{% translate "Matches" %}</a>
                     </li>
                     {% if is_coach or is_admin %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-clipboard-list me-1"></i>Lineup Builder
+                            <i class="fas fa-clipboard-list me-1"></i>{% translate "Lineup Builder" %}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'lineup-list' %}">Lineups</a></li>
-                            <li><a class="dropdown-item" href="{% url 'formation-list' %}">Formations</a></li>
-                            <li><a class="dropdown-item" href="{% url 'position-list' %}">Positions</a></li>
+                            <li><a class="dropdown-item" href="{% url 'lineup-list' %}">{% translate "Lineups" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'formation-list' %}">{% translate "Formations" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'position-list' %}">{% translate "Positions" %}</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'match-session-list' %}">
-                            <i class="fas fa-mobile-alt me-1"></i>Match Manager
+                            <i class="fas fa-mobile-alt me-1"></i>{% translate "Match Manager" %}
                         </a>
                     </li>
                     {% endif %}
                     {% if is_admin %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'database-overview' %}">Database</a>
+                        <a class="nav-link" href="{% url 'database-overview' %}">{% translate "Database" %}</a>
                     </li>
                     {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    <!-- Language Selector -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-globe me-1"></i>{% translate "Language" %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% get_current_language as CURRENT_LANGUAGE %}
+                            {% get_available_languages as AVAILABLE_LANGUAGES %}
+                            {% for lang_code, lang_name in LANGUAGES %}
+                                <li>
+                                    <a class="dropdown-item {% if lang_code == CURRENT_LANGUAGE %}active{% endif %}" 
+                                       href="{% url 'change_language' lang_code %}">
+                                        {% if lang_code == 'en' %}
+                                            <i class="bi bi-flag me-2"></i>
+                                        {% elif lang_code == 'no' %}
+                                            <i class="bi bi-flag-fill me-2"></i>
+                                        {% endif %}
+                                        {% translate lang_name %}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -68,18 +95,18 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             {% if user.is_staff %}
-                            <li><a class="dropdown-item" href="{% url 'admin:index' %}">Admin Panel</a></li>
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}">{% translate "Admin Panel" %}</a></li>
                             <li><hr class="dropdown-divider"></li>
                             {% endif %}
-                            <li><a class="dropdown-item" href="{% url 'custom-logout' %}">Logout</a></li>
+                            <li><a class="dropdown-item" href="{% url 'custom-logout' %}">{% translate "Logout" %}</a></li>
                         </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        <a class="nav-link" href="{% url 'login' %}">{% translate "Login" %}</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'signup' %}">Sign Up</a>
+                        <a class="nav-link" href="{% url 'signup' %}">{% translate "Sign Up" %}</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -104,7 +131,7 @@
 
     <footer class="bg-light py-3 mt-4">
         <div class="container text-center">
-            <p class="mb-0">&copy; {% now "Y" %} Smørås G2015 Fotball. All rights reserved.</p>
+            <p class="mb-0">&copy; {% now "Y" %} Smørås G2015 Fotball. {% translate "All rights reserved." %}</p>
         </div>
     </footer>
 

@@ -1,0 +1,150 @@
+# Norwegian (Bokmål) translations for the Smørås Fotball project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Smørås Fotball\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-03-29 12:00+0000\n"
+"PO-Revision-Date: 2025-03-29 12:00+0000\n"
+"Last-Translator: Smørås Fotball Team\n"
+"Language-Team: Norwegian <no@li.org>\n"
+"Language: no\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Menu Items
+msgid "Dashboard"
+msgstr "Dashbord"
+
+msgid "Teams"
+msgstr "Lag"
+
+msgid "Players"
+msgstr "Spillere"
+
+msgid "Matches"
+msgstr "Kamper"
+
+msgid "Lineup Builder"
+msgstr "Lagoppstillingsbygger"
+
+msgid "Lineups"
+msgstr "Lagoppstillinger"
+
+msgid "Formations"
+msgstr "Formasjoner"
+
+msgid "Positions"
+msgstr "Posisjoner"
+
+msgid "Match Manager"
+msgstr "Kampbehandler"
+
+msgid "Database"
+msgstr "Database"
+
+msgid "Login"
+msgstr "Logg inn"
+
+msgid "Sign Up"
+msgstr "Registrer deg"
+
+msgid "Logout"
+msgstr "Logg ut"
+
+msgid "Admin Panel"
+msgstr "Adminpanel"
+
+# Common Terms
+msgid "All rights reserved."
+msgstr "Alle rettigheter reservert."
+
+msgid "English"
+msgstr "Engelsk"
+
+msgid "Norwegian"
+msgstr "Norsk"
+
+msgid "Language"
+msgstr "Språk"
+
+# Match Related
+msgid "Period"
+msgstr "Periode"
+
+msgid "min left in period"
+msgstr "min igjen i perioden"
+
+msgid "Previous periods"
+msgstr "Tidligere perioder"
+
+msgid "First period"
+msgstr "Første periode"
+
+msgid "Next sub"
+msgstr "Neste bytte"
+
+msgid "On bench"
+msgstr "På benken"
+
+msgid "On pitch"
+msgstr "På banen"
+
+msgid "Substitute"
+msgstr "Bytt ut"
+
+msgid "Are you sure you want to make this substitution?"
+msgstr "Er du sikker på at du vil gjøre dette byttet?"
+
+msgid "OUT"
+msgstr "UT"
+
+msgid "IN"
+msgstr "INN"
+
+# Player Stats
+msgid "Goals"
+msgstr "Mål"
+
+msgid "Assists"
+msgstr "Assists"
+
+msgid "Minutes"
+msgstr "Minutter"
+
+msgid "Appearances"
+msgstr "Opptredener"
+
+# Dashboard
+msgid "Team Overview"
+msgstr "Lagoversikt"
+
+msgid "Playing Time Overview"
+msgstr "Spilletidoversikt"
+
+msgid "Match Statistics"
+msgstr "Kampstatistikk"
+
+msgid "Player Matrix"
+msgstr "Spillermatrise"
+
+# Buttons
+msgid "Save"
+msgstr "Lagre"
+
+msgid "Cancel"
+msgstr "Avbryt"
+
+msgid "Delete"
+msgstr "Slett"
+
+msgid "Edit"
+msgstr "Rediger"
+
+msgid "Add"
+msgstr "Legg til"
+
+msgid "Back"
+msgstr "Tilbake"
