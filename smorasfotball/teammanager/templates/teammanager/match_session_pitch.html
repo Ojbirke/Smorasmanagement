@@ -641,9 +641,9 @@
                     subResultBody.innerHTML = resultMessage;
                     bsSubResultModal.show();
                     
-                    // Reload the page after dismissing the result modal
+                    // Update the UI without page reload after multiple substitutions
                     subResultModal.addEventListener('hidden.bs.modal', function () {
-                        window.location.reload();
+                        updatePlayingTimes();
                     }, { once: true });
                 })
                 .catch(error => {
@@ -757,9 +757,17 @@
                     `;
                     bsSubResultModal.show();
                     
-                    // Reload the page after dismissing the result modal
+                    // Update the UI without page reload after substitution
                     subResultModal.addEventListener('hidden.bs.modal', function () {
-                        window.location.reload();
+                        updatePlayingTimes();
+                        
+                        // Update player positions on pitch
+                        updatePlayerPositionsAfterSubstitution(
+                            currentSubData.playerIn, 
+                            currentSubData.playerOut, 
+                            {first_name: data.player_in}, 
+                            {first_name: data.player_out}
+                        );
                     }, { once: true });
                 } else {
                     subResultBody.innerHTML = `
@@ -1054,6 +1062,8 @@
         // Initialize elapsed seconds from previous periods
         let clientSideClockRunning = matchStartTime !== null;
         let currentPeriod = {{ current_period|default:1 }};
+        // Define matchSessionId for use in API calls
+        const matchSessionId = {{ match_session.id }};
         
         function startAutoRefresh() {
             // First immediate update
@@ -1093,7 +1103,7 @@
             globalMatchInfo.client_elapsed_seconds = elapsedSeconds;
             
             // Update the match clock
-            const matchInfoEl = document.querySelector('.fw-bold');
+            const matchInfoEl = document.querySelector('.fs-5 .fw-bold');
             if (matchInfoEl) {
                 matchInfoEl.textContent = `${elapsedMinutes}:${elapsedSecondsInMinute.toString().padStart(2, '0')}`;
             }
@@ -1101,7 +1111,7 @@
             // Real-time update for player times (on pitch)
             const playersOnPitch = document.querySelectorAll('.player-on-pitch');
             playersOnPitch.forEach(player => {
-                const playerId = player.id.replace('player-', '');
+                const playerId = player.dataset.playerId;
                 const minutesEl = player.querySelector('.player-minutes');
                 if (minutesEl) {
                     const currentMinutes = parseInt(minutesEl.textContent);
@@ -1129,9 +1139,9 @@
                 
                 if (newPeriod !== currentPeriod) {
                     currentPeriod = newPeriod;
-                    const periodInfoEl = document.querySelector('.col-6 > div:nth-child(2)');
-                    if (periodInfoEl) {
-                        periodInfoEl.innerHTML = `Period ${currentPeriod}/${globalMatchInfo.total_periods}`;
+                    const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
+                    if (periodBadge) {
+                        periodBadge.textContent = `Period ${currentPeriod}/${globalMatchInfo.total_periods}`;
                     }
                 }
             }
@@ -1139,7 +1149,9 @@
         
         // Separate function to update player times that can be called by both functions
         function updatePlayerTimes() {
-            fetch('/team/match-sessions/' + matchSessionId + '/update-times/', {
+            // Make sure matchSessionId is defined
+            const sessionId = matchSessionId || {{ match_session.id }};
+            fetch('/team/match-sessions/' + sessionId + '/update-times/', {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1237,7 +1249,9 @@
             updatePlayerTimes();
             
             // Additionally, update the match info
-            fetch('/team/match-sessions/' + matchSessionId + '/update-times/', {
+            // Make sure matchSessionId is defined
+            const sessionId = matchSessionId || {{ match_session.id }};
+            fetch('/team/match-sessions/' + sessionId + '/update-times/', {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1310,6 +1324,115 @@
             .catch(error => {
                 console.error('Error updating match time info:', error);
             });
+        }
+        
+        /**
+         * Updates player positions after a substitution without reloading the page
+         * @param {number} playerInId - ID of the player being subbed in
+         * @param {number} playerOutId - ID of the player being subbed out
+         * @param {object} playerInData - Data about the player being subbed in
+         * @param {object} playerOutData - Data about the player being subbed out
+         */
+        function updatePlayerPositionsAfterSubstitution(playerInId, playerOutId, playerInData, playerOutData) {
+            console.log("Updating player positions after substitution:", 
+                        {playerInId, playerOutId, playerInData, playerOutData});
+            
+            // 1. Remove the player being substituted out from the pitch
+            const playerOutElement = document.getElementById(`player-${playerOutId}`);
+            if (playerOutElement) {
+                // Save position for the new player
+                const position = {
+                    top: playerOutElement.style.top,
+                    left: playerOutElement.style.left
+                };
+                
+                // Remove from pitch
+                playerOutElement.remove();
+                
+                // 2. Create a new element for the player coming in
+                const pitchContainer = document.querySelector('.pitch-container');
+                const newPlayerElement = document.createElement('div');
+                newPlayerElement.id = `player-${playerInId}`;
+                newPlayerElement.className = 'player-on-pitch';
+                newPlayerElement.style.top = position.top;
+                newPlayerElement.style.left = position.left;
+                newPlayerElement.dataset.playerId = playerInId;
+                newPlayerElement.dataset.playerName = playerInData.first_name;
+                
+                // Add player name and minutes played
+                newPlayerElement.innerHTML = `
+                    ${playerInData.first_name}
+                    <span class="player-minutes">0m</span>
+                `;
+                
+                // Add the new player to the pitch
+                pitchContainer.appendChild(newPlayerElement);
+            }
+            
+            // 3. Update the bench and pitch lists
+            // This could be done by moving elements or preferably by just updating the text
+            
+            // Find and update the player lists
+            const onPitchList = document.querySelector('.card-header.bg-primary + .card-body .list-group');
+            const onBenchList = document.querySelector('.card-header.bg-secondary + .card-body .list-group');
+            
+            if (onPitchList && onBenchList) {
+                // Find player elements in lists
+                const pitchItems = onPitchList.querySelectorAll('.list-group-item');
+                const benchItems = onBenchList.querySelectorAll('.list-group-item');
+                
+                // Look for player out in pitch list to move to bench
+                for (const item of pitchItems) {
+                    if (item.textContent.includes(playerOutData.first_name)) {
+                        const playerInfo = item.querySelector('.fw-bold');
+                        const playerStatus = item.querySelector('.badge');
+                        
+                        if (playerStatus) {
+                            playerStatus.className = 'badge bg-secondary';
+                            playerStatus.textContent = 'on bench';
+                        }
+                        
+                        // Move to bench list if possible
+                        if (onBenchList) {
+                            onBenchList.appendChild(item);
+                        }
+                        break;
+                    }
+                }
+                
+                // Look for player in in bench list to move to pitch
+                for (const item of benchItems) {
+                    if (item.textContent.includes(playerInData.first_name)) {
+                        const playerInfo = item.querySelector('.fw-bold');
+                        const playerStatus = item.querySelector('.badge');
+                        
+                        if (playerStatus) {
+                            playerStatus.className = 'badge bg-success';
+                            playerStatus.textContent = 'on pitch';
+                        }
+                        
+                        // Move to pitch list if possible
+                        if (onPitchList) {
+                            onPitchList.appendChild(item);
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // 4. Update the counts in the action bar
+            const pitchCount = document.querySelector('.action-bar .badge.bg-primary');
+            const benchCount = document.querySelector('.action-bar .badge.bg-secondary');
+            
+            if (pitchCount && benchCount) {
+                // Get current counts
+                let pitchNum = parseInt(pitchCount.textContent);
+                let benchNum = parseInt(benchCount.textContent);
+                
+                // Update counts - no change in total player count
+                pitchCount.textContent = pitchNum;
+                benchCount.textContent = benchNum;
+            }
         }
         
         // Global variables to store match info for all functions to use
