@@ -217,9 +217,82 @@ def restore_backup(backup_path):
     """Restore the database from backup"""
     print(f"Restoring database from {backup_path}...")
     try:
-        # Flush the database
-        print("Flushing database...")
-        call_command('flush', '--no-input')
+        # Instead of using flush, delete objects manually in the proper order
+        print("Clearing database...")
+        
+        # Import models here to ensure they're available
+        try:
+            from django.contrib.auth.models import User
+            from django.contrib.sessions.models import Session
+            from teammanager.models import (
+                Team, Player, Match, MatchAppearance, FormationTemplate,
+                MatchSession, Lineup, LineupPosition, LineupPlayerPosition,
+                PlayingTime, PlayerSubstitution, UserProfile
+            )
+            from teammanager.models_video import (
+                VideoClip, HighlightReel, HighlightClipAssociation
+            )
+            
+            # Delete in proper order to respect foreign key constraints
+            print("Deleting highlight clip associations...")
+            HighlightClipAssociation.objects.all().delete()
+            
+            print("Deleting highlight reels...")
+            HighlightReel.objects.all().delete()
+            
+            print("Deleting video clips...")
+            VideoClip.objects.all().delete()
+            
+            print("Deleting player substitutions...")
+            PlayerSubstitution.objects.all().delete()
+            
+            print("Deleting playing times...")
+            PlayingTime.objects.all().delete()
+            
+            print("Deleting lineup player positions...")
+            LineupPlayerPosition.objects.all().delete()
+            
+            print("Deleting lineup positions...")
+            LineupPosition.objects.all().delete()
+            
+            print("Deleting lineups...")
+            Lineup.objects.all().delete()
+            
+            print("Deleting match appearances...")
+            MatchAppearance.objects.all().delete()
+            
+            print("Deleting match sessions...")
+            MatchSession.objects.all().delete()
+            
+            print("Deleting matches...")
+            Match.objects.all().delete()
+            
+            print("Deleting user profiles...")
+            UserProfile.objects.all().delete()
+            
+            print("Deleting sessions...")
+            Session.objects.all().delete()
+            
+            print("Deleting non-superuser users...")
+            User.objects.filter(is_superuser=False).delete()
+            
+            print("Deleting players...")
+            Player.objects.all().delete()
+            
+            print("Deleting teams...")
+            Team.objects.all().delete()
+            
+            print("Deleting formation templates...")
+            FormationTemplate.objects.all().delete()
+            
+            print("Database cleared successfully")
+            
+        except ImportError as e:
+            print(f"Warning: Could not import some models: {str(e)}")
+            print("Continuing with loaddata which may overwrite existing data")
+        except Exception as e:
+            print(f"Warning: Error clearing database objects: {str(e)}")
+            print("Continuing with loaddata which may overwrite existing data")
         
         # Load data from backup
         print("Loading data from backup...")

@@ -65,22 +65,35 @@ import dj_database_url
 
 # First, check for PostgreSQL configuration
 if os.environ.get('DATABASE_URL'):
-    # PostgreSQL configuration with SSL settings to handle connection issues
+    print("PostgreSQL detected via DATABASE_URL")
+    
+    # PostgreSQL configuration with enhanced settings for deployment reliability
     database_config = dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         conn_health_checks=True,
     )
     
-    # Add special options to fix SSL issues
+    # Add special options to enhance PostgreSQL connection reliability
     database_config['OPTIONS'] = {
         'sslmode': 'require',
         'connect_timeout': 10,
+        'keepalives': 1,
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5,
     }
+    
+    # Log the database engine type (without sensitive info)
+    print(f"Database engine: {database_config.get('ENGINE', 'unknown')}")
     
     DATABASES = {
         'default': database_config
     }
+    
+    # Retry connection on failures (helps with Replit deployments)
+    DATABASES['default']['CONN_MAX_AGE'] = 0  # Reconnect for each request
+    DATABASES['default']['ATOMIC_REQUESTS'] = True  # Wrap requests in transactions
 else:
     # Fallback to SQLite (for development only)
     DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))

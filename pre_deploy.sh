@@ -45,14 +45,29 @@ fi
 # Create deployment backup
 echo "Creating deployment backup..."
 
-# Use PostgreSQL backup if available
-if [ -n "$DATABASE_URL" ]; then
-    echo "Using PostgreSQL backup for deployment..."
-    python postgres_backup.py --deployment
+# Run our new comprehensive pre-deployment backup script first
+cd ..
+python pre_deploy_backup.py
+
+if [ $? -ne 0 ]; then
+    echo "Warning: Pre-deployment backup script failed, falling back to legacy backup methods"
+    
+    # Return to Django app directory
+    cd smorasfotball
+    
+    # Use PostgreSQL backup if available
+    if [ -n "$DATABASE_URL" ]; then
+        echo "Using PostgreSQL backup for deployment..."
+        python postgres_backup.py --deployment
+    else
+        # Fallback to SQLite backup
+        echo "Using SQLite backup for deployment..."
+        python manage.py deployment_backup
+    fi
 else
-    # Fallback to SQLite backup
-    echo "Using SQLite backup for deployment..."
-    python manage.py deployment_backup
+    echo "Pre-deployment backup script completed successfully"
+    # Return to Django app directory
+    cd smorasfotball
 fi
 
 # Verify backup contents
