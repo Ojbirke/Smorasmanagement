@@ -68,11 +68,13 @@
                     {% get_current_language as CURRENT_LANGUAGE %}
                     <li class="nav-item">
                         {% if CURRENT_LANGUAGE == 'en' %}
-                            <a class="nav-link" href="{% url 'change_language' 'no' %}" title="Switch to Norwegian">
+                            <!-- When in English, show UK flag and link to switch to Norwegian -->
+                            <a class="nav-link" href="/set-language/no/" title="Switch to Norwegian">
                                 <span class="flag-icon">🇬🇧</span> <span class="d-none d-sm-inline">English</span>
                             </a>
                         {% else %}
-                            <a class="nav-link" href="{% url 'change_language' 'en' %}" title="Switch to English">
+                            <!-- When in Norwegian, show Norwegian flag and link to switch to English -->
+                            <a class="nav-link" href="/set-language/en/" title="Switch to English">
                                 <span class="flag-icon">🇳🇴</span> <span class="d-none d-sm-inline">Norsk</span>
                             </a>
                         {% endif %}
