@@ -1,0 +1,12 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block sidebar %}
+{{ block.super }}
+<div class="module">
+  <h2>{% translate "Database Management" %}</h2>
+  <ul>
+    <li><a href="{% url 'backup_config' %}">{% translate "Backup Configuration" %}</a></li>
+  </ul>
+</div>
+{% endblock %}

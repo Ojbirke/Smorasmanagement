@@ -1,0 +1,23 @@
+{
+  "backup_directory": "~/smorasfotball_backups",
+  "backup_locations": [
+    {
+      "name": "persistent",
+      "path": "persistent_backups",
+      "enabled": true,
+      "max_backups": 5
+    },
+    {
+      "name": "deployment",
+      "path": "deployment",
+      "enabled": true,
+      "max_backups": 3
+    }
+  ],
+  "git_backup": {
+    "enabled": false,
+    "repository": "https://github.com/username/smorasfotball-backups.git",
+    "branch": "main",
+    "username": ""
+  }
+}

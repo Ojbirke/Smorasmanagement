@@ -39,6 +39,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Create PostgreSQL database backups")
     parser.add_argument('--deployment', action='store_true', 
                       help='Create a backup for deployment purposes')
+    parser.add_argument('--json-only', action='store_true',
+                      help='Create only JSON backup (no SQL dump)')
+    parser.add_argument('--sql-only', action='store_true',
+                      help='Create only SQL backup (no JSON export)')
+    parser.add_argument('--output-dir', 
+                      help='Custom output directory for backups')
     return parser.parse_args()
 
 def is_postgres_configured():
@@ -60,21 +66,43 @@ def is_postgres_configured():
 
 def get_backup_directories(is_deployment=False):
     """Get backup directories based on backup type"""
+    from backup_config import get_backup_path, load_config
+    
+    # Get the external backup path (outside repository)
+    backup_dirs = [get_backup_path()]
+    
+    # Add project-local backups too for redundancy
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # Primary backup locations
-    backup_dirs = [
-        os.path.join(base_dir, 'persistent_backups'),  # Survives redeployments
-        os.path.join(os.path.dirname(__file__), 'backups')  # Regular app backups
-    ]
+    # Add persistent_backups for redundancy
+    backup_dirs.append(os.path.join(base_dir, 'persistent_backups'))
+    
+    # Regular app backups
+    backup_dirs.append(os.path.join(os.path.dirname(__file__), 'backups'))
     
     # Add deployment backup location if requested
     if is_deployment:
         backup_dirs.append(os.path.join(base_dir, 'deployment'))
     
+    # Load additional configured backup locations
+    config = load_config()
+    for location in config.get('backup_locations', []):
+        if location.get('enabled', True):
+            path = location.get('path')
+            if path and path not in backup_dirs:
+                # Handle relative paths
+                if not os.path.isabs(path):
+                    path = os.path.join(base_dir, path)
+                backup_dirs.append(path)
+    
     # Create directories if they don't exist
     for directory in backup_dirs:
         os.makedirs(directory, exist_ok=True)
+    
+    # Log all backup locations
+    print(f"Using {len(backup_dirs)} backup locations:")
+    for i, directory in enumerate(backup_dirs, 1):
+        print(f"  {i}. {directory}")
     
     return backup_dirs
 
@@ -185,13 +213,37 @@ def main():
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # 3. Determine backup directories
-    backup_dirs = get_backup_directories(is_deployment=args.deployment)
+    backup_dirs = []
     
-    # 4. Create JSON backups
-    json_backups = create_json_backup(backup_dirs, timestamp)
+    # Handle custom output directory if specified
+    if hasattr(args, 'output_dir') and args.output_dir:
+        output_dir = args.output_dir
+        # Expand user directory if path starts with ~
+        if output_dir.startswith('~'):
+            output_dir = os.path.expanduser(output_dir)
+        # Create the directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        backup_dirs.append(output_dir)
+        print(f"Using custom output directory: {output_dir}")
+    else:
+        # Use standard backup directories
+        backup_dirs = get_backup_directories(is_deployment=args.deployment)
     
-    # 5. Create SQL backups with pg_dump if available
-    sql_backups = create_pg_dump_backup(backup_dirs, timestamp)
+    # Track which backups were created
+    json_backups = []
+    sql_backups = []
+    
+    # 4. Create JSON backups (if not sql_only)
+    if not hasattr(args, 'sql_only') or not args.sql_only:
+        json_backups = create_json_backup(backup_dirs, timestamp)
+    else:
+        print("Skipping JSON backup creation (--sql-only specified).")
+    
+    # 5. Create SQL backups with pg_dump (if not json_only)
+    if not hasattr(args, 'json_only') or not args.json_only:
+        sql_backups = create_pg_dump_backup(backup_dirs, timestamp)
+    else:
+        print("Skipping SQL backup creation (--json-only specified).")
     
     # 6. Clean up old backups
     cleanup_old_backups(backup_dirs)
