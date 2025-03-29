@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <h1>{% translate "Language changed" %}</h1>
+    
+    <p class="lead">
+        {% if LANGUAGE_CODE == 'en' %}
+            Your language has been set to <strong>English</strong>
+        {% elif LANGUAGE_CODE == 'no' %}
+            Språket ditt er nå satt til <strong>Norsk</strong>
+        {% endif %}
+    </p>
+    
+    <div class="my-4">
+        <a href="/" class="btn btn-primary">{% translate "Back to Home" %}</a>
+    </div>
+</div>
+{% endblock %}

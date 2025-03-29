@@ -1,4 +1,4 @@
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.conf import settings
 from django.utils.translation import activate
 from django.http import HttpResponse
@@ -7,12 +7,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 def change_language(request, language):
-    """Change the language and redirect back to the previous page."""
-    referer = request.META.get('HTTP_REFERER', '/')
-    
+    """Change the language and display a confirmation page."""
     # Log the language change request for debugging
     logger.info(f"Language change requested to: {language}")
-    logger.info(f"Referer: {referer}")
     
     # Check if the language is supported
     supported = False
@@ -23,13 +20,13 @@ def change_language(request, language):
     
     if not supported:
         logger.warning(f"Unsupported language: {language}")
-        return redirect(referer)
+        return redirect('/')
     
     # Set the language
     activate(language)
-    response = redirect(referer)
     
-    # Ensure we set a proper cookie with the language
+    # Set the language cookie in the response
+    response = render(request, 'lang_switch.html')
     response.set_cookie(
         settings.LANGUAGE_COOKIE_NAME, 
         language,
@@ -40,6 +37,6 @@ def change_language(request, language):
         samesite='Lax'
     )
     
-    logger.info(f"Language changed to: {language}")
+    logger.info(f"Language set to: {language}")
     
     return response

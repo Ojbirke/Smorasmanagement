@@ -69,12 +69,12 @@
                     <li class="nav-item">
                         {% if CURRENT_LANGUAGE == 'en' %}
                             <!-- When in English, show UK flag and link to switch to Norwegian -->
-                            <a class="nav-link" href="/set-language/no/" title="Switch to Norwegian">
+                            <a class="nav-link language-toggle" href="/set-language/no/" title="Switch to Norwegian" data-language="no">
                                 <span class="flag-icon">🇬🇧</span> <span class="d-none d-sm-inline">English</span>
                             </a>
                         {% else %}
                             <!-- When in Norwegian, show Norwegian flag and link to switch to English -->
-                            <a class="nav-link" href="/set-language/en/" title="Switch to English">
+                            <a class="nav-link language-toggle" href="/set-language/en/" title="Switch to English" data-language="en">
                                 <span class="flag-icon">🇳🇴</span> <span class="d-none d-sm-inline">Norsk</span>
                             </a>
                         {% endif %}
@@ -157,6 +157,23 @@
                 return element;
             }
         };
+
+        // Handle language toggle links
+        document.addEventListener('DOMContentLoaded', function() {
+            const languageLinks = document.querySelectorAll('.language-toggle');
+            
+            languageLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const language = this.getAttribute('data-language');
+                    console.log('Changing language to:', language);
+                    
+                    // Navigate to the language change URL
+                    window.location.href = this.getAttribute('href');
+                });
+            });
+        });
     </script>
     
     {% block extra_js %}{% endblock %}
