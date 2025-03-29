@@ -41,10 +41,10 @@
                     </li>
                     {% if is_coach or is_admin %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="lineupDropdown">
                             <i class="fas fa-clipboard-list me-1"></i>{% translate "Lineup Builder" %}
                         </a>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu" aria-labelledby="lineupDropdown">
                             <li><a class="dropdown-item" href="{% url 'lineup-list' %}">{% translate "Lineups" %}</a></li>
                             <li><a class="dropdown-item" href="{% url 'formation-list' %}">{% translate "Formations" %}</a></li>
                             <li><a class="dropdown-item" href="{% url 'position-list' %}">{% translate "Positions" %}</a></li>
@@ -66,10 +66,10 @@
                 <ul class="navbar-nav">
                     <!-- Language Selector -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="languageDropdown">
                             <i class="bi bi-globe me-1"></i>{% translate "Language" %}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
                             {% get_current_language as CURRENT_LANGUAGE %}
                             {% get_available_languages as AVAILABLE_LANGUAGES %}
                             {% for lang_code, lang_name in LANGUAGES %}
@@ -77,11 +77,10 @@
                                     <a class="dropdown-item {% if lang_code == CURRENT_LANGUAGE %}active{% endif %}" 
                                        href="{% url 'change_language' lang_code %}">
                                         {% if lang_code == 'en' %}
-                                            <i class="bi bi-flag me-2"></i>
+                                            <i class="bi bi-flag me-2"></i>English
                                         {% elif lang_code == 'no' %}
-                                            <i class="bi bi-flag-fill me-2"></i>
+                                            <i class="bi bi-flag-fill me-2"></i>Norwegian
                                         {% endif %}
-                                        {% translate lang_name %}
                                     </a>
                                 </li>
                             {% endfor %}
@@ -90,10 +89,10 @@
                     
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="userDropdown">
                             <i class="fas fa-user me-1"></i>{{ user.username }}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             {% if user.is_staff %}
                             <li><a class="dropdown-item" href="{% url 'admin:index' %}">{% translate "Admin Panel" %}</a></li>
                             <li><hr class="dropdown-divider"></li>
