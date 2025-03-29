@@ -64,27 +64,18 @@
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
-                    <!-- Language Selector -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="languageDropdown">
-                            <i class="bi bi-globe me-1"></i>{% translate "Language" %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
-                            {% get_current_language as CURRENT_LANGUAGE %}
-                            {% get_available_languages as AVAILABLE_LANGUAGES %}
-                            {% for lang_code, lang_name in LANGUAGES %}
-                                <li>
-                                    <a class="dropdown-item {% if lang_code == CURRENT_LANGUAGE %}active{% endif %}" 
-                                       href="{% url 'change_language' lang_code %}">
-                                        {% if lang_code == 'en' %}
-                                            <i class="bi bi-flag me-2"></i>English
-                                        {% elif lang_code == 'no' %}
-                                            <i class="bi bi-flag-fill me-2"></i>Norwegian
-                                        {% endif %}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
+                    <!-- Language Toggle -->
+                    {% get_current_language as CURRENT_LANGUAGE %}
+                    <li class="nav-item">
+                        {% if CURRENT_LANGUAGE == 'en' %}
+                            <a class="nav-link" href="{% url 'change_language' 'no' %}" title="Switch to Norwegian">
+                                <span class="flag-icon">🇬🇧</span> <span class="d-none d-sm-inline">English</span>
+                            </a>
+                        {% else %}
+                            <a class="nav-link" href="{% url 'change_language' 'en' %}" title="Switch to English">
+                                <span class="flag-icon">🇳🇴</span> <span class="d-none d-sm-inline">Norsk</span>
+                            </a>
+                        {% endif %}
                     </li>
                     
                     {% if user.is_authenticated %}

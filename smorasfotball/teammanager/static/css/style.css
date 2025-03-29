@@ -1,12 +1,19 @@
 /* Custom styles for Smørås Fotball application */
 
-/* Fix for language dropdown menu */
+/* Language Selector Styles */
+.flag-icon {
+    font-size: 1.5rem;
+    margin-right: 0.3rem;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Dropdown Menu Styles */
 .dropdown-menu {
-    background-color: #fff !important;
-    color: #212529 !important;
-    border: 1px solid rgba(0, 0, 0, 0.15) !important;
-    border-radius: 0.25rem !important;
-    display: block !important;  /* Ensure dropdowns are displayed when activated */
+    background-color: #fff;
+    color: #212529;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.25rem;
     min-width: 10rem;
     padding: 0.5rem 0;
     margin: 0.125rem 0 0;
@@ -15,19 +22,17 @@
     list-style: none;
 }
 
-/* Only show dropdown-menu when parent dropdown is shown */
-.dropdown-menu:not(.show) {
-    display: none !important;
+.dropdown-menu.show {
+    display: block;
 }
 
-/* Ensure dropdown items are visible */
 .dropdown-item {
     display: block;
     width: 100%;
     padding: 0.25rem 1.5rem;
     clear: both;
     font-weight: 400;
-    color: #212529 !important;
+    color: #212529;
     text-align: inherit;
     white-space: nowrap;
     background-color: transparent;
@@ -35,15 +40,15 @@
 }
 
 .dropdown-item:hover, .dropdown-item:focus {
-    color: #16181b !important;
+    color: #16181b;
     text-decoration: none;
-    background-color: #f8f9fa !important;
+    background-color: #f8f9fa;
 }
 
 .dropdown-item.active, .dropdown-item:active {
-    color: #fff !important;
+    color: #fff;
     text-decoration: none;
-    background-color: #0d6efd !important;
+    background-color: #0d6efd;
 }
 
 /* Debug helper */
