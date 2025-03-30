@@ -391,23 +391,85 @@ def ensure_postgres_database():
     if is_production:
         print("This is a PRODUCTION environment - PostgreSQL will be enforced.")
         
-        # Check if our helper script exists
-        ensure_script = os.path.join(os.path.dirname(settings.BASE_DIR), 'ensure_postgres.py')
-        if os.path.exists(ensure_script):
-            print(f"Running PostgreSQL migration helper: {ensure_script}")
-            try:
-                # Run the script as a subprocess
-                result = subprocess.run([sys.executable, ensure_script], 
-                                      capture_output=True, text=True, check=True)
-                print(result.stdout)
-                print("PostgreSQL migration completed.")
-                return True
-            except subprocess.CalledProcessError as e:
-                print(f"PostgreSQL migration failed: {e}")
-                print(f"Error output: {e.stderr}")
-                return False
+        # First check if DATABASE_URL is set in the environment
+        db_url = os.environ.get('DATABASE_URL')
+        if not db_url:
+            print("DATABASE_URL not found in environment, checking alternative sources...")
+            
+            # Try to load from backup credential files
+            repo_root = Path(settings.BASE_DIR).parent
+            deployment_dir = repo_root / 'deployment'
+            
+            # Check primary location
+            creds_file = deployment_dir / 'postgres_credentials.json'
+            if creds_file.exists():
+                try:
+                    with open(creds_file, 'r') as f:
+                        creds = json.load(f)
+                        if 'DATABASE_URL' in creds:
+                            os.environ['DATABASE_URL'] = creds['DATABASE_URL']
+                            print("Loaded DATABASE_URL from credentials file")
+                except Exception as e:
+                    print(f"Error loading credentials from {creds_file}: {e}")
+            
+            # Check backup location if primary failed
+            backup_creds_file = deployment_dir / 'postgres_creds_backup.json'
+            if not os.environ.get('DATABASE_URL') and backup_creds_file.exists():
+                try:
+                    with open(backup_creds_file, 'r') as f:
+                        creds = json.load(f)
+                        if 'DATABASE_URL' in creds:
+                            os.environ['DATABASE_URL'] = creds['DATABASE_URL']
+                            print("Loaded DATABASE_URL from backup credentials file")
+                except Exception as e:
+                    print(f"Error loading credentials from backup file: {e}")
+            
+            # Check .env file
+            env_file = repo_root / '.env'
+            if not os.environ.get('DATABASE_URL') and env_file.exists():
+                try:
+                    with open(env_file, 'r') as f:
+                        for line in f:
+                            if line.strip().startswith('DATABASE_URL='):
+                                db_url = line.strip().split('=', 1)[1]
+                                if db_url:
+                                    os.environ['DATABASE_URL'] = db_url
+                                    print("Loaded DATABASE_URL from .env file")
+                                    break
+                except Exception as e:
+                    print(f"Error reading .env file: {e}")
+        
+        # If DATABASE_URL is now set, we can try to run our helper scripts
+        if os.environ.get('DATABASE_URL'):
+            # Try both helper scripts in order of most comprehensive first
+            scripts = [
+                os.path.join(os.path.dirname(settings.BASE_DIR), 'fix_production_postgres.py'),
+                os.path.join(os.path.dirname(settings.BASE_DIR), 'ensure_postgres.py')
+            ]
+            
+            for script in scripts:
+                if os.path.exists(script):
+                    print(f"Running PostgreSQL migration helper: {script}")
+                    try:
+                        # Run the script as a subprocess
+                        result = subprocess.run([sys.executable, script], 
+                                              capture_output=True, text=True, check=True)
+                        print(result.stdout)
+                        print(f"PostgreSQL migration completed via {os.path.basename(script)}")
+                        return True
+                    except subprocess.CalledProcessError as e:
+                        print(f"PostgreSQL migration failed with {os.path.basename(script)}: {e}")
+                        print(f"Error output: {e.stderr}")
+                        # Continue to try the next script
+                    except Exception as e:
+                        print(f"Error running {os.path.basename(script)}: {e}")
+                        # Continue to try the next script
+            
+            # If we get here, all scripts failed
+            print("All PostgreSQL migration scripts failed")
+            return False
         else:
-            print(f"PostgreSQL migration helper not found: {ensure_script}")
+            print("DATABASE_URL not set, cannot ensure PostgreSQL is used")
     else:
         print("This is a DEVELOPMENT environment - database engine will not be enforced.")
     

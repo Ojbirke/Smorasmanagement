@@ -19,7 +19,7 @@ try:
     import django
     django.setup()
     from django.contrib.auth.models import User
-    from teammanager.models import AdminUser
+    from teammanager.models import UserProfile
 except ImportError:
     print("Error: Django could not be imported. Make sure Django is installed.")
     sys.exit(1)
@@ -48,16 +48,19 @@ def recreate_superuser():
             User.objects.create_superuser(username=username, email=email, password=password)
             print(f"Created new superuser '{username}'.")
         
-        # Make sure the user is also an AdminUser in our custom model
+        # Make sure the user's UserProfile has admin privileges
         try:
-            admin_user = AdminUser.objects.get(user__username=username)
-            print(f"User '{username}' is already an admin in the application.")
-        except AdminUser.DoesNotExist:
-            # Get the Django user
             user = User.objects.get(username=username)
-            # Create an AdminUser
-            AdminUser.objects.create(user=user, is_approved=True)
-            print(f"Added '{username}' as an approved admin in the application.")
+            profile = UserProfile.objects.get(user=user)
+            profile.role = 'admin'
+            profile.status = 'approved'
+            profile.save()
+            print(f"User '{username}' is now an approved admin in the application.")
+        except UserProfile.DoesNotExist:
+            # This shouldn't happen due to the signal, but just in case
+            user = User.objects.get(username=username)
+            UserProfile.objects.create(user=user, role='admin', status='approved')
+            print(f"Created UserProfile for '{username}' as an approved admin.")
             
         return True
     except Exception as e:

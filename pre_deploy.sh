@@ -13,12 +13,33 @@ echo "Deployment started at: $timestamp" > deployment_log.txt
 if [ -n "$DATABASE_URL" ]; then
     echo "PostgreSQL detected via DATABASE_URL, saving credentials for deployment..."
     mkdir -p deployment
+    
+    # Save credentials in multiple locations for redundancy
+    # 1. Standard location
     cat > deployment/postgres_credentials.json << EOF
 {
     "DATABASE_URL": "$DATABASE_URL"
 }
 EOF
-    echo "PostgreSQL credentials saved for deployment restoration"
+    
+    # 2. Backup location in case standard one is overwritten
+    cat > deployment/postgres_creds_backup.json << EOF
+{
+    "DATABASE_URL": "$DATABASE_URL"
+}
+EOF
+    
+    # 3. Update .env file for environment variable persistence
+    if ! grep -q "DATABASE_URL=" .env 2>/dev/null; then
+        echo -e "\n# PostgreSQL database URL added during pre-deploy" >> .env
+        echo "DATABASE_URL=$DATABASE_URL" >> .env
+        echo "Added DATABASE_URL to .env file"
+    fi
+    
+    echo "PostgreSQL credentials saved in multiple locations for deployment restoration"
+    
+    # Force the marker file even before full deployment
+    echo "$(date) - Deployment detected and marked as production" > "deployment/IS_PRODUCTION_ENVIRONMENT"
 fi
 
 # Navigate to the Django project
