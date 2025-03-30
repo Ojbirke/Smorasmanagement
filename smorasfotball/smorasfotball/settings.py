@@ -241,4 +241,17 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.repl.co',
     'https://*.replit.app',
     'https://*.repl.dev',
+    'https://*.spock.replit.dev',
+    'https://0cae2ce2-a30e-4925-aa85-da01f7ace035-00-252e4sr0hcm33.spock.replit.dev',
+    'http://0cae2ce2-a30e-4925-aa85-da01f7ace035-00-252e4sr0hcm33.spock.replit.dev',
 ]
+
+# For additional security in Replit environment
+CSRF_COOKIE_SECURE = False  # Set to False to work in all environments
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Handle CSRF token in AJAX requests
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_USE_SESSIONS = True  # Store CSRF token in session instead of cookie

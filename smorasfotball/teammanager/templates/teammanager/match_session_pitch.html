@@ -1142,7 +1142,9 @@
                     currentPeriod = newPeriod;
                     const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                     if (periodBadge) {
-                        periodBadge.textContent = `Period ${currentPeriod}/${globalMatchInfo.total_periods}`;
+                        // Fix: Pass total_periods from Django context to JavaScript properly
+                        const totalPeriods = {{ total_periods }};
+                        periodBadge.textContent = `Period ${currentPeriod}/${totalPeriods}`;
                     }
                 }
             }
@@ -1217,7 +1219,9 @@
                         // Update period badge
                         const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                         if (periodBadge) {
-                            periodBadge.textContent = `Period ${data.match_info.period}/${data.match_info.total_periods}`;
+                            // Access total_periods from either the data object or fall back to Django context
+                            const totalPeriods = data.match_info.total_periods || {{ total_periods }};
+                            periodBadge.textContent = `Period ${data.match_info.period}/${totalPeriods}`;
                         }
                         
                         // Update minutes remaining in period
@@ -1280,7 +1284,9 @@
                     // Update period badge in the header
                     const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                     if (periodBadge) {
-                        periodBadge.textContent = `Period ${data.match_info.period}/${data.match_info.total_periods}`;
+                        // Access total_periods from either the data object or fall back to Django context
+                        const totalPeriods = data.match_info.total_periods || {{ total_periods }};
+                        periodBadge.textContent = `Period ${data.match_info.period}/${totalPeriods}`;
                     }
                     
                     // Update minutes remaining in period

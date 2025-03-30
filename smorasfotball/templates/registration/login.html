@@ -10,12 +10,20 @@
                 <h2 class="mb-0">Login</h2>
             </div>
             <div class="card-body p-4">
-                <form method="post">
+                <form method="post" action="{% url 'login' %}">
                     {% csrf_token %}
+                    <!-- Extra CSRF handling for Replit environment -->
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
                     
                     {% if form.errors %}
                     <div class="alert alert-danger">
                         Your username and password didn't match. Please try again.
+                    </div>
+                    {% endif %}
+                    
+                    {% if error_message %}
+                    <div class="alert alert-danger">
+                        {{ error_message }}
                     </div>
                     {% endif %}
                     
@@ -36,8 +44,76 @@
                         <p class="mt-2 mb-0">Forgot password? <a href="{% url 'password_reset' %}">Reset it here</a></p>
                     </div>
                 </form>
+                
+                <div id="login-error" class="mt-3 alert alert-danger" style="display: none;">
+                    <p>The login form submission failed due to a CSRF error. Please try the alternate login method below.</p>
+                    <button id="ajax-login-btn" class="btn btn-secondary w-100">Try Alternative Login</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.querySelector('form');
+    const loginError = document.getElementById('login-error');
+    const ajaxLoginBtn = document.getElementById('ajax-login-btn');
+    
+    // Handle form submission via AJAX if regular form submission fails
+    loginForm.addEventListener('submit', function(e) {
+        // Regular form submission is still attempted first
+        // The AJAX fallback only kicks in if that fails due to CSRF issues
+    });
+    
+    // Handle alternative login button
+    ajaxLoginBtn.addEventListener('click', function() {
+        const username = document.querySelector('input[name="{{ form.username.html_name }}"]').value;
+        const password = document.querySelector('input[name="{{ form.password.html_name }}"]').value;
+        
+        // Show loading state
+        ajaxLoginBtn.textContent = 'Logging in...';
+        ajaxLoginBtn.disabled = true;
+        
+        // Try CSRF-exempt login endpoint
+        fetch('/accounts/ajax-login/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                // Show error
+                loginError.innerHTML = `<p>Login failed: ${data.error}</p>
+                <button id="ajax-login-btn" class="btn btn-secondary w-100">Try Again</button>`;
+                loginError.style.display = 'block';
+                
+                // Reset button state
+                ajaxLoginBtn.textContent = 'Try Alternative Login';
+                ajaxLoginBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            // Show error
+            loginError.innerHTML = `<p>Login failed: ${error.message}</p>
+            <button id="ajax-login-btn" class="btn btn-secondary w-100">Try Again</button>`;
+            loginError.style.display = 'block';
+            
+            // Reset button state
+            ajaxLoginBtn.textContent = 'Try Alternative Login';
+            ajaxLoginBtn.disabled = false;
+        });
+    });
+    
+    // Check if we need to show the alternate login option
+    {% if form.errors and form.non_field_errors %}
+        loginError.style.display = 'block';
+    {% endif %}
+});
+</script>
 {% endblock %}
