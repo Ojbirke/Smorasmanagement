@@ -381,8 +381,43 @@ def create_safety_backup():
         print(f"Error creating safety backup: {str(e)}")
         return None
 
+def ensure_postgres_database():
+    """Ensure PostgreSQL is used in production"""
+    print("Ensuring PostgreSQL is used for the database...")
+    
+    # Check if this appears to be a production environment
+    is_production = check_if_production()
+    
+    if is_production:
+        print("This is a PRODUCTION environment - PostgreSQL will be enforced.")
+        
+        # Check if our helper script exists
+        ensure_script = os.path.join(os.path.dirname(settings.BASE_DIR), 'ensure_postgres.py')
+        if os.path.exists(ensure_script):
+            print(f"Running PostgreSQL migration helper: {ensure_script}")
+            try:
+                # Run the script as a subprocess
+                result = subprocess.run([sys.executable, ensure_script], 
+                                      capture_output=True, text=True, check=True)
+                print(result.stdout)
+                print("PostgreSQL migration completed.")
+                return True
+            except subprocess.CalledProcessError as e:
+                print(f"PostgreSQL migration failed: {e}")
+                print(f"Error output: {e.stderr}")
+                return False
+        else:
+            print(f"PostgreSQL migration helper not found: {ensure_script}")
+    else:
+        print("This is a DEVELOPMENT environment - database engine will not be enforced.")
+    
+    return True  # Continue even if migration failed or not needed
+
 def main():
     print("Starting auto-restore process after deployment...")
+    
+    # Ensure PostgreSQL is used in production
+    ensure_postgres_database()
     
     # Check if this is a production environment
     is_production = check_if_production()

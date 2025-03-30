@@ -9,6 +9,18 @@ python -m pip install django pandas openpyxl reportlab
 timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 echo "Deployment started at: $timestamp" > deployment_log.txt
 
+# Save PostgreSQL credentials for post-deploy restoration
+if [ -n "$DATABASE_URL" ]; then
+    echo "PostgreSQL detected via DATABASE_URL, saving credentials for deployment..."
+    mkdir -p deployment
+    cat > deployment/postgres_credentials.json << EOF
+{
+    "DATABASE_URL": "$DATABASE_URL"
+}
+EOF
+    echo "PostgreSQL credentials saved for deployment restoration"
+fi
+
 # Navigate to the Django project
 cd smorasfotball
 
