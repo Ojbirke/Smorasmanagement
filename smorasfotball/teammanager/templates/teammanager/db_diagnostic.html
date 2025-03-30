@@ -150,5 +150,53 @@
             </ul>
         </div>
     </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title h5 m-0">Deployment Backups</h2>
+        </div>
+        <div class="card-body">
+            {% if deployment_backups %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Backup File</th>
+                            <th>Size</th>
+                            <th>Modified</th>
+                            <th>Records</th>
+                            <th>Models</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backup in deployment_backups %}
+                        <tr>
+                            <td>{{ backup.path }}</td>
+                            <td>{{ backup.size }}</td>
+                            <td>{{ backup.modified }}</td>
+                            <td>
+                                {% if backup.error %}
+                                    <span class="text-danger">Error: {{ backup.error }}</span>
+                                {% else %}
+                                    {{ backup.record_count }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if backup.models %}
+                                    <ul class="mb-0">
+                                    {% for model, count in backup.models.items %}
+                                        <li>{{ model }}: {{ count }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No deployment backups found</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

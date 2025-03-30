@@ -4,6 +4,8 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Team, Player, Match, MatchAppearance
 import os
+import json
+import datetime
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
@@ -59,6 +61,44 @@ def database_diagnostic_view(request):
             if file.endswith('.sqlite3'):
                 sqlite_files.append(os.path.join(deployment_dir, file))
     
+    # Check for deployment backups
+    deployment_backups = []
+    if os.path.exists(deployment_dir):
+        for file in os.listdir(deployment_dir):
+            if file.endswith('.json') or file == 'deployment_db.json':
+                backup_path = os.path.join(deployment_dir, file)
+                try:
+                    # Get file size and modification time
+                    size = os.path.getsize(backup_path)
+                    modified = datetime.datetime.fromtimestamp(os.path.getmtime(backup_path))
+                    
+                    # Try to read the file to check if it's valid JSON
+                    with open(backup_path, 'r') as f:
+                        try:
+                            data = json.load(f)
+                            record_count = len(data)
+                            # Get model types in the backup
+                            models = {}
+                            for item in data:
+                                model = item.get('model', 'unknown')
+                                models[model] = models.get(model, 0) + 1
+                        except json.JSONDecodeError:
+                            record_count = 'Invalid JSON'
+                            models = {}
+                    
+                    deployment_backups.append({
+                        'path': backup_path,
+                        'size': f"{size / 1024:.1f} KB",
+                        'modified': modified,
+                        'record_count': record_count,
+                        'models': models
+                    })
+                except Exception as e:
+                    deployment_backups.append({
+                        'path': backup_path,
+                        'error': str(e)
+                    })
+    
     context = {
         'db_info': db_info,
         'team_count': team_count,
@@ -67,7 +107,8 @@ def database_diagnostic_view(request):
         'appearance_count': appearance_count,
         'teams': teams,
         'team_matches': team_matches,
-        'sqlite_files': sqlite_files
+        'sqlite_files': sqlite_files,
+        'deployment_backups': deployment_backups
     }
     
     return render(request, 'teammanager/db_diagnostic.html', context)
