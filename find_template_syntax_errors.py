@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Template Syntax Error Finder
 
@@ -9,69 +9,47 @@ mixed with Django template variables ({{ var }}).
 
 import re
 import sys
-import os
 
 def find_template_syntax_errors(file_path):
     """Find potential template syntax errors in a file."""
-    if not os.path.exists(file_path):
-        print(f"Error: File not found: {file_path}")
-        return False
+    # Patterns to look for
+    pattern1 = re.compile(r'\${.*?}\$*/{.*?}')  # JS template with Django syntax
+    pattern2 = re.compile(r'\${.*?}/\$*{.*?}')  # JS template with Django syntax
+    pattern3 = re.compile(r'\${.*?}/{{.*?}}')   # JS template with Django variable
+    pattern4 = re.compile(r'\${.*?}/{ .*?}')    # JS template with malformed Django variable
     
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-        lines = content.split('\n')
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+        
+    issues_found = False
     
-    # Look for cases where JavaScript template literals contain Django template variables
-    js_template_pattern = re.compile(r'`[^`]*\${[^}]*{{[^}]*}}[^}]*}[^`]*`')
-    js_template_matches = js_template_pattern.finditer(content)
-    
-    found_errors = False
-    for match in js_template_matches:
-        start = match.start()
-        # Find the line number
-        line_num = content[:start].count('\n') + 1
-        line = lines[line_num - 1].strip()
-        print(f"Line {line_num}: Possible mix of JS template literals and Django variables:")
-        print(f"  {line}")
-        found_errors = True
-    
-    # Also look for direct cases where "${" is followed by "{{ " in the same line
     for i, line in enumerate(lines):
-        if "${" in line and "{{" in line:
-            js_template_parts = line.split("${")
-            for part in js_template_parts[1:]:  # Skip the part before first ${ 
-                if "{{" in part and "}" in part and part.find("{{") < part.find("}"):
-                    print(f"Line {i+1}: Possible mix of JS template literals and Django variables:")
-                    print(f"  {line.strip()}")
-                    found_errors = True
-                    break
-
-    # Check for incomplete JS template literals
-    for i, line in enumerate(lines):
-        # Count the number of backticks in the line
-        backtick_count = line.count('`')
-        if backtick_count % 2 != 0 and backtick_count > 0:
-            print(f"Line {i+1}: Odd number of backticks (possibly unclosed template literal):")
-            print(f"  {line.strip()}")
-            found_errors = True
-    
-    # Look for known problem patterns in our specific case
-    for i, line in enumerate(lines):
-        if "Period" in line and "${" in line and "total_periods" in line:
-            if line.count("${") != line.count("}"):
-                print(f"Line {i+1}: Unmatched template literals in period display:")
+        line_num = i + 1
+        
+        # Check all patterns
+        for j, pattern in enumerate([pattern1, pattern2, pattern3, pattern4]):
+            match = pattern.search(line)
+            if match:
+                print(f"Line {line_num}: Potential template syntax issue (pattern {j+1}):")
                 print(f"  {line.strip()}")
-                found_errors = True
-
-    return found_errors
+                print(f"  {' ' * match.start()}{'~' * (match.end() - match.start())}")
+                issues_found = True
+                
+        # Special check for Django variables in JS template literals
+        js_template_parts = re.findall(r'`(.*?)`', line)
+        for part in js_template_parts:
+            if '{{' in part or '{%' in part:
+                print(f"Line {line_num}: Django template syntax inside JavaScript template literal:")
+                print(f"  {line.strip()}")
+                issues_found = True
+    
+    return issues_found
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python find_template_syntax_errors.py <file_path>")
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <template_file>")
         sys.exit(1)
-    
+        
     file_path = sys.argv[1]
-    found_errors = find_template_syntax_errors(file_path)
-    
-    if not found_errors:
-        print("No obvious template syntax errors found.")
+    if not find_template_syntax_errors(file_path):
+        print(f"No template syntax errors found in {file_path}")
