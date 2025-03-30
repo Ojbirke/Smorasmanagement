@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Database Diagnostic{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Database Diagnostic</h1>
+    <p class="text-danger">This page is only visible to superusers for diagnostic purposes.</p>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title h5 m-0">Database Connection Information</h2>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Engine:</dt>
+                <dd class="col-sm-9">{{ db_info.ENGINE }}</dd>
+                
+                <dt class="col-sm-3">Name:</dt>
+                <dd class="col-sm-9">{{ db_info.NAME }}</dd>
+                
+                <dt class="col-sm-3">User:</dt>
+                <dd class="col-sm-9">{{ db_info.USER }}</dd>
+                
+                <dt class="col-sm-3">Host:</dt>
+                <dd class="col-sm-9">{{ db_info.HOST }}</dd>
+                
+                <dt class="col-sm-3">Connection Max Age:</dt>
+                <dd class="col-sm-9">{{ db_info.CONN_MAX_AGE }}</dd>
+                
+                <dt class="col-sm-3">Options:</dt>
+                <dd class="col-sm-9">{{ db_info.OPTIONS }}</dd>
+                
+                <dt class="col-sm-3">Is PostgreSQL:</dt>
+                <dd class="col-sm-9">{{ db_info.is_postgres }}</dd>
+                
+                <dt class="col-sm-3">Is SQLite:</dt>
+                <dd class="col-sm-9">{{ db_info.is_sqlite }}</dd>
+                
+                <dt class="col-sm-3">DATABASE_URL Set:</dt>
+                <dd class="col-sm-9">{{ db_info.DATABASE_URL_SET }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title h5 m-0">Database Object Counts</h2>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Teams:</dt>
+                <dd class="col-sm-9">{{ team_count }}</dd>
+                
+                <dt class="col-sm-3">Players:</dt>
+                <dd class="col-sm-9">{{ player_count }}</dd>
+                
+                <dt class="col-sm-3">Matches:</dt>
+                <dd class="col-sm-9">{{ match_count }}</dd>
+                
+                <dt class="col-sm-3">Match Appearances:</dt>
+                <dd class="col-sm-9">{{ appearance_count }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title h5 m-0">Team Information</h2>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Team Name</th>
+                        <th>Description</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    <tr>
+                        <td>{{ team.id }}</td>
+                        <td>{{ team.name }}</td>
+                        <td>{{ team.description }}</td>
+                        <td>{{ team.created_at }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No teams found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title h5 m-0">Team Match Information</h2>
+        </div>
+        <div class="card-body">
+            {% for team_info in team_matches %}
+            <h3 class="h6 mb-3">{{ team_info.name }} (ID: {{ team_info.id }}) - {{ team_info.match_count }} matches</h3>
+            
+            <table class="table table-striped mb-4">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Opponent</th>
+                        <th>Location</th>
+                        <th>Type</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in team_info.matches %}
+                    <tr>
+                        <td>{{ match.id }}</td>
+                        <td>{{ match.date }}</td>
+                        <td>{{ match.opponent_name }}</td>
+                        <td>{{ match.location }}</td>
+                        <td>{{ match.match_type }}</td>
+                        <td>{{ match.smoras_score }}-{{ match.opponent_score }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No matches found for this team</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title h5 m-0">SQLite Files in Deployment Directory</h2>
+        </div>
+        <div class="card-body">
+            <ul>
+                {% for file in sqlite_files %}
+                <li>{{ file }}</li>
+                {% empty %}
+                <li>No SQLite files found</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

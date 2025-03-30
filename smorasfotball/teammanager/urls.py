@@ -4,6 +4,7 @@ from . import views_db_admin
 from . import views_lineup
 from . import views_match_management
 from . import views_video
+from . import views_db_diagnostics
 
 urlpatterns = [
     # Authentication
@@ -46,6 +47,7 @@ urlpatterns = [
     
     # Database Management
     path('database/', views_db_admin.database_overview, name='database-overview'),
+    path('database/diagnostic/', views_db_diagnostics.database_diagnostic_view, name='database-diagnostic'),
     
     # API for charts
     path('api/player-stats/', views.player_stats, name='player-stats'),
