@@ -110,7 +110,6 @@ class Command(BaseCommand):
         self.stdout.write('-' * 50)
         self.stdout.write("Production Environment Check:")
         
-        import os
         from pathlib import Path
         
         # Check for production markers
