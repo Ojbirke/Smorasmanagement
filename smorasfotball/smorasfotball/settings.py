@@ -63,7 +63,8 @@ WSGI_APPLICATION = 'smorasfotball.wsgi.application'
 import os
 import dj_database_url
 
-# First, check for PostgreSQL configuration
+# ALWAYS use PostgreSQL in production
+# Check for DATABASE_URL environment variable
 if os.environ.get('DATABASE_URL'):
     print("PostgreSQL detected via DATABASE_URL")
     
@@ -95,7 +96,20 @@ if os.environ.get('DATABASE_URL'):
     DATABASES['default']['CONN_MAX_AGE'] = 0  # Reconnect for each request
     DATABASES['default']['ATOMIC_REQUESTS'] = True  # Wrap requests in transactions
 else:
-    # Fallback to SQLite (for development only)
+    # If DATABASE_URL is not set, this is a critical error in production
+    # We'll still define a fallback SQLite database for testing purposes only
+    print("WARNING: No DATABASE_URL found! The application should always use PostgreSQL in production.")
+    print("This fallback should only be used for testing environments.")
+    
+    # Check for production environment marker
+    is_production = os.path.exists(os.path.join(os.path.dirname(BASE_DIR), 'deployment', 'IS_PRODUCTION_ENVIRONMENT'))
+    if is_production:
+        print("ERROR: This appears to be a production environment, but DATABASE_URL is not set!")
+        print("This is a critical configuration error that must be fixed.")
+        # We won't raise an exception here to allow the application to at least start, 
+        # but you should see this warning in the logs
+    
+    # Fallback to SQLite (for development or testing only)
     DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))
     os.makedirs(DB_DIR, exist_ok=True)
     
