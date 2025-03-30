@@ -478,6 +478,27 @@ def ensure_postgres_database():
 def main():
     print("Starting auto-restore process after deployment...")
     
+    # Check if DATABASE_URL exists in the environment
+    if not os.environ.get('DATABASE_URL'):
+        # Check if we're in a Replit environment and have a database button
+        if 'REPL_ID' in os.environ and 'REPL_OWNER' in os.environ:
+            print("Replit environment detected but DATABASE_URL is not set.")
+            print("Attempting to create a PostgreSQL database automatically...")
+            
+            try:
+                # Try to run a script to provision a PostgreSQL database
+                result = subprocess.run([sys.executable, 'create_postgres_db.py'], 
+                                     capture_output=True, text=True)
+                print(result.stdout)
+                
+                # Check if the environment variable is now set
+                if os.environ.get('DATABASE_URL'):
+                    print("PostgreSQL database created successfully!")
+                else:
+                    print("Failed to create PostgreSQL database automatically.")
+            except Exception as e:
+                print(f"Error attempting to create PostgreSQL database: {e}")
+    
     # Ensure PostgreSQL is used in production
     ensure_postgres_database()
     

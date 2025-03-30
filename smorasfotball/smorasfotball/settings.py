@@ -106,19 +106,86 @@ else:
     if is_production:
         print("ERROR: This appears to be a production environment, but DATABASE_URL is not set!")
         print("This is a critical configuration error that must be fixed.")
-        # We won't raise an exception here to allow the application to at least start, 
-        # but you should see this warning in the logs
+        
+        # Since this is a production environment, automatically try to create a PostgreSQL database
+        try:
+            import subprocess
+            print("Attempting to create PostgreSQL database and fix configuration...")
+            
+            # First, try to run our automatic PostgreSQL creation script
+            script_path = os.path.join(os.path.dirname(BASE_DIR), 'create_postgres_db.py')
+            if os.path.exists(script_path):
+                result = subprocess.run(['python', script_path], capture_output=True, text=True)
+                print(result.stdout)
+                
+                # If that worked, DATABASE_URL should be set in environment
+                if os.environ.get('DATABASE_URL'):
+                    print("Successfully created PostgreSQL database!")
+                    
+                    # Construct database config from the updated environment variable
+                    import dj_database_url
+                    database_config = dj_database_url.config(
+                        default=os.environ.get('DATABASE_URL'),
+                        conn_max_age=600,
+                        conn_health_checks=True,
+                    )
+                    
+                    # Add special options to enhance PostgreSQL connection reliability
+                    database_config['OPTIONS'] = {
+                        'sslmode': 'require',
+                        'connect_timeout': 10,
+                        'keepalives': 1,
+                        'keepalives_idle': 30,
+                        'keepalives_interval': 10,
+                        'keepalives_count': 5,
+                    }
+                    
+                    print(f"Using dynamically created PostgreSQL database.")
+                    DATABASES = {
+                        'default': database_config
+                    }
+                    
+                    # Continue with normal initialization - don't use SQLite
+                    # This will skip the SQLite configuration below
+                    
+                    # Also save this URL for future use
+                    try:
+                        # Save credentials to deployment directory
+                        deployment_dir = os.path.join(os.path.dirname(BASE_DIR), 'deployment')
+                        os.makedirs(deployment_dir, exist_ok=True)
+                        
+                        creds_file = os.path.join(deployment_dir, 'postgres_credentials.json')
+                        
+                        # Save only the DATABASE_URL to avoid saving other sensitive credentials
+                        import json
+                        with open(creds_file, 'w') as f:
+                            json.dump({'DATABASE_URL': os.environ.get('DATABASE_URL')}, f)
+                        
+                        print(f"PostgreSQL credentials saved for future use")
+                    except Exception as e:
+                        print(f"Warning: Could not save PostgreSQL credentials: {e}")
+                    
+                    # Skip the SQLite configuration
+                    print("Automatically switched to PostgreSQL - no need for SQLite fallback")
+                    
+                    # We need to use this to tell the rest of the function to skip SQLite config
+                    _USING_POSTGRES_DYNAMIC = True
+        except Exception as e:
+            print(f"Error attempting to set up PostgreSQL: {e}")
+            _USING_POSTGRES_DYNAMIC = False
     
-    # Fallback to SQLite (for development or testing only)
-    DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))
-    os.makedirs(DB_DIR, exist_ok=True)
-    
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(DB_DIR, 'db.sqlite3'),
+    # Only use SQLite if we didn't dynamically set up PostgreSQL above
+    if not locals().get('_USING_POSTGRES_DYNAMIC', False):
+        # Fallback to SQLite (for development or testing only)
+        DB_DIR = os.environ.get('DATABASE_DIR', os.path.join(os.path.dirname(BASE_DIR), 'deployment'))
+        os.makedirs(DB_DIR, exist_ok=True)
+        
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': os.path.join(DB_DIR, 'db.sqlite3'),
+            }
         }
-    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

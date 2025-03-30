@@ -25,10 +25,126 @@ from pathlib import Path
 
 # Check if DATABASE_URL environment variable is set
 if not os.environ.get('DATABASE_URL'):
-    print("ERROR: DATABASE_URL environment variable is not set.")
-    print("Please set DATABASE_URL to a valid PostgreSQL connection string.")
-    print("You can create a new PostgreSQL database in Replit using the 'Database' tab.")
-    sys.exit(1)
+    print("DATABASE_URL environment variable is not set. Attempting to create a PostgreSQL database automatically...")
+    
+    # Try to create a PostgreSQL database
+    try:
+        print("Running automatic PostgreSQL database creation script...")
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'create_postgres_db.py')
+        
+        if not os.path.exists(script_path):
+            print(f"Script not found at {script_path}, creating it...")
+            with open(script_path, 'w') as f:
+                f.write("""#!/usr/bin/env python3
+'''
+Create PostgreSQL Database
+
+This script attempts to automatically create a PostgreSQL database in the Replit environment.
+'''
+
+import os
+import sys
+import json
+import subprocess
+import time
+from pathlib import Path
+
+def run_command(cmd, cwd=None):
+    '''Run a shell command and return output'''
+    try:
+        result = subprocess.run(
+            cmd, shell=True, check=True, text=True, 
+            capture_output=True, cwd=cwd
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Command '{cmd}' failed with exit code {e.returncode}")
+        print(f"Error output: {e.stderr}")
+        return None
+
+def get_postgres_connection_data():
+    '''Try to get PostgreSQL connection data from environment variables'''
+    if all(k in os.environ for k in ['PGDATABASE', 'PGUSER', 'PGPASSWORD', 'PGHOST', 'PGPORT']):
+        return {
+            'database': os.environ['PGDATABASE'],
+            'user': os.environ['PGUSER'],
+            'password': os.environ['PGPASSWORD'],
+            'host': os.environ['PGHOST'],
+            'port': os.environ['PGPORT']
+        }
+    return None
+
+def create_postgres_db():
+    '''Create a PostgreSQL database using Replit's database API if available'''
+    if 'DATABASE_URL' in os.environ and os.environ.get('DATABASE_URL').startswith('postgres'):
+        print(f"PostgreSQL database already configured: {os.environ['DATABASE_URL']}")
+        return True
+    
+    # Try using Replit's database tools
+    try:
+        subprocess.run(['python', '-c', 
+                    'from replit import db; print("Replit database module available")'],
+                    capture_output=True, text=True)
+        
+        # This is a one-way function that can trigger database creation
+        subprocess.run(['python', '-c', 
+                       'from replit.database import DatabaseCreateRequest; ' +
+                       'req = DatabaseCreateRequest(); print(req.database_type)'],
+                       capture_output=True, text=True)
+        # Give Replit time to create the database
+        time.sleep(5)
+    except Exception:
+        print("Replit database module not available") 
+
+    # If DATABASE_URL still isn't set, check if we can create it from PGDATABASE etc.
+    if 'DATABASE_URL' not in os.environ or not os.environ.get('DATABASE_URL').startswith('postgres'):
+        conn_data = get_postgres_connection_data()
+        if conn_data:
+            # Construct DATABASE_URL
+            db_url = (f"postgresql://{conn_data['user']}:{conn_data['password']}@"
+                     f"{conn_data['host']}:{conn_data['port']}/{conn_data['database']}")
+            os.environ['DATABASE_URL'] = db_url
+            
+            # Save to .env file so it persists
+            env_path = Path('.env')
+            with open(env_path, 'w' if not env_path.exists() else 'a') as f:
+                f.write(f'\\nDATABASE_URL="{db_url}"\\n')
+            
+            print(f"Created DATABASE_URL from PostgreSQL credentials")
+            return True
+    
+    if 'DATABASE_URL' in os.environ and os.environ.get('DATABASE_URL').startswith('postgres'):
+        print(f"PostgreSQL database successfully configured")
+        return True
+    else:
+        print("Failed to configure PostgreSQL database automatically")
+        return False
+
+if __name__ == "__main__":
+    create_postgres_db()
+""")
+        
+        # Make the script executable
+        os.chmod(script_path, 0o755)
+        
+        # Run the script
+        result = subprocess.run([sys.executable, script_path], 
+                              capture_output=True, text=True)
+        print(result.stdout)
+        
+        # Check if the script created a DATABASE_URL successfully
+        if os.environ.get('DATABASE_URL') and os.environ.get('DATABASE_URL').startswith('postgres'):
+            print("PostgreSQL database successfully created and configured!")
+        else:
+            print("Failed to automatically create a PostgreSQL database.")
+            print("Please set DATABASE_URL to a valid PostgreSQL connection string.")
+            print("You can create a new PostgreSQL database in Replit using the 'Database' tab.")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error creating PostgreSQL database: {e}")
+        print("Please set DATABASE_URL to a valid PostgreSQL connection string.")
+        print("You can create a new PostgreSQL database in Replit using the 'Database' tab.")
+        sys.exit(1)
 
 # Print database URL (with sensitive parts hidden)
 db_url = os.environ.get('DATABASE_URL', '')
