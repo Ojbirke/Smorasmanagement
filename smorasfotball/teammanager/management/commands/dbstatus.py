@@ -2,6 +2,8 @@ from django.core.management.base import BaseCommand
 from django.db import connections
 from django.conf import settings
 import os
+import sys
+import subprocess
 
 
 class Command(BaseCommand):
