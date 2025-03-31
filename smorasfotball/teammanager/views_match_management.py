@@ -420,14 +420,23 @@ def match_session_start(request, pk):
             messages.info(request, message)
     
     # Start the match
+    now = timezone.now()
     match_session.is_active = True
-    match_session.start_time = timezone.now()
+    match_session.start_time = now
+    
+    # Always reset the substitution timer when starting a match
+    match_session.last_substitution = now
     match_session.save()
     
     # Update starting time for all players on the pitch
-    PlayingTime.objects.filter(match_session=match_session, is_on_pitch=True).update(
-        last_substitution_time=timezone.now()
-    )
+    # Reset starting time for all active players to ensure consistent timing
+    playing_times = PlayingTime.objects.filter(match_session=match_session, is_on_pitch=True)
+    for pt in playing_times:
+        pt.last_substitution_time = now
+        # Also update the current_start_time - this is needed for proper timing calculations
+        if hasattr(pt, 'current_start_time'):
+            pt.current_start_time = now
+        pt.save()
     
     # Show message about players, but don't enable random substitutions
     if players_on_bench > 0:
@@ -513,9 +522,11 @@ def match_session_stop(request, pk):
                     message = f"Period {periods_completed} complete. Ready to start period {next_period}."
                     messages.info(request, message)
         
-        # Stop the match
+        # Stop the match, but keep the start_time 
+        # This way we can restart with proper timing if needed
         match_session.is_active = False
-        match_session.start_time = None
+        # Keep the start_time, we'll reset it when restarting
+        # (old code set it to None which caused problems when restarting)
         match_session.save()
         
         messages.success(request, "Match session stopped. Playing time has been recorded and saved to match statistics.")
@@ -1037,8 +1048,8 @@ def reset_match_time(request, pk):
     if not is_coach_or_admin(request.user):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
-    if not match_session.is_active:
-        return JsonResponse({'error': 'Match is not active'}, status=400)
+    # Allow resetting even if match is not active
+    # This makes it easier to prepare for the next match period
     
     # Reset time by updating start_time to now
     match_session.start_time = timezone.now()
@@ -1075,8 +1086,8 @@ def reset_substitution_timer(request, pk):
     if not is_coach_or_admin(request.user):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
-    if not match_session.is_active:
-        return JsonResponse({'error': 'Match is not active'}, status=400)
+    # Allow resetting even if match is not active
+    # This makes it easier to prepare for the next substitution
     
     # Set the last_substitution time to now, which will reset the substitution timer
     # This starts a new rotation interval from this moment
