@@ -9,6 +9,7 @@ from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from django.core.exceptions import PermissionDenied
+from django.views.decorators.csrf import csrf_exempt
 import json
 import math
 import random
@@ -601,6 +602,7 @@ def substitution_create(request, pk):
     return render(request, 'teammanager/substitution_form.html', context)
 
 
+@csrf_exempt
 @login_required
 def ajax_quick_sub(request, session_pk):
     """Quick substitution via AJAX"""
@@ -748,6 +750,7 @@ def match_session_pitch_view(request, pk):
     return render(request, 'teammanager/match_session_pitch.html', context)
 
 
+@csrf_exempt
 @login_required
 def get_sub_recommendations(request, session_pk):
     """
@@ -898,6 +901,7 @@ def get_sub_recommendations(request, session_pk):
         }, status=500)
 
 
+@csrf_exempt
 def update_playing_times(request, session_pk):
     """
     AJAX endpoint to update playing times for all active players
