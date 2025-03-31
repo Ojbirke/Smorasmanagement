@@ -428,14 +428,24 @@ def match_session_start(request, pk):
     match_session.last_substitution = now
     match_session.save()
     
-    # Update starting time for all players on the pitch
-    # Reset starting time for all active players to ensure consistent timing
-    playing_times = PlayingTime.objects.filter(match_session=match_session, is_on_pitch=True)
-    for pt in playing_times:
+    # Update all players in this match
+    playing_times = PlayingTime.objects.filter(match_session=match_session)
+    
+    # First, update players on pitch
+    for pt in playing_times.filter(is_on_pitch=True):
+        # Reset their substitution time to now
         pt.last_substitution_time = now
         # Also update the current_start_time - this is needed for proper timing calculations
         if hasattr(pt, 'current_start_time'):
             pt.current_start_time = now
+        pt.save()
+    
+    # Also ensure players on bench have proper timing data reset
+    for pt in playing_times.filter(is_on_pitch=False):
+        # Bench players should have no active timing data
+        pt.last_substitution_time = None
+        if hasattr(pt, 'current_start_time'):
+            pt.current_start_time = None
         pt.save()
     
     # Show message about players, but don't enable random substitutions
@@ -474,6 +484,9 @@ def match_session_stop(request, pk):
                 elapsed = now - playing_time.last_substitution_time
                 playing_time.minutes_played += math.floor(elapsed.total_seconds() / 60)
                 playing_time.last_substitution_time = None
+                # Reset current_start_time to ensure it doesn't carry over
+                if hasattr(playing_time, 'current_start_time'):
+                    playing_time.current_start_time = None
                 playing_time.save()
         
         # Now update the MatchAppearance records with the final playing times
