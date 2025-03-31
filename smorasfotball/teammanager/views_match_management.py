@@ -423,14 +423,15 @@ def match_session_start(request, pk):
     now = timezone.now()
     match_session.is_active = True
     
-    # Calculate a start_time that accounts for any already elapsed time
-    # This way, the clock will continue from where it left off instead of resetting
-    if match_session.elapsed_time > 0:
-        # Move the start_time back by the already elapsed time
-        match_session.start_time = now - timedelta(seconds=match_session.elapsed_time)
-    else:
-        # If no elapsed time, this is the first start
-        match_session.start_time = now
+    # Set the new start time, regardless of previous elapsed time
+    # The elapsed_time field keeps track of accumulated time, but start_time 
+    # should always reflect when the current session started
+    match_session.start_time = now
+    
+    # We don't need to adjust start_time because:
+    # 1. elapsed_time tracks the total time across all starts/stops
+    # 2. When stopped, we add the current session time to elapsed_time
+    # 3. On the client side, the JS clock adds elapsed_time to its calculations
     
     # Always reset the substitution timer when starting a match
     match_session.last_substitution = now
@@ -1048,7 +1049,8 @@ def update_playing_times(request, session_pk):
                 'next_sub_countdown': next_sub_countdown,
                 'substitution_interval': match_session.substitution_interval,
                 'elapsed_minutes_previous_periods': int(match_session.elapsed_time / 60),
-                'elapsed_seconds': int(match_session.elapsed_time) # Add seconds for client-side calculations
+                'elapsed_seconds': int(match_session.elapsed_time), # Add seconds for client-side calculations
+                'elapsed_seconds_previous_periods': int(match_session.elapsed_time) # Add this field for compatibility with client-side code
             }
         })
     except Exception as e:
