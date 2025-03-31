@@ -1035,9 +1035,27 @@ def reset_match_time(request, pk):
     
     # Reset time by updating start_time to now
     match_session.start_time = timezone.now()
+    
+    # Reset player times for the current period - we don't want to lose
+    # the time from previous periods, so just reset the current period
+    appearances = MatchAppearance.objects.filter(match_session=match_session)
+    
+    # For players currently on the pitch, reset their start time to now
+    on_pitch_appearances = appearances.filter(status=MatchAppearance.STATUS_ON_PITCH)
+    for appearance in on_pitch_appearances:
+        # Calculate and save minutes played up to this point
+        minutes_played = appearance.calculate_minutes_played()
+        appearance.minutes_played = minutes_played
+        # Then reset start time to now
+        appearance.current_start_time = timezone.now()
+        appearance.save()
+    
     match_session.save()
     
-    return JsonResponse({'success': True})
+    return JsonResponse({
+        'success': True,
+        'reset_time': timezone.now().isoformat()
+    })
 
 @csrf_exempt
 def reset_substitution_timer(request, pk):
@@ -1053,11 +1071,19 @@ def reset_substitution_timer(request, pk):
     if not match_session.is_active:
         return JsonResponse({'error': 'Match is not active'}, status=400)
     
-    # We don't need to reset anything in the database
-    # The substitution timer is calculated based on the current time
-    # Just return success and let the frontend know to restart its calculations
+    # Set the last_substitution time to now, which will reset the substitution timer
+    # This starts a new rotation interval from this moment
+    match_session.last_substitution = timezone.now()
+    match_session.save()
     
-    return JsonResponse({'success': True, 'reset_time': timezone.now().isoformat()})
+    # Return the new substitution time so the frontend can use it
+    reset_time = timezone.now()
+    
+    return JsonResponse({
+        'success': True, 
+        'reset_time': reset_time.isoformat(),
+        'substitution_reset': True
+    })
 
 @csrf_exempt
 def set_match_period(request, pk):
@@ -1077,17 +1103,45 @@ def set_match_period(request, pk):
         if period < 1 or period > match_session.periods:
             return JsonResponse({'error': f'Period must be between 1 and {match_session.periods}'}, status=400)
         
+        # Store previous period
+        previous_period = match_session.current_period
+        
         # Calculate elapsed time from previous periods
         elapsed_time = 0
         if period > 1:
             # Each previous period contributes period_length minutes to elapsed time
             elapsed_time = (period - 1) * match_session.period_length * 60
         
+        now = timezone.now()
+        
+        # First, record all player times up to this point
+        appearances = MatchAppearance.objects.filter(match_session=match_session)
+        for appearance in appearances:
+            # Update minutes played for all players
+            minutes_played = appearance.calculate_minutes_played()
+            appearance.minutes_played = minutes_played
+            
+            # Reset start time for players on the pitch
+            if appearance.status == MatchAppearance.STATUS_ON_PITCH:
+                appearance.current_start_time = now
+            
+            appearance.save()
+        
         # Update match session
         match_session.current_period = period
         match_session.elapsed_time = elapsed_time
+        # Reset the start time to now
+        match_session.start_time = now
+        # Reset the substitution timer when starting a new period
+        match_session.last_substitution = now
         match_session.save()
         
-        return JsonResponse({'success': True, 'current_period': period, 'elapsed_time': elapsed_time})
+        return JsonResponse({
+            'success': True, 
+            'current_period': period, 
+            'elapsed_time': elapsed_time,
+            'start_time': now.isoformat(),
+            'reset_time': now.isoformat()
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

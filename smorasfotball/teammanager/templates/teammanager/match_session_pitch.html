@@ -1542,7 +1542,7 @@
         // Global variables to store match info for all functions to use
         let globalMatchInfo = {
             period: {{ current_period|default:1 }},
-            total_periods: {{ total_periods|default:2 }},
+            total_periods: {{ match_session.periods }},
             period_length: {{ period_length|default:25 }},
             elapsed_seconds: {{ elapsed_seconds_previous_periods|default:0 }} // From previous periods
         };
@@ -1575,13 +1575,32 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            // Reset the substitution timer in the UI
+                            const countdownEl = document.querySelector('.col-6.text-end .small');
+                            if (countdownEl) {
+                                countdownEl.innerHTML = `<span class="badge bg-primary">
+                                    <i class="bi bi-clock"></i> {% translate "Next sub:" %} ${data.substitution_reset ? "0 min" : "calculatingâ€¦"}
+                                </span>`;
+                            }
+                            
+                            // Make sure to clear any critical countdown state
+                            if (criticalTimerInterval) {
+                                clearInterval(criticalTimerInterval);
+                                criticalTimerInterval = null;
+                                criticalCountdown = false;
+                                
+                                // Reset to normal update interval
+                                if (updateTimerInterval) clearInterval(updateTimerInterval);
+                                updateTimerInterval = setInterval(updatePlayingTimes, 5000);
+                            }
+                            
                             // Flash success message
                             const button = this;
                             button.classList.add('btn-success');
                             button.classList.remove('btn-outline-primary');
                             button.innerHTML = '<i class="bi bi-check-circle"></i> {% translate "Reset Complete" %}';
                             
-                            // Update the UI immediately
+                            // Update the UI immediately with fresh data
                             updatePlayingTimes();
                             
                             // Reset the button after a delay
@@ -1618,13 +1637,27 @@
                             // Reset the client-side start time
                             matchStartTime = new Date();
                             
+                            // Reset the display timer to 0
+                            const matchInfoEl = document.querySelector('.fs-5 .fw-bold');
+                            if (matchInfoEl) {
+                                matchInfoEl.textContent = '0:00';
+                            }
+                            
+                            // Immediately update playing times to reflect reset
+                            // This will clear the criticalCountdown state if needed
+                            if (criticalTimerInterval) {
+                                clearInterval(criticalTimerInterval);
+                                criticalTimerInterval = null;
+                                criticalCountdown = false;
+                            }
+                            
                             // Flash success message
                             const button = this;
                             button.classList.add('btn-success');
                             button.classList.remove('btn-outline-danger');
                             button.innerHTML = '<i class="bi bi-check-circle"></i> {% translate "Reset Complete" %}';
                             
-                            // Update the UI immediately
+                            // Update the UI immediately with a direct call to API
                             updatePlayingTimes();
                             
                             // Reset the button after a delay
@@ -1664,7 +1697,31 @@
                             globalMatchInfo.elapsed_seconds = data.elapsed_time;
                             
                             // Reset the client-side start time to now
-                            matchStartTime = new Date();
+                            matchStartTime = new Date(data.start_time);
+                            
+                            // Reset the display timer for the new period
+                            const matchInfoEl = document.querySelector('.fs-5 .fw-bold');
+                            if (matchInfoEl) {
+                                matchInfoEl.textContent = `0:00`;
+                            }
+                            
+                            // Make sure to update the period badge
+                            const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
+                            if (periodBadge) {
+                                periodBadge.textContent = `{% translate "Period" %} ${data.current_period}/${globalMatchInfo.total_periods}`;
+                                // Update class for the badge - change from primary to info for period 2+
+                                if (data.current_period > 1) {
+                                    periodBadge.classList.remove('bg-primary');
+                                    periodBadge.classList.add('bg-info');
+                                }
+                            }
+                            
+                            // Reset any critical countdown state
+                            if (criticalTimerInterval) {
+                                clearInterval(criticalTimerInterval);
+                                criticalTimerInterval = null;
+                                criticalCountdown = false;
+                            }
                             
                             // Hide the Period 2 button
                             this.style.display = 'none';
