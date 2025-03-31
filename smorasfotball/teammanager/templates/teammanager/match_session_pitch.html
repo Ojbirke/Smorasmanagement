@@ -304,7 +304,7 @@
                         <span class="badge bg-secondary me-1">{% translate "INACTIVE" %}</span>
                         <span class="fw-bold">00:00</span>
                     {% endif %}
-                    <span class="badge {% if match_session.current_period > 1 %}bg-info{% else %}bg-primary{% endif %} ms-2">{% translate "Period" %} {{ current_period }}/{{ total_periods }}</span>
+                    <span class="badge {% if match_session.current_period > 1 %}bg-info{% else %}bg-primary{% endif %} ms-2">{% translate "Period" %} {{ current_period }}/{{ total_periods|default:2 }}</span>
                 </div>
                 <div>
                     {% if minutes_remaining is not None %}
@@ -1201,7 +1201,7 @@
                     const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                     if (periodBadge) {
                         // Fix: Pass total_periods from Django context to JavaScript properly
-                        const totalPeriods = {{ total_periods }};
+                        const totalPeriods = {{ total_periods|default:2 }};
                         periodBadge.textContent = `Period ${currentPeriod}/${totalPeriods}`;
                     }
                 }
@@ -1278,7 +1278,7 @@
                         const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                         if (periodBadge) {
                             // Access total_periods from either the data object or fall back to Django context
-                            const totalPeriods = data.match_info.total_periods || {{ total_periods }};
+                            const totalPeriods = data.match_info.total_periods || {{ total_periods|default:2 }};
                             periodBadge.textContent = `Period ${data.match_info.period}/${totalPeriods}`;
                         }
                         
@@ -1352,7 +1352,7 @@
                     const periodBadge = document.querySelector('.badge.bg-primary.ms-2');
                     if (periodBadge) {
                         // Access total_periods from either the data object or fall back to Django context
-                        const totalPeriods = data.match_info.total_periods || {{ total_periods }};
+                        const totalPeriods = data.match_info.total_periods || {{ total_periods|default:2 }};
                         periodBadge.textContent = `Period ${data.match_info.period}/${totalPeriods}`;
                     }
                     

@@ -737,6 +737,12 @@ def match_session_pitch_view(request, pk):
     # Calculate previous periods time - always available regardless of match state
     elapsed_minutes_previous_periods = int(match_session.elapsed_time / 60) if match_session.elapsed_time > 0 else 0
     
+    # Set a default for elapsed_seconds_previous_periods for JavaScript clock
+    elapsed_seconds_previous_periods = int(match_session.elapsed_time) if match_session.elapsed_time > 0 else 0
+    
+    # Ensure periods is always defined
+    total_periods = match_session.periods if hasattr(match_session, 'periods') and match_session.periods else 2
+    
     context = {
         'match_session': match_session,
         'on_pitch': on_pitch,
@@ -748,10 +754,11 @@ def match_session_pitch_view(request, pk):
         'can_edit': is_coach_or_admin(request.user),
         'current_period': current_period,
         'minutes_remaining': minutes_remaining,
-        'total_periods': match_session.periods,
+        'total_periods': total_periods,
         'period_length': match_session.period_length,
         'substitution_interval': match_session.substitution_interval,
         'elapsed_minutes_previous_periods': elapsed_minutes_previous_periods,
+        'elapsed_seconds_previous_periods': elapsed_seconds_previous_periods,
     }
     return render(request, 'teammanager/match_session_pitch.html', context)
 
@@ -886,7 +893,7 @@ def get_sub_recommendations(request, session_pk):
         # Include match information for proper period display
         match_info = {
             'period': match_session.current_period,
-            'total_periods': match_session.periods,
+            'total_periods': match_session.periods if hasattr(match_session, 'periods') and match_session.periods else 2,
             # Add other match-related data that might be needed
         }
         
@@ -1000,7 +1007,7 @@ def update_playing_times(request, session_pk):
             'match_info': {
                 'elapsed': int(match_elapsed),
                 'period': current_period,
-                'total_periods': match_session.periods,
+                'total_periods': match_session.periods if hasattr(match_session, 'periods') and match_session.periods else 2,
                 'minute_in_match': minute_in_match,
                 'minute_in_period': minute_in_period,
                 'start_time': start_time_iso,
