@@ -703,6 +703,8 @@ def ajax_quick_sub(request, session_pk):
             'period': period,
             'player_in': player_in.first_name,
             'player_out': player_out.first_name,
+            'player_in_id': player_in.id,  # Added player IDs to response
+            'player_out_id': player_out.id,
             'sub_id': substitution.id
         })
     

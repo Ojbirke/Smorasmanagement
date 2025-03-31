@@ -650,6 +650,22 @@
                                     minute: data.minute,
                                     period: data.period
                                 });
+                                
+                                // Update the UI immediately for each successful substitution
+                                // Using data from response, not sub object for accurate names
+                                updatePlayerPositionsAfterSubstitution(
+                                    data.player_in_id || sub.playerIn, // Fallback to sub.playerIn if ID not in response
+                                    data.player_out_id || sub.playerOut,
+                                    { first_name: data.player_in },
+                                    { first_name: data.player_out }
+                                );
+                                
+                                console.log("Applied substitution:", {
+                                    in_id: data.player_in_id || sub.playerIn,
+                                    in_name: data.player_in,
+                                    out_id: data.player_out_id || sub.playerOut,
+                                    out_name: data.player_out
+                                });
                             } else {
                                 results.push({
                                     success: false,
@@ -700,7 +716,26 @@
                     
                     // Update the UI without page reload after multiple substitutions
                     subResultModal.addEventListener('hidden.bs.modal', function () {
+                        // Force a comprehensive UI update
                         updatePlayingTimes();
+                        
+                        // Refresh the player counts
+                        const pitchCount = document.querySelector('.action-bar .badge.bg-primary');
+                        const benchCount = document.querySelector('.action-bar .badge.bg-secondary');
+                        
+                        if (pitchCount && benchCount) {
+                            // Re-count actual players in each list
+                            const onPitchList = document.querySelector('.card-header.bg-primary + .card-body .list-group');
+                            const onBenchList = document.querySelector('.card-header.bg-secondary + .card-body .list-group');
+                            
+                            if (onPitchList && onBenchList) {
+                                const pitchItems = onPitchList.querySelectorAll('.list-group-item');
+                                const benchItems = onBenchList.querySelectorAll('.list-group-item');
+                                
+                                pitchCount.textContent = pitchItems.length;
+                                benchCount.textContent = benchItems.length;
+                            }
+                        }
                     }, { once: true });
                 })
                 .catch(error => {
@@ -1540,14 +1575,16 @@
             const pitchCount = document.querySelector('.action-bar .badge.bg-primary');
             const benchCount = document.querySelector('.action-bar .badge.bg-secondary');
             
-            if (pitchCount && benchCount) {
-                // Get current counts
-                let pitchNum = parseInt(pitchCount.textContent);
-                let benchNum = parseInt(benchCount.textContent);
+            if (pitchCount && benchCount && onPitchList && onBenchList) {
+                // Recalculate accurate player counts
+                const pitchItems = onPitchList.querySelectorAll('.list-group-item');
+                const benchItems = onBenchList.querySelectorAll('.list-group-item');
                 
-                // Update counts - no change in total player count
-                pitchCount.textContent = pitchNum;
-                benchCount.textContent = benchNum;
+                // Update counts based on actual DOM elements
+                pitchCount.textContent = pitchItems.length;
+                benchCount.textContent = benchItems.length;
+                
+                console.log("Updated player counts - On pitch:", pitchItems.length, "On bench:", benchItems.length);
             }
         }
         
