@@ -1116,7 +1116,8 @@
         let clockInterval;
         let currentGameTime = {{ current_game_time|default:0 }};
         let matchStartTime = {% if match_session.start_time %}new Date("{{ match_session.start_time|date:'c' }}"){% else %}null{% endif %};
-        // Initialize elapsed seconds from previous periods
+        // Initialize elapsed seconds from previous periods (time accumulated before current session start)
+        let elapsedSecondsPreviousPeriods = {{ elapsed_seconds_previous_periods|default:0 }};
         let clientSideClockRunning = matchStartTime !== null;
         let currentPeriod = {{ current_period|default:1 }};
         // Define matchSessionId for use in API calls
@@ -1150,11 +1151,13 @@
             
             // Calculate current match time in seconds
             const now = new Date();
-            // Calculate elapsed seconds for the current period
-            const elapsedSecondsCurrentPeriod = Math.floor((now - matchStartTime) / 1000);
+            // Calculate elapsed seconds for the current session (since the match was last started)
+            const elapsedSecondsCurrentSession = Math.floor((now - matchStartTime) / 1000);
             
-            // Add elapsed seconds from previous periods to get total match time
-            const elapsedSeconds = elapsedSecondsCurrentPeriod + (globalMatchInfo.elapsed_seconds || 0);
+            // Add elapsed seconds from previous periods or session stops to get total match time
+            // This ensures we maintain accumulated time even when stopping/starting
+            const elapsedSecondsPrevious = elapsedSecondsPreviousPeriods;
+            const elapsedSeconds = elapsedSecondsCurrentSession + elapsedSecondsPrevious;
             const elapsedMinutes = Math.floor(elapsedSeconds / 60);
             const elapsedSecondsInMinute = elapsedSeconds % 60;
             
@@ -1346,6 +1349,15 @@
                     // Update global match info
                     if (data.match_info) {
                         updateGlobalMatchInfo(data.match_info);
+                        
+                        // Update our client-side elapsed seconds from previous periods
+                        // This ensures we track time properly when stopping/starting
+                        if (data.match_info.elapsed_seconds_previous_periods !== undefined) {
+                            elapsedSecondsPreviousPeriods = data.match_info.elapsed_seconds_previous_periods;
+                        } else if (data.match_info.elapsed_time !== undefined) {
+                            // Backwards compatibility with older API responses
+                            elapsedSecondsPreviousPeriods = data.match_info.elapsed_time;
+                        }
                     }
                     
                     // Update period badge in the header

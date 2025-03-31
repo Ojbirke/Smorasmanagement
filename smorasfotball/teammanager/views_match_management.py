@@ -422,7 +422,15 @@ def match_session_start(request, pk):
     # Start the match
     now = timezone.now()
     match_session.is_active = True
-    match_session.start_time = now
+    
+    # Calculate a start_time that accounts for any already elapsed time
+    # This way, the clock will continue from where it left off instead of resetting
+    if match_session.elapsed_time > 0:
+        # Move the start_time back by the already elapsed time
+        match_session.start_time = now - timedelta(seconds=match_session.elapsed_time)
+    else:
+        # If no elapsed time, this is the first start
+        match_session.start_time = now
     
     # Always reset the substitution timer when starting a match
     match_session.last_substitution = now
