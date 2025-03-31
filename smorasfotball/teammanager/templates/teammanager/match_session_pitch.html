@@ -195,6 +195,11 @@
         }
     }
     
+    /* Animation for critical countdown */
+    .animate-pulse {
+        animation: pulse 1s infinite;
+    }
+    
     /* Custom bottom action bar */
     .action-bar {
         position: fixed;
@@ -299,9 +304,15 @@
             <div class="col-6 text-end">
                 <div class="small">
                     {% if match_session.is_active and next_sub_countdown is not None %}
-                        <span class="badge bg-primary">
-                            <i class="bi bi-clock"></i> {% translate "Next sub:" %} {{ next_sub_countdown }} {% translate "min" %}
-                        </span>
+                        {% if next_sub_countdown.critical %}
+                            <span class="badge bg-danger animate-pulse" style="font-size: 1.1em;">
+                                <i class="bi bi-clock"></i> {% translate "Next sub:" %} {{ next_sub_countdown.value }} {% translate next_sub_countdown.unit %}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-primary">
+                                <i class="bi bi-clock"></i> {% translate "Next sub:" %} {{ next_sub_countdown.value }} {% translate next_sub_countdown.unit %}
+                            </span>
+                        {% endif %}
                     {% else %}
                         <span class="text-muted">{% translate "Manual substitutions only" %}</span>
                     {% endif %}
@@ -1238,7 +1249,16 @@
                         if (data.match_info.next_sub_countdown !== null) {
                             const countdownEl = document.querySelector('.col-6.text-end .small .badge');
                             if (countdownEl) {
-                                countdownEl.innerHTML = `<i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown} min`;
+                                // Check if this is a critical countdown (within 30 seconds)
+                                if (data.match_info.next_sub_countdown.critical) {
+                                    countdownEl.className = 'badge bg-danger animate-pulse';
+                                    countdownEl.style.fontSize = '1.1em';
+                                    countdownEl.innerHTML = `<i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown.value} ${data.match_info.next_sub_countdown.unit}`;
+                                } else {
+                                    countdownEl.className = 'badge bg-primary';
+                                    countdownEl.style.fontSize = '';
+                                    countdownEl.innerHTML = `<i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown.value} ${data.match_info.next_sub_countdown.unit}`;
+                                }
                             }
                         }
                     }
@@ -1318,9 +1338,16 @@
                         const countdownEl = document.querySelector('.col-6.text-end .small');
                         if (countdownEl) {
                             if (data.match_info.next_sub_countdown !== null) {
-                                countdownEl.innerHTML = `<span class="badge bg-primary">
-                                    <i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown} min
-                                </span>`;
+                                // Check if this is a critical countdown (within 30 seconds)
+                                if (data.match_info.next_sub_countdown.critical) {
+                                    countdownEl.innerHTML = `<span class="badge bg-danger animate-pulse" style="font-size: 1.1em;">
+                                        <i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown.value} ${data.match_info.next_sub_countdown.unit}
+                                    </span>`;
+                                } else {
+                                    countdownEl.innerHTML = `<span class="badge bg-primary">
+                                        <i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown.value} ${data.match_info.next_sub_countdown.unit}
+                                    </span>`;
+                                }
                             } else {
                                 countdownEl.innerHTML = `<span class="text-muted">Manual substitutions only</span>`;
                             }

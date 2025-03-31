@@ -707,7 +707,13 @@ def match_session_pitch_view(request, pk):
             next_sub_time = (intervals_passed + 1) * match_session.substitution_interval
             # Calculate seconds until next substitution
             seconds_until_sub = (next_sub_time * 60) - current_seconds
-            next_sub_countdown = math.ceil(seconds_until_sub / 60)  # Convert to minutes and round up
+            
+            # Display seconds countdown when less than 30 seconds remain
+            if seconds_until_sub <= 30:
+                next_sub_countdown = {'value': int(seconds_until_sub), 'unit': 'sec', 'critical': True}
+            else:
+                # Otherwise, show minutes
+                next_sub_countdown = {'value': math.ceil(seconds_until_sub / 60), 'unit': 'min', 'critical': False}
     
     # Get period from match_session model
     current_period = match_session.current_period
@@ -943,7 +949,13 @@ def update_playing_times(request, session_pk):
                 intervals_passed = minute_in_period // match_session.substitution_interval
                 next_sub_time = (intervals_passed + 1) * match_session.substitution_interval
                 seconds_until_sub = (next_sub_time * 60) - current_seconds
-                next_sub_countdown = math.ceil(seconds_until_sub / 60)  # Convert to minutes and round up
+                
+                # Display seconds countdown when less than 30 seconds remain
+                if seconds_until_sub <= 30:
+                    next_sub_countdown = {'value': int(seconds_until_sub), 'unit': 'sec', 'critical': True}
+                else:
+                    # Otherwise, show minutes
+                    next_sub_countdown = {'value': math.ceil(seconds_until_sub / 60), 'unit': 'min', 'critical': False}
         else:
             match_elapsed = 0
             current_period = match_session.current_period
