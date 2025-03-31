@@ -97,6 +97,10 @@ urlpatterns = [
     path('match-sessions/<int:session_pk>/quick-sub/', views_match_management.ajax_quick_sub, name='match-session-quick-sub'),
     path('match-sessions/<int:session_pk>/update-times/', views_match_management.update_playing_times, name='match-session-update-times'),
     path('match-sessions/<int:session_pk>/recommendations/', views_match_management.get_sub_recommendations, name='match-session-recommendations'),
+    # New reset endpoints
+    path('match-sessions/<int:pk>/reset-match-time/', views_match_management.reset_match_time, name='match-session-reset-time'),
+    path('match-sessions/<int:pk>/reset-sub-timer/', views_match_management.reset_substitution_timer, name='match-session-reset-sub-timer'),
+    path('match-sessions/<int:pk>/set-period/', views_match_management.set_match_period, name='match-session-set-period'),
     
     # Video Clips
     path('videos/', views_video.video_clip_list, name='video-clip-list'),
