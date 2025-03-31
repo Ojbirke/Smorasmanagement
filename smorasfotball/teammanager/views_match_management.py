@@ -1017,7 +1017,9 @@ def update_playing_times(request, session_pk):
         return JsonResponse({
             'success': False,
             'error': str(e)
-        }, status=500)@csrf_exempt
+        }, status=500)
+
+@csrf_exempt
 def reset_match_time(request, pk):
     """Reset the match time to the beginning of the current period"""
     if request.method != 'POST':

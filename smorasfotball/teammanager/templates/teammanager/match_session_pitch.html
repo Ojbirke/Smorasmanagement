@@ -260,6 +260,25 @@
                     <a href="{% url 'match-session-stop' match_session.id %}" class="btn btn-sm btn-danger me-2">
                         <i class="bi bi-stop-circle"></i> {% translate "Stop" %}
                     </a>
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-gear"></i> {% translate "Match Controls" %}
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item reset-sub-timer-btn" data-session-id="{{ match_session.id }}">
+                                <i class="bi bi-arrow-repeat"></i> {% translate "Reset Substitution Timer" %}
+                            </button></li>
+                            <li><button class="dropdown-item reset-match-time-btn" data-session-id="{{ match_session.id }}">
+                                <i class="bi bi-arrow-counterclockwise"></i> {% translate "Reset Period Time" %}
+                            </button></li>
+                            {% if match_session.current_period < match_session.periods %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item set-period-btn" data-session-id="{{ match_session.id }}" data-period="2">
+                                <i class="bi bi-2-circle"></i> {% translate "Set to Period 2" %}
+                            </button></li>
+                            {% endif %}
+                        </ul>
+                    </div>
                 {% else %}
                     <a href="{% url 'match-session-start' match_session.id %}" class="btn btn-sm btn-success me-2">
                         <i class="bi bi-play-circle"></i> {% translate "Start" %}
@@ -317,8 +336,34 @@
                         <span class="text-muted">{% translate "Manual substitutions only" %}</span>
                     {% endif %}
                 </div>
+                
+                {% if match_session.is_active and is_coach_or_admin %}
+                <div class="mt-2">
+                    <button id="resetSubTimerBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-clock-history"></i> {% translate "Reset Sub Timer" %}
+                    </button>
+                </div>
+                {% endif %}
             </div>
         </div>
+        
+        {% if match_session.is_active and is_coach_or_admin %}
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="btn-group w-100" role="group" aria-label="Match Controls">
+                    <button id="resetMatchTimeBtn" class="btn btn-outline-danger">
+                        <i class="bi bi-arrow-clockwise"></i> {% translate "Reset Match Time" %}
+                    </button>
+                    
+                    {% if current_period == 1 and total_periods > 1 %}
+                    <button id="setPeriod2Btn" class="btn btn-outline-info">
+                        <i class="bi bi-2-circle"></i> {% translate "Set to Period 2" %}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     <!-- Football pitch visualization -->
@@ -1076,6 +1121,8 @@
         let currentPeriod = {{ current_period|default:1 }};
         // Define matchSessionId for use in API calls
         const matchSessionId = {{ match_session.id }};
+        let criticalCountdown = false;
+        let criticalTimerInterval = null;
         
         function startAutoRefresh() {
             // First immediate update
@@ -1343,10 +1390,33 @@
                                     countdownEl.innerHTML = `<span class="badge bg-danger animate-pulse" style="font-size: 1.1em;">
                                         <i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown.value} ${data.match_info.next_sub_countdown.unit}
                                     </span>`;
+                                    
+                                    // If this is the first time we've seen a critical countdown, 
+                                    // set up faster updates (every second)
+                                    if (!criticalCountdown) {
+                                        criticalCountdown = true;
+                                        console.log('Critical countdown detected, switching to 1-second updates');
+                                        
+                                        // Clear existing interval and set up a faster one
+                                        if (criticalTimerInterval) clearInterval(criticalTimerInterval);
+                                        criticalTimerInterval = setInterval(updatePlayingTimes, 1000);
+                                    }
                                 } else {
                                     countdownEl.innerHTML = `<span class="badge bg-primary">
                                         <i class="bi bi-clock"></i> Next sub: ${data.match_info.next_sub_countdown.value} ${data.match_info.next_sub_countdown.unit}
                                     </span>`;
+                                    
+                                    // If we were in critical mode but now we're not, disable fast updates
+                                    if (criticalCountdown) {
+                                        criticalCountdown = false;
+                                        console.log('Critical countdown ended, switching back to normal updates');
+                                        
+                                        // Clear the fast interval
+                                        if (criticalTimerInterval) {
+                                            clearInterval(criticalTimerInterval);
+                                            criticalTimerInterval = null;
+                                        }
+                                    }
                                 }
                             } else {
                                 countdownEl.innerHTML = `<span class="text-muted">Manual substitutions only</span>`;
@@ -1487,6 +1557,135 @@
             }
         }
         
+        // Event handlers for match control buttons
+        const resetSubTimerBtn = document.getElementById('resetSubTimerBtn');
+        const resetMatchTimeBtn = document.getElementById('resetMatchTimeBtn');
+        const setPeriod2Btn = document.getElementById('setPeriod2Btn');
+        
+        if (resetSubTimerBtn) {
+            resetSubTimerBtn.addEventListener('click', function() {
+                if (confirm('{% translate "Are you sure you want to reset the substitution timer?" %}')) {
+                    fetch('/team/match-sessions/' + matchSessionId + '/reset-sub-timer/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Flash success message
+                            const button = this;
+                            button.classList.add('btn-success');
+                            button.classList.remove('btn-outline-primary');
+                            button.innerHTML = '<i class="bi bi-check-circle"></i> {% translate "Reset Complete" %}';
+                            
+                            // Update the UI immediately
+                            updatePlayingTimes();
+                            
+                            // Reset the button after a delay
+                            setTimeout(() => {
+                                button.classList.remove('btn-success');
+                                button.classList.add('btn-outline-primary');
+                                button.innerHTML = '<i class="bi bi-clock-history"></i> {% translate "Reset Sub Timer" %}';
+                            }, 2000);
+                        } else {
+                            alert('{% translate "Error resetting substitution timer:" %} ' + (data.error || '{% translate "Unknown error" %}'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('{% translate "Error resetting substitution timer. Please try again." %}');
+                    });
+                }
+            });
+        }
+        
+        if (resetMatchTimeBtn) {
+            resetMatchTimeBtn.addEventListener('click', function() {
+                if (confirm('{% translate "Are you sure you want to reset the match time to the start of the current period? This cannot be undone." %}')) {
+                    fetch('/team/match-sessions/' + matchSessionId + '/reset-match-time/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Reset the client-side start time
+                            matchStartTime = new Date();
+                            
+                            // Flash success message
+                            const button = this;
+                            button.classList.add('btn-success');
+                            button.classList.remove('btn-outline-danger');
+                            button.innerHTML = '<i class="bi bi-check-circle"></i> {% translate "Reset Complete" %}';
+                            
+                            // Update the UI immediately
+                            updatePlayingTimes();
+                            
+                            // Reset the button after a delay
+                            setTimeout(() => {
+                                button.classList.remove('btn-success');
+                                button.classList.add('btn-outline-danger');
+                                button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> {% translate "Reset Match Time" %}';
+                            }, 2000);
+                        } else {
+                            alert('{% translate "Error resetting match time:" %} ' + (data.error || '{% translate "Unknown error" %}'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('{% translate "Error resetting match time. Please try again." %}');
+                    });
+                }
+            });
+        }
+        
+        if (setPeriod2Btn) {
+            setPeriod2Btn.addEventListener('click', function() {
+                if (confirm('{% translate "Are you sure you want to set the current period to Period 2? This will adjust the match time accordingly." %}')) {
+                    fetch('/team/match-sessions/' + matchSessionId + '/set-period/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ period: 2 })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update global match info
+                            globalMatchInfo.current_period = data.current_period;
+                            globalMatchInfo.elapsed_seconds = data.elapsed_time;
+                            
+                            // Reset the client-side start time to now
+                            matchStartTime = new Date();
+                            
+                            // Hide the Period 2 button
+                            this.style.display = 'none';
+                            
+                            // Update the UI immediately
+                            updatePlayingTimes();
+                            
+                            // Show success message
+                            alert('{% translate "Successfully changed to Period 2" %}');
+                        } else {
+                            alert('{% translate "Error setting period:" %} ' + (data.error || '{% translate "Unknown error" %}'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('{% translate "Error setting period. Please try again." %}');
+                    });
+                }
+            });
+        }
+        
         // Start auto-refresh when page loads
         startAutoRefresh();
         
@@ -1497,6 +1696,9 @@
             }
             if (clockInterval) {
                 clearInterval(clockInterval);
+            }
+            if (criticalTimerInterval) {
+                clearInterval(criticalTimerInterval);
             }
         });
         {% endif %}
