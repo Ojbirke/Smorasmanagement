@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% translate "Technical Documentation" %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">{% translate "Smørås Fotball Technical Documentation" %}</h1>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">{% translate "About the Documentation" %}</h2>
+            <p class="card-text">
+                {% translate "This technical documentation provides a comprehensive overview of the Smørås Fotball application." %}
+            </p>
+            
+            <h3>{% translate "Document Contents:" %}</h3>
+            <ul class="list-group list-group-flush mb-3">
+                <li class="list-group-item"><strong>{% translate "Project Overview" %}</strong>: {% translate "Introduction to the application and its core functionality" %}</li>
+                <li class="list-group-item"><strong>{% translate "Project Structure" %}</strong>: {% translate "Detailed description of the Django project organization" %}</li>
+                <li class="list-group-item"><strong>{% translate "Key Technologies" %}</strong>: {% translate "Overview of the technologies used in the application" %}</li>
+                <li class="list-group-item"><strong>{% translate "Database Schema" %}</strong>: {% translate "Explanation of all database models and their relationships" %}</li>
+                <li class="list-group-item"><strong>{% translate "Key Features" %}</strong>: {% translate "Comprehensive list of application features" %}</li>
+                <li class="list-group-item"><strong>{% translate "Technical Implementation Details" %}</strong>: {% translate "In-depth explanation of important technical components" %}</li>
+                <li class="list-group-item"><strong>{% translate "Code Execution Flow" %}</strong>: {% translate "Step-by-step description of how key processes work" %}</li>
+            </ul>
+        </div>
+    </div>
+    
+    <a href="{% url 'download_documentation' %}" class="btn btn-primary btn-lg">
+        <i class="bi bi-download me-2"></i>{% translate "Download PDF Documentation" %}
+    </a>
+</div>
+{% endblock %}

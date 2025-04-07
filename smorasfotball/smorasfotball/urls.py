@@ -11,6 +11,7 @@ from django.views.i18n import set_language
 from django.contrib.auth.views import LoginView
 
 from .views import change_language
+from .views_documentation import documentation_index, download_pdf_documentation
 from teammanager.views_auth import CustomLoginView
 
 urlpatterns = [
@@ -50,5 +51,7 @@ urlpatterns += i18n_patterns(
     path('accounts/', include(auth_patterns)),  # Use our custom auth patterns
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('team/', include('teammanager.urls')),
+    path('documentation/', documentation_index, name='documentation'),
+    path('documentation/download/', download_pdf_documentation, name='download_documentation'),
     prefix_default_language=False,
 )
